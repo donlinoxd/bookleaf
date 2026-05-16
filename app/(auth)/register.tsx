@@ -59,7 +59,7 @@ export default function RegisterScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Library Setup</Text>
+      <Text style={styles.title}>Bookleaf Setup</Text>
       <Text style={styles.subtitle}>Set up your institution and admin account</Text>
 
       <Text style={styles.section}>Institution</Text>

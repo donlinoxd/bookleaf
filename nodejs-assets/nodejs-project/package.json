@@ -1,7 +1,7 @@
 {
   "name": "library-server",
   "version": "1.0.0",
-  "description": "Local HTTP server for LibraryApp",
+  "description": "Local HTTP server for Bookleaf",
   "main": "main.js",
   "dependencies": {}
 }

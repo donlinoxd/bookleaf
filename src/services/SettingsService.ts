@@ -12,7 +12,7 @@ export const SettingsService = {
       fine_per_day: parseFloat(map.fine_per_day ?? '5'),
       max_borrow_days: parseInt(map.max_borrow_days ?? '7'),
       max_books_per_member: parseInt(map.max_books_per_member ?? '3'),
-      institution_name: map.institution_name ?? 'My Library',
+      institution_name: map.institution_name ?? 'My School Library',
     };
   },
 

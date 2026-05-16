@@ -1,4 +1,4 @@
-# LibraryApp
+# Bookleaf
 
 An offline-first Android library management system for institutions that cannot afford commercial software or dedicated server hardware. One Android device acts as the library server; all other devices connect to it over local Wi-Fi — no internet required.
 

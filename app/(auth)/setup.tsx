@@ -20,14 +20,14 @@ export default function SetupScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>LibraryApp</Text>
+        <Text style={styles.title}>Bookleaf</Text>
         <Text style={styles.subtitle}>Choose how this device will be used</Text>
       </View>
 
       <View style={styles.cards}>
         <TouchableOpacity style={[styles.card, styles.serverCard]} onPress={() => selectMode('server')}>
           <Text style={styles.cardIcon}>📚</Text>
-          <Text style={styles.cardTitle}>Library Server</Text>
+          <Text style={styles.cardTitle}>Bookleaf Server</Text>
           <Text style={styles.cardDesc}>
             This device manages the library.{'\n'}
             Hosts the database and API for all other devices.

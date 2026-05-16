@@ -93,5 +93,5 @@ export const DEFAULT_SETTINGS = [
   ['fine_per_day', '5'],
   ['max_borrow_days', '7'],
   ['max_books_per_member', '3'],
-  ['institution_name', 'My Library'],
+  ['institution_name', 'My School Library'],
 ];

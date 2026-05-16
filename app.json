@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "LibraryApp",
-    "slug": "library-mobi",
+    "name": "Bookleaf",
+    "slug": "bookleaf",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.libraryapp.mobi"
+      "bundleIdentifier": "com.bookleaf.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -24,7 +24,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.libraryapp.mobi",
+      "package": "com.bookleaf.app",
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.ACCESS_WIFI_STATE",
@@ -41,7 +41,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow LibraryApp to access the camera for barcode scanning."
+          "cameraPermission": "Allow Bookleaf to access the camera for barcode scanning."
         }
       ]
     ]
