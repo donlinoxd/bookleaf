@@ -1,0 +1,7 @@
+{
+  "name": "library-server",
+  "version": "1.0.0",
+  "description": "Local HTTP server for LibraryApp",
+  "main": "main.js",
+  "dependencies": {}
+}
