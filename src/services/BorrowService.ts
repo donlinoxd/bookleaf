@@ -138,6 +138,19 @@ export const BorrowService = {
     );
   },
 
+  async getFullHistoryByUser(userId: number): Promise<BorrowingRecord[]> {
+    const db = await getDatabase();
+    return db.getAllAsync<BorrowingRecord>(
+      `SELECT br.*, b.title as book_title, b.author as book_author
+       FROM borrowing_records br
+       JOIN book_copies bc ON br.copy_id = bc.id
+       JOIN books b ON bc.book_id = b.id
+       WHERE br.user_id = ?
+       ORDER BY br.borrowed_at DESC`,
+      [userId]
+    );
+  },
+
   async getHistoryByBook(bookId: number, limit = 20): Promise<BorrowingRecord[]> {
     const db = await getDatabase();
     return db.getAllAsync<BorrowingRecord>(

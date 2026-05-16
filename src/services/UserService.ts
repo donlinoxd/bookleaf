@@ -64,6 +64,14 @@ export const UserService = {
     await db.runAsync('UPDATE users SET is_active = ? WHERE id = ?', [isActive ? 1 : 0, id]);
   },
 
+  async update(id: number, data: { name: string; id_number: string; role: UserRole }): Promise<void> {
+    const db = await getDatabase();
+    await db.runAsync(
+      'UPDATE users SET name = ?, id_number = ?, role = ? WHERE id = ?',
+      [data.name, data.id_number, data.role, id]
+    );
+  },
+
   async changePin(id: number, newPin: string): Promise<void> {
     const db = await getDatabase();
     const pin_hash = await hashPin(newPin);
