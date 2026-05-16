@@ -1,5 +1,5 @@
 import * as SQLite from 'expo-sqlite';
-import * as Crypto from 'expo-crypto';
+import SHA256 from 'crypto-js/sha256';
 import { CREATE_TABLES, DEFAULT_SETTINGS, SCHEMA_VERSION } from './schema';
 
 let db: SQLite.SQLiteDatabase | null = null;
@@ -40,7 +40,7 @@ async function seedDefaultSettings(database: SQLite.SQLiteDatabase): Promise<voi
 }
 
 export async function hashPin(pin: string): Promise<string> {
-  return Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, pin);
+  return SHA256(pin).toString();
 }
 
 export async function verifyPin(pin: string, hash: string): Promise<boolean> {
