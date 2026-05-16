@@ -1,5 +1,6 @@
 import nodejs from 'nodejs-mobile-react-native';
 import { ApiServer } from './ApiServer';
+import { MdnsService } from './MdnsService';
 
 type BridgeMessage =
   | { requestId: number; action: string; params: Record<string, unknown> }
@@ -53,6 +54,7 @@ export const ServerBridge = {
 
         if ('type' in msg) {
           if (msg.type === 'server_ready') {
+            MdnsService.publish();
             statusCallback?.('running', `Port ${msg.port}`);
           } else if (msg.type === 'server_error') {
             statusCallback?.('error', msg.message);
@@ -74,6 +76,7 @@ export const ServerBridge = {
 
   stop() {
     if (!isStarted) return;
+    MdnsService.unpublish();
     nodejs.channel.send(JSON.stringify({ type: 'stop' }));
     isStarted = false;
     statusCallback?.('stopped');
