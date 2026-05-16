@@ -1,13 +1,15 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   Alert, Modal, TextInput, ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { UserService } from '../../../src/services/UserService';
 import { BorrowService } from '../../../src/services/BorrowService';
 import { useAppStore } from '../../../src/store/appStore';
-import { User, BorrowingRecord, Fine, UserRole } from '../../../src/types';
+import { User, Fine, UserRole } from '../../../src/types';
+import { queryKeys } from '../../../src/lib/queryKeys';
 
 const ROLE_COLOR: Record<UserRole, string> = {
   admin: '#7C3AED',
@@ -18,34 +20,56 @@ const ROLE_COLOR: Record<UserRole, string> = {
 export default function MemberDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const currentUser = useAppStore((s) => s.currentUser);
   const isAdmin = currentUser?.role === 'admin';
+  const userId = parseInt(id);
 
-  const [member, setMember] = useState<User | null>(null);
-  const [activeBorrows, setActiveBorrows] = useState<BorrowingRecord[]>([]);
-  const [history, setHistory] = useState<BorrowingRecord[]>([]);
-  const [fines, setFines] = useState<Fine[]>([]);
-  const [loading, setLoading] = useState(true);
   const [editVisible, setEditVisible] = useState(false);
   const [pinVisible, setPinVisible] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    const userId = parseInt(id);
-    const [m, active, full, userFines] = await Promise.all([
-      UserService.getById(userId),
-      BorrowService.getActiveByUser(userId),
-      BorrowService.getFullHistoryByUser(userId),
-      BorrowService.getUserFines(userId),
-    ]);
-    setMember(m);
-    setActiveBorrows(active);
-    setHistory(full);
-    setFines(userFines);
-    setLoading(false);
-  }, [id]);
+  const { data: member, isLoading } = useQuery({
+    queryKey: queryKeys.member(userId),
+    queryFn: () => UserService.getById(userId),
+    enabled: !!userId,
+  });
 
-  useEffect(() => { load(); }, [load]);
+  const { data: activeBorrows = [] } = useQuery({
+    queryKey: queryKeys.activeBorrows(userId),
+    queryFn: () => BorrowService.getActiveByUser(userId),
+    enabled: !!userId,
+  });
+
+  const { data: history = [] } = useQuery({
+    queryKey: queryKeys.memberHistory(userId),
+    queryFn: () => BorrowService.getFullHistoryByUser(userId),
+    enabled: !!userId,
+  });
+
+  const { data: fines = [] } = useQuery({
+    queryKey: queryKeys.memberFines(userId),
+    queryFn: () => BorrowService.getUserFines(userId),
+    enabled: !!userId,
+  });
+
+  const toggleStatusMutation = useMutation({
+    mutationFn: (isActive: boolean) => UserService.updateStatus(userId, isActive),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.member(userId) });
+      queryClient.invalidateQueries({ queryKey: ['members'] });
+    },
+    onError: (e: any) => Alert.alert('Error', e.message),
+  });
+
+  const payFineMutation = useMutation({
+    mutationFn: (fineId: number) => BorrowService.payFine(fineId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.memberFines(userId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.member(userId) });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+    onError: (e: any) => Alert.alert('Error', e.message),
+  });
 
   const handleToggleStatus = () => {
     if (!member) return;
@@ -53,11 +77,9 @@ export default function MemberDetailScreen() {
     Alert.alert(`${action} Member`, `${action} ${member.name}?`, [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: action, style: member.is_active ? 'destructive' : 'default',
-        onPress: async () => {
-          await UserService.updateStatus(member.id, !member.is_active);
-          load();
-        },
+        text: action,
+        style: member.is_active ? 'destructive' : 'default',
+        onPress: () => toggleStatusMutation.mutate(!member.is_active),
       },
     ]);
   };
@@ -65,19 +87,14 @@ export default function MemberDetailScreen() {
   const handlePayFine = (fine: Fine) => {
     Alert.alert('Mark as Paid', `Mark ₱${fine.amount.toFixed(2)} fine as paid?`, [
       { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Mark Paid', onPress: async () => {
-          await BorrowService.payFine(fine.id);
-          load();
-        },
-      },
+      { text: 'Mark Paid', onPress: () => payFineMutation.mutate(fine.id) },
     ]);
   };
 
   const totalFines = fines.reduce((sum, f) => sum + f.amount, 0);
   const isOverdue = (dueDate: string) => new Date(dueDate) < new Date();
 
-  if (loading) {
+  if (isLoading) {
     return <View style={styles.centered}><ActivityIndicator size="large" color="#2563EB" /></View>;
   }
 
@@ -88,7 +105,6 @@ export default function MemberDetailScreen() {
   return (
     <>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        {/* Top bar */}
         <View style={styles.topBar}>
           <TouchableOpacity onPress={() => router.back()}>
             <Text style={styles.backText}>← Back</Text>
@@ -105,7 +121,6 @@ export default function MemberDetailScreen() {
           </View>
         </View>
 
-        {/* Profile card */}
         <View style={styles.profileCard}>
           <View style={[styles.avatar, { backgroundColor: ROLE_COLOR[member.role] + '20' }]}>
             <Text style={[styles.avatarText, { color: ROLE_COLOR[member.role] }]}>
@@ -117,9 +132,7 @@ export default function MemberDetailScreen() {
             <Text style={styles.memberId}>ID: {member.id_number}</Text>
             <View style={styles.badgeRow}>
               <View style={[styles.roleBadge, { backgroundColor: ROLE_COLOR[member.role] + '20' }]}>
-                <Text style={[styles.roleText, { color: ROLE_COLOR[member.role] }]}>
-                  {member.role}
-                </Text>
+                <Text style={[styles.roleText, { color: ROLE_COLOR[member.role] }]}>{member.role}</Text>
               </View>
               <View style={[styles.statusBadge, member.is_active ? styles.activeStyle : styles.inactiveStyle]}>
                 <Text style={styles.statusText}>{member.is_active ? 'Active' : 'Inactive'}</Text>
@@ -136,14 +149,12 @@ export default function MemberDetailScreen() {
           )}
         </View>
 
-        {/* Stats row */}
         <View style={styles.statsRow}>
           <StatCard label="Currently Borrowed" value={activeBorrows.length} color="#2563EB" />
           <StatCard label="Total Borrows" value={history.length} color="#7C3AED" />
           <StatCard label="Unpaid Fines" value={fines.length} color={fines.length > 0 ? '#DC2626' : '#16A34A'} />
         </View>
 
-        {/* Outstanding fines */}
         {fines.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -161,7 +172,6 @@ export default function MemberDetailScreen() {
           </View>
         )}
 
-        {/* Active borrows */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Currently Borrowed ({activeBorrows.length})</Text>
           {activeBorrows.length === 0 ? (
@@ -183,7 +193,6 @@ export default function MemberDetailScreen() {
           )}
         </View>
 
-        {/* Full borrow history */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Borrow History ({history.length})</Text>
           {history.length === 0 ? (
@@ -193,9 +202,7 @@ export default function MemberDetailScreen() {
               <View key={b.id} style={styles.historyRow}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.borrowTitle}>{b.book_title}</Text>
-                  <Text style={styles.historyDate}>
-                    {new Date(b.borrowed_at).toLocaleDateString()}
-                  </Text>
+                  <Text style={styles.historyDate}>{new Date(b.borrowed_at).toLocaleDateString()}</Text>
                 </View>
                 {b.returned_at
                   ? <Text style={styles.returnedText}>Returned</Text>
@@ -213,7 +220,8 @@ export default function MemberDetailScreen() {
         visible={editVisible}
         member={member}
         onClose={() => setEditVisible(false)}
-        onSaved={() => { setEditVisible(false); load(); }}
+        onSaved={() => setEditVisible(false)}
+        userId={userId}
       />
 
       <ResetPinModal
@@ -235,22 +243,21 @@ function StatCard({ label, value, color }: { label: string; value: number; color
   );
 }
 
-// ── Edit Member Modal ─────────────────────────────────────────────────────────
-
 interface EditModalProps {
   visible: boolean;
   member: User;
   onClose: () => void;
   onSaved: () => void;
+  userId: number;
 }
 
 const ROLES: UserRole[] = ['member', 'librarian', 'admin'];
 
-function EditMemberModal({ visible, member, onClose, onSaved }: EditModalProps) {
+function EditMemberModal({ visible, member, onClose, onSaved, userId }: EditModalProps) {
+  const queryClient = useQueryClient();
   const [name, setName] = useState(member.name);
   const [idNumber, setIdNumber] = useState(member.id_number);
   const [role, setRole] = useState<UserRole>(member.role);
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     setName(member.name);
@@ -258,20 +265,22 @@ function EditMemberModal({ visible, member, onClose, onSaved }: EditModalProps) 
     setRole(member.role);
   }, [member]);
 
-  const handleSave = async () => {
+  const updateMutation = useMutation({
+    mutationFn: () => UserService.update(member.id, { name: name.trim(), id_number: idNumber.trim(), role }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.member(userId) });
+      queryClient.invalidateQueries({ queryKey: ['members'] });
+      onSaved();
+    },
+    onError: (e: any) => Alert.alert('Error', e.message ?? 'Failed to save'),
+  });
+
+  const handleSave = () => {
     if (!name.trim() || !idNumber.trim()) {
       Alert.alert('Error', 'Name and ID number are required');
       return;
     }
-    setSaving(true);
-    try {
-      await UserService.update(member.id, { name: name.trim(), id_number: idNumber.trim(), role });
-      onSaved();
-    } catch (e: any) {
-      Alert.alert('Error', e.message ?? 'Failed to save');
-    } finally {
-      setSaving(false);
-    }
+    updateMutation.mutate();
   };
 
   return (
@@ -282,8 +291,8 @@ function EditMemberModal({ visible, member, onClose, onSaved }: EditModalProps) 
             <Text style={modal.cancel}>Cancel</Text>
           </TouchableOpacity>
           <Text style={modal.title}>Edit Member</Text>
-          <TouchableOpacity onPress={handleSave} disabled={saving}>
-            <Text style={modal.save}>{saving ? 'Saving…' : 'Save'}</Text>
+          <TouchableOpacity onPress={handleSave} disabled={updateMutation.isPending}>
+            <Text style={modal.save}>{updateMutation.isPending ? 'Saving…' : 'Save'}</Text>
           </TouchableOpacity>
         </View>
         <ScrollView style={modal.body}>
@@ -310,8 +319,6 @@ function EditMemberModal({ visible, member, onClose, onSaved }: EditModalProps) 
     </Modal>
   );
 }
-
-// ── Reset PIN Modal ────────────────────────────────────────────────────────────
 
 interface PinModalProps {
   visible: boolean;
@@ -386,10 +393,7 @@ const styles = StyleSheet.create({
   topActions: { flexDirection: 'row', gap: 8 },
   topBtn: { backgroundColor: '#F1F5F9', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
   topBtnText: { fontSize: 13, fontWeight: '600', color: '#374151' },
-  profileCard: {
-    flexDirection: 'row', alignItems: 'center', padding: 20,
-    backgroundColor: '#FFFFFF', gap: 14,
-  },
+  profileCard: { flexDirection: 'row', alignItems: 'center', padding: 20, backgroundColor: '#FFFFFF', gap: 14 },
   avatar: { width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center' },
   avatarText: { fontSize: 26, fontWeight: '700' },
   profileInfo: { flex: 1, gap: 4 },
@@ -407,16 +411,10 @@ const styles = StyleSheet.create({
   toggleActivate: { backgroundColor: '#DCFCE7' },
   toggleBtnText: { fontSize: 12, fontWeight: '700', color: '#374151' },
   statsRow: { flexDirection: 'row', marginHorizontal: 16, marginVertical: 12, gap: 10 },
-  statCard: {
-    flex: 1, backgroundColor: '#FFFFFF', borderRadius: 10, padding: 12,
-    alignItems: 'center', borderTopWidth: 3, elevation: 1,
-  },
+  statCard: { flex: 1, backgroundColor: '#FFFFFF', borderRadius: 10, padding: 12, alignItems: 'center', borderTopWidth: 3, elevation: 1 },
   statValue: { fontSize: 22, fontWeight: '700' },
   statLabel: { fontSize: 11, color: '#64748B', marginTop: 2, textAlign: 'center' },
-  section: {
-    backgroundColor: '#FFFFFF', marginHorizontal: 16, marginBottom: 12,
-    borderRadius: 12, padding: 16, elevation: 1,
-  },
+  section: { backgroundColor: '#FFFFFF', marginHorizontal: 16, marginBottom: 12, borderRadius: 12, padding: 16, elevation: 1 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   sectionTitle: { fontSize: 15, fontWeight: '700', color: '#1E293B', marginBottom: 12 },
   finesTotal: { fontSize: 14, fontWeight: '700', color: '#DC2626' },
@@ -453,10 +451,7 @@ const modal = StyleSheet.create({
     borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15,
   },
   roleRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
-  roleBtn: {
-    flex: 1, borderRadius: 8, paddingVertical: 10, alignItems: 'center',
-    backgroundColor: '#F1F5F9',
-  },
+  roleBtn: { flex: 1, borderRadius: 8, paddingVertical: 10, alignItems: 'center', backgroundColor: '#F1F5F9' },
   roleBtnText: { fontSize: 13, fontWeight: '600', color: '#374151', textTransform: 'capitalize' },
 });
 

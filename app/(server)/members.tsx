@@ -1,28 +1,24 @@
-import { useState, useEffect, useCallback } from 'react';
-import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { useState } from 'react';
+import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
 import { UserService } from '../../src/services/UserService';
 import { useAppStore } from '../../src/store/appStore';
 import { User } from '../../src/types';
+import { queryKeys } from '../../src/lib/queryKeys';
 
 export default function MembersScreen() {
   const router = useRouter();
   const institution = useAppStore((s) => s.institution);
-  const [members, setMembers] = useState<User[]>([]);
   const [query, setQuery] = useState('');
-  const [loading, setLoading] = useState(true);
 
-  const loadMembers = useCallback(async () => {
-    if (!institution) return;
-    setLoading(true);
-    const results = query.trim()
-      ? await UserService.search(institution.id, query)
-      : await UserService.getAll(institution.id);
-    setMembers(results);
-    setLoading(false);
-  }, [institution, query]);
-
-  useEffect(() => { loadMembers(); }, [loadMembers]);
+  const { data: members = [], isFetching, refetch } = useQuery({
+    queryKey: queryKeys.members(institution?.id ?? 0, query),
+    queryFn: () => query.trim()
+      ? UserService.search(institution!.id, query)
+      : UserService.getAll(institution!.id),
+    enabled: !!institution,
+  });
 
   const roleColor: Record<string, string> = {
     admin: '#7C3AED',
@@ -70,9 +66,9 @@ export default function MembersScreen() {
         keyExtractor={(m) => String(m.id)}
         renderItem={renderMember}
         contentContainerStyle={styles.list}
-        onRefresh={loadMembers}
-        refreshing={loading}
-        ListEmptyComponent={<Text style={styles.empty}>{loading ? 'Loading...' : 'No members found'}</Text>}
+        onRefresh={refetch}
+        refreshing={isFetching}
+        ListEmptyComponent={<Text style={styles.empty}>{isFetching ? 'Loading...' : 'No members found'}</Text>}
       />
     </View>
   );

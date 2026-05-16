@@ -1,13 +1,15 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   Alert, TextInput, Modal, ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { BookService } from '../../../src/services/BookService';
 import { BorrowService } from '../../../src/services/BorrowService';
 import { useAppStore } from '../../../src/store/appStore';
-import { Book, BookCopy, BorrowingRecord } from '../../../src/types';
+import { Book } from '../../../src/types';
+import { queryKeys } from '../../../src/lib/queryKeys';
 
 const CONDITION_COLOR: Record<string, string> = {
   good: '#16A34A',
@@ -24,44 +26,48 @@ const STATUS_COLOR: Record<string, string> = {
 export default function BookDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const currentUser = useAppStore((s) => s.currentUser);
   const isStaff = currentUser?.role === 'admin' || currentUser?.role === 'librarian';
+  const bookId = parseInt(id);
 
-  const [book, setBook] = useState<Book | null>(null);
-  const [copies, setCopies] = useState<BookCopy[]>([]);
-  const [history, setHistory] = useState<BorrowingRecord[]>([]);
-  const [loading, setLoading] = useState(true);
   const [editVisible, setEditVisible] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    const bookId = parseInt(id);
-    const [b, c, h] = await Promise.all([
-      BookService.getById(bookId),
-      BookService.getCopies(bookId),
-      BorrowService.getHistoryByBook(bookId),
-    ]);
-    setBook(b);
-    setCopies(c);
-    setHistory(h);
-    setLoading(false);
-  }, [id]);
+  const { data: book, isLoading } = useQuery({
+    queryKey: queryKeys.book(bookId),
+    queryFn: () => BookService.getById(bookId),
+    enabled: !!bookId,
+  });
 
-  useEffect(() => { load(); }, [load]);
+  const { data: copies = [] } = useQuery({
+    queryKey: queryKeys.bookCopies(bookId),
+    queryFn: () => BookService.getCopies(bookId),
+    enabled: !!bookId,
+  });
 
-  const handleAddCopy = async () => {
+  const { data: history = [] } = useQuery({
+    queryKey: queryKeys.bookHistory(bookId),
+    queryFn: () => BorrowService.getHistoryByBook(bookId),
+    enabled: !!bookId,
+  });
+
+  const addCopyMutation = useMutation({
+    mutationFn: () => BookService.addCopy(bookId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.book(bookId) });
+      queryClient.invalidateQueries({ queryKey: ['books'] });
+    },
+    onError: (e: any) => Alert.alert('Error', e.message),
+  });
+
+  const handleAddCopy = () => {
     Alert.alert('Add Copy', 'Add one more copy of this book?', [
       { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Add', onPress: async () => {
-          await BookService.addCopy(parseInt(id));
-          load();
-        },
-      },
+      { text: 'Add', onPress: () => addCopyMutation.mutate() },
     ]);
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#2563EB" />
@@ -80,7 +86,6 @@ export default function BookDetailScreen() {
   return (
     <>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        {/* Header */}
         <View style={styles.topBar}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <Text style={styles.backText}>← Back</Text>
@@ -92,7 +97,6 @@ export default function BookDetailScreen() {
           )}
         </View>
 
-        {/* Book Hero */}
         <View style={styles.hero}>
           <View style={styles.coverLarge}>
             <Text style={styles.coverInitial}>{book.title[0]}</Text>
@@ -110,7 +114,6 @@ export default function BookDetailScreen() {
           </View>
         </View>
 
-        {/* Availability */}
         <View style={styles.availRow}>
           <View style={[styles.availCard, book.available_copies > 0 ? styles.availGreen : styles.availRed]}>
             <Text style={styles.availNum}>{book.available_copies}</Text>
@@ -126,7 +129,6 @@ export default function BookDetailScreen() {
           </View>
         </View>
 
-        {/* Description */}
         {book.description ? (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Description</Text>
@@ -134,7 +136,6 @@ export default function BookDetailScreen() {
           </View>
         ) : null}
 
-        {/* Copies */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Copies ({copies.length})</Text>
@@ -161,7 +162,6 @@ export default function BookDetailScreen() {
           ))}
         </View>
 
-        {/* Borrowing History */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Borrowing History ({history.length})</Text>
           {history.length === 0 ? (
@@ -191,12 +191,11 @@ export default function BookDetailScreen() {
         </View>
       </ScrollView>
 
-      {/* Edit Modal */}
       <EditBookModal
         visible={editVisible}
         book={book}
         onClose={() => setEditVisible(false)}
-        onSaved={() => { setEditVisible(false); load(); }}
+        onSaved={() => setEditVisible(false)}
       />
     </>
   );
@@ -210,6 +209,7 @@ interface EditModalProps {
 }
 
 function EditBookModal({ visible, book, onClose, onSaved }: EditModalProps) {
+  const queryClient = useQueryClient();
   const [title, setTitle] = useState(book.title);
   const [author, setAuthor] = useState(book.author);
   const [isbn, setIsbn] = useState(book.isbn ?? '');
@@ -217,9 +217,7 @@ function EditBookModal({ visible, book, onClose, onSaved }: EditModalProps) {
   const [year, setYear] = useState(book.year ? String(book.year) : '');
   const [genre, setGenre] = useState(book.genre ?? '');
   const [description, setDescription] = useState(book.description ?? '');
-  const [saving, setSaving] = useState(false);
 
-  // Sync fields when book prop changes
   useEffect(() => {
     setTitle(book.title);
     setAuthor(book.author);
@@ -230,28 +228,30 @@ function EditBookModal({ visible, book, onClose, onSaved }: EditModalProps) {
     setDescription(book.description ?? '');
   }, [book]);
 
-  const handleSave = async () => {
+  const updateMutation = useMutation({
+    mutationFn: () => BookService.update(book.id, {
+      title: title.trim(),
+      author: author.trim(),
+      isbn: isbn.trim() || null,
+      publisher: publisher.trim() || null,
+      year: year.trim() ? parseInt(year.trim()) : null,
+      genre: genre.trim() || null,
+      description: description.trim() || null,
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.book(book.id) });
+      queryClient.invalidateQueries({ queryKey: ['books'] });
+      onSaved();
+    },
+    onError: (e: any) => Alert.alert('Error', e.message),
+  });
+
+  const handleSave = () => {
     if (!title.trim() || !author.trim()) {
       Alert.alert('Error', 'Title and author are required');
       return;
     }
-    setSaving(true);
-    try {
-      await BookService.update(book.id, {
-        title: title.trim(),
-        author: author.trim(),
-        isbn: isbn.trim() || null,
-        publisher: publisher.trim() || null,
-        year: year.trim() ? parseInt(year.trim()) : null,
-        genre: genre.trim() || null,
-        description: description.trim() || null,
-      });
-      onSaved();
-    } catch (e: any) {
-      Alert.alert('Error', e.message);
-    } finally {
-      setSaving(false);
-    }
+    updateMutation.mutate();
   };
 
   return (
@@ -262,8 +262,8 @@ function EditBookModal({ visible, book, onClose, onSaved }: EditModalProps) {
             <Text style={modal.cancel}>Cancel</Text>
           </TouchableOpacity>
           <Text style={modal.title}>Edit Book</Text>
-          <TouchableOpacity onPress={handleSave} disabled={saving}>
-            <Text style={modal.save}>{saving ? 'Saving…' : 'Save'}</Text>
+          <TouchableOpacity onPress={handleSave} disabled={updateMutation.isPending}>
+            <Text style={modal.save}>{updateMutation.isPending ? 'Saving…' : 'Save'}</Text>
           </TouchableOpacity>
         </View>
 
@@ -334,10 +334,7 @@ const styles = StyleSheet.create({
   genreBadge: { alignSelf: 'flex-start', backgroundColor: '#EFF6FF', borderRadius: 4, paddingHorizontal: 8, paddingVertical: 3, marginTop: 4 },
   genreText: { fontSize: 12, fontWeight: '600', color: '#2563EB' },
   availRow: { flexDirection: 'row', margin: 16, gap: 10 },
-  availCard: {
-    flex: 1, backgroundColor: '#FFFFFF', borderRadius: 10, padding: 12,
-    alignItems: 'center', elevation: 1,
-  },
+  availCard: { flex: 1, backgroundColor: '#FFFFFF', borderRadius: 10, padding: 12, alignItems: 'center', elevation: 1 },
   availGreen: { borderTopWidth: 3, borderTopColor: '#16A34A' },
   availRed: { borderTopWidth: 3, borderTopColor: '#DC2626' },
   availNum: { fontSize: 22, fontWeight: '700', color: '#1E293B' },

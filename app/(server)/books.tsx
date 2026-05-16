@@ -1,28 +1,24 @@
-import { useState, useEffect, useCallback } from 'react';
-import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { useState } from 'react';
+import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
 import { BookService } from '../../src/services/BookService';
 import { useAppStore } from '../../src/store/appStore';
 import { Book } from '../../src/types';
+import { queryKeys } from '../../src/lib/queryKeys';
 
 export default function BooksScreen() {
   const router = useRouter();
   const institution = useAppStore((s) => s.institution);
-  const [books, setBooks] = useState<Book[]>([]);
   const [query, setQuery] = useState('');
-  const [loading, setLoading] = useState(true);
 
-  const loadBooks = useCallback(async () => {
-    if (!institution) return;
-    setLoading(true);
-    const results = query.trim()
-      ? await BookService.search(institution.id, query)
-      : await BookService.getAll(institution.id);
-    setBooks(results);
-    setLoading(false);
-  }, [institution, query]);
-
-  useEffect(() => { loadBooks(); }, [loadBooks]);
+  const { data: books = [], isFetching, refetch } = useQuery({
+    queryKey: queryKeys.books(institution?.id ?? 0, query),
+    queryFn: () => query.trim()
+      ? BookService.search(institution!.id, query)
+      : BookService.getAll(institution!.id),
+    enabled: !!institution,
+  });
 
   const renderBook = ({ item }: { item: Book }) => (
     <TouchableOpacity style={styles.bookItem} onPress={() => router.push(`/(server)/book/${item.id}`)}>
@@ -67,9 +63,9 @@ export default function BooksScreen() {
         keyExtractor={(b) => String(b.id)}
         renderItem={renderBook}
         contentContainerStyle={styles.list}
-        onRefresh={loadBooks}
-        refreshing={loading}
-        ListEmptyComponent={<Text style={styles.empty}>{loading ? 'Loading...' : 'No books found'}</Text>}
+        onRefresh={refetch}
+        refreshing={isFetching}
+        ListEmptyComponent={<Text style={styles.empty}>{isFetching ? 'Loading...' : 'No books found'}</Text>}
       />
     </View>
   );

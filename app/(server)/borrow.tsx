@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { UserService } from '../../src/services/UserService';
 import { BookService } from '../../src/services/BookService';
 import { BorrowService } from '../../src/services/BorrowService';
 import { User, Book } from '../../src/types';
+import { queryKeys } from '../../src/lib/queryKeys';
 
 type Mode = 'checkout' | 'return';
 
@@ -36,11 +38,32 @@ export default function BorrowScreen() {
 }
 
 function CheckoutForm() {
+  const queryClient = useQueryClient();
   const [memberQuery, setMemberQuery] = useState('');
   const [bookQuery, setBookQuery] = useState('');
   const [member, setMember] = useState<User | null>(null);
   const [book, setBook] = useState<Book | null>(null);
-  const [loading, setLoading] = useState(false);
+
+  const borrowMutation = useMutation({
+    mutationFn: async () => {
+      const canBorrow = await BorrowService.canBorrow(member!.id);
+      if (!canBorrow.allowed) throw new Error(canBorrow.reason);
+      const copy = await BookService.getAvailableCopy(book!.id);
+      if (!copy) throw new Error('No available copies of this book');
+      await BorrowService.borrowBook(copy.id, member!.id);
+    },
+    onSuccess: () => {
+      Alert.alert('Success', `"${book!.title}" checked out to ${member!.name}`);
+      setMember(null);
+      setBook(null);
+      setMemberQuery('');
+      setBookQuery('');
+      queryClient.invalidateQueries({ queryKey: ['books'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['overdue'] });
+    },
+    onError: (e: any) => Alert.alert('Error', e.message),
+  });
 
   const lookupMember = async () => {
     const found = await UserService.getByIdNumber(memberQuery.trim());
@@ -50,32 +73,9 @@ function CheckoutForm() {
 
   const lookupBook = async () => {
     if (!bookQuery.trim()) return;
-    const db_books = await BookService.search(1, bookQuery.trim());
-    if (!db_books.length) return Alert.alert('Not Found', 'No book found');
-    setBook(db_books[0]);
-  };
-
-  const handleCheckout = async () => {
-    if (!member || !book) return Alert.alert('Error', 'Please select a member and book');
-    setLoading(true);
-    try {
-      const canBorrow = await BorrowService.canBorrow(member.id);
-      if (!canBorrow.allowed) return Alert.alert('Cannot Borrow', canBorrow.reason);
-
-      const copy = await BookService.getAvailableCopy(book.id);
-      if (!copy) return Alert.alert('Unavailable', 'No available copies of this book');
-
-      await BorrowService.borrowBook(copy.id, member.id);
-      Alert.alert('Success', `"${book.title}" checked out to ${member.name}`);
-      setMember(null);
-      setBook(null);
-      setMemberQuery('');
-      setBookQuery('');
-    } catch (e: any) {
-      Alert.alert('Error', e.message);
-    } finally {
-      setLoading(false);
-    }
+    const results = await BookService.search(1, bookQuery.trim());
+    if (!results.length) return Alert.alert('Not Found', 'No book found');
+    setBook(results[0]);
   };
 
   return (
@@ -98,46 +98,50 @@ function CheckoutForm() {
       </View>
       {book && <ResultCard label={book.title} sub={`${book.author} • ${book.available_copies} available`} color={book.available_copies > 0 ? '#F0FDF4' : '#FEF2F2'} />}
 
-      <TouchableOpacity style={[styles.actionBtn, { opacity: (member && book) ? 1 : 0.5 }]} onPress={handleCheckout} disabled={loading || !member || !book}>
-        <Text style={styles.actionBtnText}>{loading ? 'Processing...' : 'Check Out Book'}</Text>
+      <TouchableOpacity
+        style={[styles.actionBtn, { opacity: (member && book) ? 1 : 0.5 }]}
+        onPress={() => borrowMutation.mutate()}
+        disabled={borrowMutation.isPending || !member || !book}
+      >
+        <Text style={styles.actionBtnText}>{borrowMutation.isPending ? 'Processing...' : 'Check Out Book'}</Text>
       </TouchableOpacity>
     </ScrollView>
   );
 }
 
 function ReturnForm() {
+  const queryClient = useQueryClient();
   const [memberQuery, setMemberQuery] = useState('');
   const [member, setMember] = useState<User | null>(null);
-  const [activeBorrows, setActiveBorrows] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+
+  const { data: activeBorrows = [] } = useQuery({
+    queryKey: queryKeys.activeBorrows(member?.id ?? 0),
+    queryFn: () => BorrowService.getActiveByUser(member!.id),
+    enabled: !!member,
+  });
 
   const lookupMember = async () => {
     const found = await UserService.getByIdNumber(memberQuery.trim());
     if (!found) return Alert.alert('Not Found', 'No member with that ID');
     setMember(found);
-    const borrows = await BorrowService.getActiveByUser(found.id);
-    setActiveBorrows(borrows);
   };
 
-  const handleReturn = async (borrowId: number, bookTitle: string) => {
-    setLoading(true);
-    try {
-      const fine = await BorrowService.returnBook(borrowId);
+  const returnMutation = useMutation({
+    mutationFn: ({ borrowId }: { borrowId: number; bookTitle: string }) =>
+      BorrowService.returnBook(borrowId),
+    onSuccess: (fine, { bookTitle }) => {
       if (fine) {
         Alert.alert('Book Returned', `"${bookTitle}" returned.\nFine: ₱${fine.amount.toFixed(2)}`);
       } else {
         Alert.alert('Book Returned', `"${bookTitle}" returned successfully.`);
       }
-      if (member) {
-        const borrows = await BorrowService.getActiveByUser(member.id);
-        setActiveBorrows(borrows);
-      }
-    } catch (e: any) {
-      Alert.alert('Error', e.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+      queryClient.invalidateQueries({ queryKey: queryKeys.activeBorrows(member!.id) });
+      queryClient.invalidateQueries({ queryKey: ['books'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['overdue'] });
+    },
+    onError: (e: any) => Alert.alert('Error', e.message),
+  });
 
   return (
     <ScrollView style={styles.form}>
@@ -157,7 +161,11 @@ function ReturnForm() {
             <Text style={styles.borrowDue}>Due: {new Date(b.due_date).toLocaleDateString()}</Text>
             {new Date(b.due_date) < new Date() && <Text style={styles.overdue}>OVERDUE</Text>}
           </View>
-          <TouchableOpacity style={styles.returnBtn} onPress={() => handleReturn(b.id, b.book_title)} disabled={loading}>
+          <TouchableOpacity
+            style={styles.returnBtn}
+            onPress={() => returnMutation.mutate({ borrowId: b.id, bookTitle: b.book_title ?? '' })}
+            disabled={returnMutation.isPending}
+          >
             <Text style={styles.returnBtnText}>Return</Text>
           </TouchableOpacity>
         </View>

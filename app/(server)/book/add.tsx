@@ -4,12 +4,14 @@ import {
   ScrollView, Alert, Modal, ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { BookService } from '../../../src/services/BookService';
 import { useAppStore } from '../../../src/store/appStore';
 
 export default function AddBookScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const institution = useAppStore((s) => s.institution);
 
   const [title, setTitle] = useState('');
@@ -20,11 +22,53 @@ export default function AddBookScreen() {
   const [genre, setGenre] = useState('');
   const [description, setDescription] = useState('');
   const [copies, setCopies] = useState('1');
-  const [saving, setSaving] = useState(false);
 
   const [scannerVisible, setScannerVisible] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
   const scannedRef = useRef(false);
+
+  const createMutation = useMutation({
+    mutationFn: () => {
+      const copyCount = parseInt(copies) || 1;
+      return BookService.create({
+        institution_id: institution!.id,
+        isbn: isbn.trim() || null,
+        title: title.trim(),
+        author: author.trim(),
+        publisher: publisher.trim() || null,
+        year: year.trim() ? parseInt(year.trim()) : null,
+        genre: genre.trim() || null,
+        description: description.trim() || null,
+        cover_uri: null,
+        total_copies: copyCount,
+      });
+    },
+    onSuccess: (bookId) => {
+      queryClient.invalidateQueries({ queryKey: ['books'] });
+      const copyCount = parseInt(copies) || 1;
+      Alert.alert(
+        'Book Added',
+        `"${title.trim()}" has been added with ${copyCount} cop${copyCount === 1 ? 'y' : 'ies'}.`,
+        [
+          { text: 'View Book', onPress: () => router.replace(`/(server)/book/${bookId}`) },
+          { text: 'Add Another', onPress: () => router.replace('/(server)/book/add') },
+        ]
+      );
+    },
+    onError: (e: any) => Alert.alert('Error', e.message ?? 'Failed to save book'),
+  });
+
+  const handleSave = () => {
+    if (!title.trim()) { Alert.alert('Error', 'Title is required'); return; }
+    if (!author.trim()) { Alert.alert('Error', 'Author is required'); return; }
+    if (!institution) { Alert.alert('Error', 'No institution found'); return; }
+    const copyCount = parseInt(copies) || 1;
+    if (copyCount < 1 || copyCount > 100) {
+      Alert.alert('Error', 'Number of copies must be between 1 and 100');
+      return;
+    }
+    createMutation.mutate();
+  };
 
   const openScanner = async () => {
     if (!permission?.granted) {
@@ -45,53 +89,16 @@ export default function AddBookScreen() {
     setIsbn(data);
   };
 
-  const handleSave = async () => {
-    if (!title.trim()) { Alert.alert('Error', 'Title is required'); return; }
-    if (!author.trim()) { Alert.alert('Error', 'Author is required'); return; }
-    if (!institution) { Alert.alert('Error', 'No institution found'); return; }
-
-    const copyCount = parseInt(copies) || 1;
-    if (copyCount < 1 || copyCount > 100) {
-      Alert.alert('Error', 'Number of copies must be between 1 and 100');
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const bookId = await BookService.create({
-        institution_id: institution.id,
-        isbn: isbn.trim() || null,
-        title: title.trim(),
-        author: author.trim(),
-        publisher: publisher.trim() || null,
-        year: year.trim() ? parseInt(year.trim()) : null,
-        genre: genre.trim() || null,
-        description: description.trim() || null,
-        cover_uri: null,
-        total_copies: copyCount,
-      });
-      Alert.alert('Book Added', `"${title.trim()}" has been added with ${copyCount} cop${copyCount === 1 ? 'y' : 'ies'}.`, [
-        { text: 'View Book', onPress: () => router.replace(`/(server)/book/${bookId}`) },
-        { text: 'Add Another', onPress: () => router.replace('/(server)/book/add') },
-      ]);
-    } catch (e: any) {
-      Alert.alert('Error', e.message ?? 'Failed to save book');
-    } finally {
-      setSaving(false);
-    }
-  };
-
   return (
     <>
       <View style={styles.container}>
-        {/* Top bar */}
         <View style={styles.topBar}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <Text style={styles.backText}>← Cancel</Text>
           </TouchableOpacity>
           <Text style={styles.screenTitle}>Add Book</Text>
-          <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
-            {saving
+          <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={createMutation.isPending}>
+            {createMutation.isPending
               ? <ActivityIndicator color="#FFFFFF" size="small" />
               : <Text style={styles.saveBtnText}>Save</Text>
             }
@@ -99,7 +106,6 @@ export default function AddBookScreen() {
         </View>
 
         <ScrollView style={styles.form} contentContainerStyle={styles.formContent}>
-          {/* ISBN row */}
           <Text style={styles.sectionLabel}>ISBN</Text>
           <View style={styles.isbnRow}>
             <TextInput
@@ -115,24 +121,9 @@ export default function AddBookScreen() {
           </View>
 
           <Text style={styles.sectionLabel}>Book Details</Text>
-          <TextInput
-            style={styles.input}
-            value={title}
-            onChangeText={setTitle}
-            placeholder="Title *"
-          />
-          <TextInput
-            style={styles.input}
-            value={author}
-            onChangeText={setAuthor}
-            placeholder="Author *"
-          />
-          <TextInput
-            style={styles.input}
-            value={publisher}
-            onChangeText={setPublisher}
-            placeholder="Publisher"
-          />
+          <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholder="Title *" />
+          <TextInput style={styles.input} value={author} onChangeText={setAuthor} placeholder="Author *" />
+          <TextInput style={styles.input} value={publisher} onChangeText={setPublisher} placeholder="Publisher" />
           <View style={styles.row}>
             <TextInput
               style={[styles.input, { flex: 1 }]}
@@ -180,7 +171,6 @@ export default function AddBookScreen() {
         </ScrollView>
       </View>
 
-      {/* Barcode Scanner Modal */}
       <Modal visible={scannerVisible} animationType="slide">
         <View style={scanner.container}>
           <View style={scanner.topBar}>

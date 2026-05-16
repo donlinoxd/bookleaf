@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
 import { useAppStore } from '../../src/store/appStore';
 import { ReportService } from '../../src/services/ReportService';
 import { BorrowService } from '../../src/services/BorrowService';
-import { BorrowingRecord } from '../../src/types';
 import { ServerStatusCard } from '../../src/components/common/ServerStatusCard';
+import { queryKeys } from '../../src/lib/queryKeys';
 
 interface Stats {
   total_books: number;
@@ -16,22 +16,19 @@ interface Stats {
 export default function DashboardScreen() {
   const router = useRouter();
   const { currentUser, institution, settings } = useAppStore();
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [overdue, setOverdue] = useState<BorrowingRecord[]>([]);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  const { data: stats } = useQuery({
+    queryKey: queryKeys.dashboard(institution?.id ?? 0),
+    queryFn: () => ReportService.inventorySummary(institution!.id) as Promise<Stats>,
+    enabled: !!institution,
+  });
 
-  const loadData = async () => {
-    if (!institution) return;
-    const [inventory, overdueList] = await Promise.all([
-      ReportService.inventorySummary(institution.id),
-      BorrowService.getOverdue(),
-    ]);
-    setStats(inventory as Stats);
-    setOverdue(overdueList.slice(0, 5));
-  };
+  const { data: overdueAll = [] } = useQuery({
+    queryKey: queryKeys.overdue(),
+    queryFn: BorrowService.getOverdue,
+  });
+
+  const overdue = overdueAll.slice(0, 5);
 
   return (
     <ScrollView style={styles.container}>

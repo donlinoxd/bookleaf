@@ -4,6 +4,7 @@ import {
   ScrollView, Alert, ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { UserService } from '../../../src/services/UserService';
 import { useAppStore } from '../../../src/store/appStore';
 import { UserRole } from '../../../src/types';
@@ -18,6 +19,7 @@ const ROLE_COLOR: Record<UserRole, string> = {
 
 export default function AddMemberScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const institution = useAppStore((s) => s.institution);
 
   const [name, setName] = useState('');
@@ -25,49 +27,49 @@ export default function AddMemberScreen() {
   const [role, setRole] = useState<UserRole>('member');
   const [pin, setPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
-  const [saving, setSaving] = useState(false);
 
-  const handleSave = async () => {
-    if (!name.trim()) { Alert.alert('Error', 'Full name is required'); return; }
-    if (!idNumber.trim()) { Alert.alert('Error', 'ID number is required'); return; }
-    if (pin.length < 4) { Alert.alert('Error', 'PIN must be at least 4 digits'); return; }
-    if (pin !== confirmPin) { Alert.alert('Error', 'PINs do not match'); return; }
-    if (!institution) { Alert.alert('Error', 'No institution found'); return; }
-
-    setSaving(true);
-    try {
-      const userId = await UserService.create({
-        institution_id: institution.id,
-        name: name.trim(),
-        id_number: idNumber.trim(),
-        role,
-        pin,
-      });
+  const createMutation = useMutation({
+    mutationFn: () => UserService.create({
+      institution_id: institution!.id,
+      name: name.trim(),
+      id_number: idNumber.trim(),
+      role,
+      pin,
+    }),
+    onSuccess: (userId) => {
+      queryClient.invalidateQueries({ queryKey: ['members'] });
       Alert.alert('Member Added', `${name.trim()} has been registered.`, [
         { text: 'View Profile', onPress: () => router.replace(`/(server)/member/${userId}`) },
         { text: 'Add Another', onPress: () => router.replace('/(server)/member/add') },
       ]);
-    } catch (e: any) {
+    },
+    onError: (e: any) => {
       if (e.message?.includes('UNIQUE')) {
         Alert.alert('Error', 'That ID number is already registered.');
       } else {
         Alert.alert('Error', e.message ?? 'Failed to save member');
       }
-    } finally {
-      setSaving(false);
-    }
+    },
+  });
+
+  const handleSave = () => {
+    if (!name.trim()) { Alert.alert('Error', 'Full name is required'); return; }
+    if (!idNumber.trim()) { Alert.alert('Error', 'ID number is required'); return; }
+    if (pin.length < 4) { Alert.alert('Error', 'PIN must be at least 4 digits'); return; }
+    if (pin !== confirmPin) { Alert.alert('Error', 'PINs do not match'); return; }
+    if (!institution) { Alert.alert('Error', 'No institution found'); return; }
+    createMutation.mutate();
   };
 
   return (
     <View style={styles.container}>
-      {/* Top bar */}
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backText}>← Cancel</Text>
         </TouchableOpacity>
         <Text style={styles.screenTitle}>Add Member</Text>
-        <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
-          {saving
+        <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={createMutation.isPending}>
+          {createMutation.isPending
             ? <ActivityIndicator color="#FFFFFF" size="small" />
             : <Text style={styles.saveBtnText}>Save</Text>
           }
@@ -75,14 +77,8 @@ export default function AddMemberScreen() {
       </View>
 
       <ScrollView style={styles.form} contentContainerStyle={styles.formContent}>
-        {/* Personal info */}
         <Text style={styles.sectionLabel}>Personal Info</Text>
-        <TextInput
-          style={styles.input}
-          value={name}
-          onChangeText={setName}
-          placeholder="Full name *"
-        />
+        <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Full name *" />
         <TextInput
           style={styles.input}
           value={idNumber}
@@ -91,41 +87,28 @@ export default function AddMemberScreen() {
           autoCapitalize="none"
         />
 
-        {/* Role */}
         <Text style={styles.sectionLabel}>Role</Text>
         <View style={styles.roleRow}>
           {ROLES.map((r) => (
             <TouchableOpacity
               key={r}
-              style={[
-                styles.roleBtn,
-                role === r && { backgroundColor: ROLE_COLOR[r] },
-              ]}
+              style={[styles.roleBtn, role === r && { backgroundColor: ROLE_COLOR[r] }]}
               onPress={() => setRole(r)}
             >
-              <Text style={[styles.roleBtnText, role === r && styles.roleBtnActive]}>
-                {r}
-              </Text>
+              <Text style={[styles.roleBtnText, role === r && styles.roleBtnActive]}>{r}</Text>
               {r === 'admin' && (
-                <Text style={[styles.roleHint, role === r && { color: '#DDD6FE' }]}>
-                  Full access
-                </Text>
+                <Text style={[styles.roleHint, role === r && { color: '#DDD6FE' }]}>Full access</Text>
               )}
               {r === 'librarian' && (
-                <Text style={[styles.roleHint, role === r && { color: '#BFDBFE' }]}>
-                  Manage books
-                </Text>
+                <Text style={[styles.roleHint, role === r && { color: '#BFDBFE' }]}>Manage books</Text>
               )}
               {r === 'member' && (
-                <Text style={[styles.roleHint, role === r && { color: '#BBF7D0' }]}>
-                  Borrow only
-                </Text>
+                <Text style={[styles.roleHint, role === r && { color: '#BBF7D0' }]}>Borrow only</Text>
               )}
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* PIN */}
         <Text style={styles.sectionLabel}>Login PIN</Text>
         <Text style={styles.pinHint}>The member will use this PIN to log in to the system.</Text>
         <TextInput
@@ -145,7 +128,6 @@ export default function AddMemberScreen() {
           keyboardType="numeric"
         />
 
-        {/* PIN strength hint */}
         {pin.length > 0 && (
           <View style={[styles.pinStrength, pin.length >= 6 ? styles.pinStrong : pin.length >= 4 ? styles.pinOk : styles.pinWeak]}>
             <Text style={styles.pinStrengthText}>
@@ -183,10 +165,7 @@ const styles = StyleSheet.create({
     borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15,
   },
   roleRow: { flexDirection: 'row', gap: 8 },
-  roleBtn: {
-    flex: 1, borderRadius: 10, padding: 12, alignItems: 'center',
-    backgroundColor: '#F1F5F9', gap: 3,
-  },
+  roleBtn: { flex: 1, borderRadius: 10, padding: 12, alignItems: 'center', backgroundColor: '#F1F5F9', gap: 3 },
   roleBtnText: { fontSize: 14, fontWeight: '700', color: '#374151', textTransform: 'capitalize' },
   roleBtnActive: { color: '#FFFFFF' },
   roleHint: { fontSize: 11, color: '#94A3B8' },
