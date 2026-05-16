@@ -1,4 +1,6 @@
-import { getDatabase } from '../db/database';
+import { eq, desc, count, sql, and, gte, lte } from 'drizzle-orm';
+import { db } from '../db';
+import { books, bookCopies, borrowingRecords, fines } from '../db/schema';
 
 export interface BookReport {
   book_id: number;
@@ -15,54 +17,49 @@ export interface FineReport {
 
 export const ReportService = {
   async mostBorrowed(institutionId: number, limit = 10): Promise<BookReport[]> {
-    const db = await getDatabase();
-    return db.getAllAsync<BookReport>(
-      `SELECT b.id as book_id, b.title, b.author, COUNT(br.id) as borrow_count
-       FROM books b
-       LEFT JOIN book_copies bc ON b.id = bc.book_id
-       LEFT JOIN borrowing_records br ON bc.id = br.copy_id
-       WHERE b.institution_id = ?
-       GROUP BY b.id ORDER BY borrow_count DESC LIMIT ?`,
-      [institutionId, limit]
-    );
+    return db.select({
+      book_id: books.id,
+      title: books.title,
+      author: books.author,
+      borrow_count: count(borrowingRecords.id),
+    }).from(books)
+      .leftJoin(bookCopies, eq(books.id, bookCopies.book_id))
+      .leftJoin(borrowingRecords, eq(bookCopies.id, borrowingRecords.copy_id))
+      .where(eq(books.institution_id, institutionId))
+      .groupBy(books.id)
+      .orderBy(desc(count(borrowingRecords.id)))
+      .limit(limit);
   },
 
   async finesSummary(institutionId: number, from?: string, to?: string): Promise<FineReport> {
-    const db = await getDatabase();
-    let query = `
-      SELECT
-        SUM(f.amount) as total_fines,
-        SUM(CASE WHEN f.paid = 1 THEN f.amount ELSE 0 END) as total_collected,
-        SUM(CASE WHEN f.paid = 0 THEN f.amount ELSE 0 END) as total_pending
-      FROM fines f
-      JOIN borrowing_records br ON f.borrowing_id = br.id
-      JOIN book_copies bc ON br.copy_id = bc.id
-      JOIN books b ON bc.book_id = b.id
-      WHERE b.institution_id = ?
-    `;
-    const params: (string | number)[] = [institutionId];
-    if (from) { query += ' AND f.paid_at >= ?'; params.push(from); }
-    if (to) { query += ' AND f.paid_at <= ?'; params.push(to); }
+    const conditions = [
+      eq(books.institution_id, institutionId),
+      ...(from ? [gte(fines.paid_at, from)] : []),
+      ...(to ? [lte(fines.paid_at, to)] : []),
+    ];
 
-    const row = await db.getFirstAsync<FineReport>(query, params);
+    const row = await db.select({
+      total_fines: sql<number>`COALESCE(SUM(${fines.amount}), 0)`,
+      total_collected: sql<number>`COALESCE(SUM(CASE WHEN ${fines.paid} = 1 THEN ${fines.amount} ELSE 0 END), 0)`,
+      total_pending: sql<number>`COALESCE(SUM(CASE WHEN ${fines.paid} = 0 THEN ${fines.amount} ELSE 0 END), 0)`,
+    }).from(fines)
+      .innerJoin(borrowingRecords, eq(fines.borrowing_id, borrowingRecords.id))
+      .innerJoin(bookCopies, eq(borrowingRecords.copy_id, bookCopies.id))
+      .innerJoin(books, eq(bookCopies.book_id, books.id))
+      .where(and(...conditions))
+      .then(r => r[0]);
+
     return row ?? { total_fines: 0, total_collected: 0, total_pending: 0 };
   },
 
   async inventorySummary(institutionId: number) {
-    const db = await getDatabase();
-    return db.getFirstAsync<{
-      total_books: number;
-      total_copies: number;
-      available_copies: number;
-      borrowed_copies: number;
-    }>(
-      `SELECT
-        COUNT(DISTINCT b.id) as total_books,
-        SUM(b.total_copies) as total_copies,
-        SUM(b.available_copies) as available_copies,
-        SUM(b.total_copies - b.available_copies) as borrowed_copies
-       FROM books b WHERE b.institution_id = ?`,
-      [institutionId]
-    );
+    return db.select({
+      total_books: sql<number>`COUNT(DISTINCT ${books.id})`,
+      total_copies: sql<number>`COALESCE(SUM(${books.total_copies}), 0)`,
+      available_copies: sql<number>`COALESCE(SUM(${books.available_copies}), 0)`,
+      borrowed_copies: sql<number>`COALESCE(SUM(${books.total_copies} - ${books.available_copies}), 0)`,
+    }).from(books)
+      .where(eq(books.institution_id, institutionId))
+      .then(r => r[0] ?? null);
   },
 };

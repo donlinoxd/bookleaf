@@ -1,72 +1,92 @@
-import { getDatabase } from '../db/database';
+import { eq, like, or, and, desc, sum } from 'drizzle-orm';
+import { db } from '../db';
+import { books, bookCopies, borrowingRecords, users, fines } from '../db/schema';
 
-/**
- * Lightweight REST API handler for incoming client requests.
- * Designed to be called by a native HTTP server module (e.g. nodejs-mobile-react-native).
- * Each method returns a plain object that the caller serializes as JSON.
- */
 export const ApiServer = {
   async ping() {
     return { ok: true, timestamp: new Date().toISOString() };
   },
 
   async searchBooks(institutionId: number, query: string) {
-    const db = await getDatabase();
     const q = `%${query}%`;
-    return db.getAllAsync(
-      `SELECT id, title, author, genre, year, available_copies, total_copies
-       FROM books WHERE institution_id = ?
-       AND (title LIKE ? OR author LIKE ? OR isbn LIKE ? OR genre LIKE ?)
-       ORDER BY title ASC LIMIT 50`,
-      [institutionId, q, q, q, q]
-    );
+    return db.select({
+      id: books.id,
+      title: books.title,
+      author: books.author,
+      genre: books.genre,
+      year: books.year,
+      available_copies: books.available_copies,
+      total_copies: books.total_copies,
+    }).from(books)
+      .where(and(
+        eq(books.institution_id, institutionId),
+        or(like(books.title, q), like(books.author, q), like(books.isbn, q), like(books.genre, q))
+      ))
+      .orderBy(books.title)
+      .limit(50);
   },
 
   async getAllBooks(institutionId: number) {
-    const db = await getDatabase();
-    return db.getAllAsync(
-      `SELECT id, title, author, genre, year, available_copies, total_copies
-       FROM books WHERE institution_id = ? ORDER BY title ASC`,
-      [institutionId]
-    );
+    return db.select({
+      id: books.id,
+      title: books.title,
+      author: books.author,
+      genre: books.genre,
+      year: books.year,
+      available_copies: books.available_copies,
+      total_copies: books.total_copies,
+    }).from(books)
+      .where(eq(books.institution_id, institutionId))
+      .orderBy(books.title);
   },
 
   async getBookDetail(bookId: number) {
-    const db = await getDatabase();
-    return db.getFirstAsync(
-      'SELECT id, title, author, publisher, year, genre, description, available_copies, total_copies FROM books WHERE id = ?',
-      [bookId]
-    );
+    return db.select({
+      id: books.id,
+      title: books.title,
+      author: books.author,
+      publisher: books.publisher,
+      year: books.year,
+      genre: books.genre,
+      description: books.description,
+      available_copies: books.available_copies,
+      total_copies: books.total_copies,
+    }).from(books)
+      .where(eq(books.id, bookId))
+      .limit(1)
+      .then(r => r[0] ?? null);
   },
 
   async getMemberBorrows(idNumber: string) {
-    const db = await getDatabase();
-    const member = await db.getFirstAsync<{ id: number; name: string }>(
-      'SELECT id, name FROM users WHERE id_number = ?',
-      [idNumber]
-    );
+    const member = await db.select({ id: users.id, name: users.name })
+      .from(users)
+      .where(eq(users.id_number, idNumber))
+      .limit(1)
+      .then(r => r[0] ?? null);
     if (!member) return null;
 
-    const borrows = await db.getAllAsync(
-      `SELECT br.id, b.title as book_title, b.author as book_author, br.due_date, br.returned_at
-       FROM borrowing_records br
-       JOIN book_copies bc ON br.copy_id = bc.id
-       JOIN books b ON bc.book_id = b.id
-       WHERE br.user_id = ? ORDER BY br.borrowed_at DESC`,
-      [member.id]
-    );
+    const borrows = await db.select({
+      id: borrowingRecords.id,
+      book_title: books.title,
+      book_author: books.author,
+      due_date: borrowingRecords.due_date,
+      returned_at: borrowingRecords.returned_at,
+    }).from(borrowingRecords)
+      .innerJoin(bookCopies, eq(borrowingRecords.copy_id, bookCopies.id))
+      .innerJoin(books, eq(bookCopies.book_id, books.id))
+      .where(eq(borrowingRecords.user_id, member.id))
+      .orderBy(desc(borrowingRecords.borrowed_at));
 
-    const fineRow = await db.getFirstAsync<{ total: number }>(
-      `SELECT SUM(f.amount) as total FROM fines f
-       JOIN borrowing_records br ON f.borrowing_id = br.id
-       WHERE br.user_id = ? AND f.paid = 0`,
-      [member.id]
-    );
+    const fineRow = await db.select({ total: sum(fines.amount) })
+      .from(fines)
+      .innerJoin(borrowingRecords, eq(fines.borrowing_id, borrowingRecords.id))
+      .where(and(eq(borrowingRecords.user_id, member.id), eq(fines.paid, false)))
+      .then(r => r[0]);
 
     return {
       member_name: member.name,
       borrows,
-      total_fines: fineRow?.total ?? 0,
+      total_fines: Number(fineRow?.total ?? 0),
     };
   },
 };

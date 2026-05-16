@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { getDatabase } from '../../src/db/database';
+import { db } from '../../src/db';
+import { institutions } from '../../src/db/schema';
 import { UserService } from '../../src/services/UserService';
 import { SettingsService } from '../../src/services/SettingsService';
 
@@ -30,12 +31,8 @@ export default function RegisterScreen() {
 
     setLoading(true);
     try {
-      const db = await getDatabase();
-      const instResult = await db.runAsync(
-        'INSERT INTO institutions (name) VALUES (?)',
-        [institutionName.trim()]
-      );
-      const institutionId = instResult.lastInsertRowId;
+      const instResult = await db.insert(institutions).values({ name: institutionName.trim() }).returning({ id: institutions.id });
+      const institutionId = instResult[0].id;
 
       await UserService.create({
         institution_id: institutionId,

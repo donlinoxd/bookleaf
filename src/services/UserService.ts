@@ -1,36 +1,34 @@
-import { getDatabase, hashPin, verifyPin } from '../db/database';
+import { eq, asc, and, like, or } from 'drizzle-orm';
+import { db } from '../db';
+import { users } from '../db/schema';
+import { hashPin, verifyPin } from '../db/database';
 import { User, UserRole } from '../types';
 
 export const UserService = {
   async getAll(institutionId: number): Promise<User[]> {
-    const db = await getDatabase();
-    return db.getAllAsync<User>(
-      'SELECT * FROM users WHERE institution_id = ? ORDER BY name ASC',
-      [institutionId]
-    );
+    return db.select().from(users)
+      .where(eq(users.institution_id, institutionId))
+      .orderBy(asc(users.name)) as Promise<User[]>;
   },
 
   async getById(id: number): Promise<User | null> {
-    const db = await getDatabase();
-    return db.getFirstAsync<User>('SELECT * FROM users WHERE id = ?', [id]);
+    const rows = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    return (rows[0] ?? null) as User | null;
   },
 
   async getByIdNumber(idNumber: string): Promise<User | null> {
-    const db = await getDatabase();
-    return db.getFirstAsync<User>(
-      'SELECT * FROM users WHERE id_number = ?',
-      [idNumber]
-    );
+    const rows = await db.select().from(users).where(eq(users.id_number, idNumber)).limit(1);
+    return (rows[0] ?? null) as User | null;
   },
 
   async search(institutionId: number, query: string): Promise<User[]> {
-    const db = await getDatabase();
     const q = `%${query}%`;
-    return db.getAllAsync<User>(
-      `SELECT * FROM users WHERE institution_id = ?
-       AND (name LIKE ? OR id_number LIKE ?) ORDER BY name ASC`,
-      [institutionId, q, q]
-    );
+    return db.select().from(users)
+      .where(and(
+        eq(users.institution_id, institutionId),
+        or(like(users.name, q), like(users.id_number, q))
+      ))
+      .orderBy(asc(users.name)) as Promise<User[]>;
   },
 
   async create(user: {
@@ -41,40 +39,37 @@ export const UserService = {
     pin: string;
     photo_uri?: string;
   }): Promise<number> {
-    const db = await getDatabase();
-    const pin_hash = await hashPin(user.pin);
-    const result = await db.runAsync(
-      `INSERT INTO users (institution_id, name, id_number, role, pin_hash, photo_uri)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [user.institution_id, user.name, user.id_number,
-       user.role, pin_hash, user.photo_uri ?? null]
-    );
-    return result.lastInsertRowId;
+    const pin_hash = hashPin(user.pin);
+    const result = await db.insert(users).values({
+      institution_id: user.institution_id,
+      name: user.name,
+      id_number: user.id_number,
+      role: user.role,
+      pin_hash,
+      photo_uri: user.photo_uri ?? null,
+    }).returning({ id: users.id });
+    return result[0].id;
   },
 
   async authenticate(idNumber: string, pin: string): Promise<User | null> {
     const user = await UserService.getByIdNumber(idNumber);
     if (!user || !user.is_active) return null;
-    const valid = await verifyPin(pin, user.pin_hash);
-    return valid ? user : null;
+    return verifyPin(pin, user.pin_hash) ? user : null;
   },
 
   async updateStatus(id: number, isActive: boolean): Promise<void> {
-    const db = await getDatabase();
-    await db.runAsync('UPDATE users SET is_active = ? WHERE id = ?', [isActive ? 1 : 0, id]);
+    await db.update(users).set({ is_active: isActive }).where(eq(users.id, id));
   },
 
   async update(id: number, data: { name: string; id_number: string; role: UserRole }): Promise<void> {
-    const db = await getDatabase();
-    await db.runAsync(
-      'UPDATE users SET name = ?, id_number = ?, role = ? WHERE id = ?',
-      [data.name, data.id_number, data.role, id]
-    );
+    await db.update(users).set({
+      name: data.name,
+      id_number: data.id_number,
+      role: data.role,
+    }).where(eq(users.id, id));
   },
 
   async changePin(id: number, newPin: string): Promise<void> {
-    const db = await getDatabase();
-    const pin_hash = await hashPin(newPin);
-    await db.runAsync('UPDATE users SET pin_hash = ? WHERE id = ?', [pin_hash, id]);
+    await db.update(users).set({ pin_hash: hashPin(newPin) }).where(eq(users.id, id));
   },
 };

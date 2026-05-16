@@ -1,12 +1,10 @@
-import { getDatabase } from '../db/database';
+import { db } from '../db';
+import { settings } from '../db/schema';
 import { Settings } from '../types';
 
 export const SettingsService = {
   async getAll(): Promise<Settings> {
-    const db = await getDatabase();
-    const rows = await db.getAllAsync<{ key: string; value: string }>(
-      'SELECT key, value FROM settings'
-    );
+    const rows = await db.select().from(settings);
     const map = Object.fromEntries(rows.map(r => [r.key, r.value]));
     return {
       fine_per_day: parseFloat(map.fine_per_day ?? '5'),
@@ -17,16 +15,13 @@ export const SettingsService = {
   },
 
   async set(key: string, value: string): Promise<void> {
-    const db = await getDatabase();
-    await db.runAsync(
-      'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',
-      [key, value]
-    );
+    await db.insert(settings)
+      .values({ key, value })
+      .onConflictDoUpdate({ target: settings.key, set: { value } });
   },
 
-  async update(settings: Partial<Settings>): Promise<void> {
-    const entries = Object.entries(settings) as [string, string | number][];
-    for (const [key, value] of entries) {
+  async update(data: Partial<Settings>): Promise<void> {
+    for (const [key, value] of Object.entries(data) as [string, string | number][]) {
       await SettingsService.set(key, String(value));
     }
   },

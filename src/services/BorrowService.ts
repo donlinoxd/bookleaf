@@ -1,42 +1,39 @@
-import { getDatabase } from '../db/database';
+import { eq, and, isNull, asc, desc, lt, sql, count } from 'drizzle-orm';
+import { db } from '../db';
+import { borrowingRecords, bookCopies, books, users, fines } from '../db/schema';
 import { BorrowingRecord, Fine } from '../types';
 import { SettingsService } from './SettingsService';
 
 export const BorrowService = {
   async borrowBook(copyId: number, userId: number): Promise<number> {
-    const db = await getDatabase();
     const settings = await SettingsService.getAll();
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + settings.max_borrow_days);
 
-    const result = await db.runAsync(
-      `INSERT INTO borrowing_records (copy_id, user_id, due_date) VALUES (?, ?, ?)`,
-      [copyId, userId, dueDate.toISOString()]
-    );
+    return db.transaction(async (tx) => {
+      const result = await tx.insert(borrowingRecords)
+        .values({ copy_id: copyId, user_id: userId, due_date: dueDate.toISOString() })
+        .returning({ id: borrowingRecords.id });
 
-    await db.runAsync(
-      "UPDATE book_copies SET status = 'borrowed' WHERE id = ?",
-      [copyId]
-    );
+      await tx.update(bookCopies)
+        .set({ status: 'borrowed' })
+        .where(eq(bookCopies.id, copyId));
 
-    const copy = await db.getFirstAsync<{ book_id: number }>(
-      'SELECT book_id FROM book_copies WHERE id = ?', [copyId]
-    );
-    if (copy) {
-      await db.runAsync(
-        'UPDATE books SET available_copies = available_copies - 1 WHERE id = ?',
-        [copy.book_id]
-      );
-    }
+      const copy = await tx.select({ book_id: bookCopies.book_id })
+        .from(bookCopies).where(eq(bookCopies.id, copyId)).limit(1);
+      if (copy[0]) {
+        await tx.update(books)
+          .set({ available_copies: sql`${books.available_copies} - 1` })
+          .where(eq(books.id, copy[0].book_id));
+      }
 
-    return result.lastInsertRowId;
+      return result[0].id;
+    });
   },
 
-  async returnBook(borrowingId: number, condition: string = 'good'): Promise<Fine | null> {
-    const db = await getDatabase();
-    const record = await db.getFirstAsync<BorrowingRecord>(
-      'SELECT * FROM borrowing_records WHERE id = ?', [borrowingId]
-    );
+  async returnBook(borrowingId: number, condition = 'good'): Promise<Fine | null> {
+    const record = await db.select().from(borrowingRecords)
+      .where(eq(borrowingRecords.id, borrowingId)).limit(1).then(r => r[0] ?? null);
     if (!record) throw new Error('Borrowing record not found');
 
     const now = new Date();
@@ -49,140 +46,165 @@ export const BorrowService = {
       fineAmount = daysLate * settings.fine_per_day;
     }
 
-    await db.runAsync(
-      'UPDATE borrowing_records SET returned_at = ?, fine_amount = ? WHERE id = ?',
-      [now.toISOString(), fineAmount, borrowingId]
-    );
+    return db.transaction(async (tx) => {
+      await tx.update(borrowingRecords)
+        .set({ returned_at: now.toISOString(), fine_amount: fineAmount })
+        .where(eq(borrowingRecords.id, borrowingId));
 
-    await db.runAsync(
-      "UPDATE book_copies SET status = 'available', condition = ? WHERE id = ?",
-      [condition, record.copy_id]
-    );
+      await tx.update(bookCopies)
+        .set({ status: 'available', condition: condition as 'good' | 'damaged' | 'lost' })
+        .where(eq(bookCopies.id, record.copy_id));
 
-    const copy = await db.getFirstAsync<{ book_id: number }>(
-      'SELECT book_id FROM book_copies WHERE id = ?', [record.copy_id]
-    );
-    if (copy) {
-      await db.runAsync(
-        'UPDATE books SET available_copies = available_copies + 1 WHERE id = ?',
-        [copy.book_id]
-      );
-    }
+      const copy = await tx.select({ book_id: bookCopies.book_id })
+        .from(bookCopies).where(eq(bookCopies.id, record.copy_id)).limit(1);
+      if (copy[0]) {
+        await tx.update(books)
+          .set({ available_copies: sql`${books.available_copies} + 1` })
+          .where(eq(books.id, copy[0].book_id));
+      }
 
-    if (fineAmount > 0) {
-      const fineResult = await db.runAsync(
-        'INSERT INTO fines (borrowing_id, amount) VALUES (?, ?)',
-        [borrowingId, fineAmount]
-      );
-      return { id: fineResult.lastInsertRowId, borrowing_id: borrowingId, amount: fineAmount, paid: false, paid_at: null };
-    }
+      if (fineAmount > 0) {
+        const fineResult = await tx.insert(fines)
+          .values({ borrowing_id: borrowingId, amount: fineAmount })
+          .returning({ id: fines.id });
+        return { id: fineResult[0].id, borrowing_id: borrowingId, amount: fineAmount, paid: false, paid_at: null };
+      }
 
-    return null;
+      return null;
+    });
   },
 
   async getActiveByUser(userId: number): Promise<BorrowingRecord[]> {
-    const db = await getDatabase();
-    return db.getAllAsync<BorrowingRecord>(
-      `SELECT br.*, b.title as book_title, b.author as book_author
-       FROM borrowing_records br
-       JOIN book_copies bc ON br.copy_id = bc.id
-       JOIN books b ON bc.book_id = b.id
-       WHERE br.user_id = ? AND br.returned_at IS NULL
-       ORDER BY br.due_date ASC`,
-      [userId]
-    );
+    return db.select({
+      id: borrowingRecords.id,
+      copy_id: borrowingRecords.copy_id,
+      user_id: borrowingRecords.user_id,
+      borrowed_at: borrowingRecords.borrowed_at,
+      due_date: borrowingRecords.due_date,
+      returned_at: borrowingRecords.returned_at,
+      fine_amount: borrowingRecords.fine_amount,
+      book_title: books.title,
+      book_author: books.author,
+    }).from(borrowingRecords)
+      .innerJoin(bookCopies, eq(borrowingRecords.copy_id, bookCopies.id))
+      .innerJoin(books, eq(bookCopies.book_id, books.id))
+      .where(and(eq(borrowingRecords.user_id, userId), isNull(borrowingRecords.returned_at)))
+      .orderBy(asc(borrowingRecords.due_date)) as Promise<BorrowingRecord[]>;
   },
 
   async getOverdue(): Promise<BorrowingRecord[]> {
-    const db = await getDatabase();
-    return db.getAllAsync<BorrowingRecord>(
-      `SELECT br.*, b.title as book_title, u.name as member_name, u.id_number as member_id_number
-       FROM borrowing_records br
-       JOIN book_copies bc ON br.copy_id = bc.id
-       JOIN books b ON bc.book_id = b.id
-       JOIN users u ON br.user_id = u.id
-       WHERE br.returned_at IS NULL AND br.due_date < datetime('now')
-       ORDER BY br.due_date ASC`
-    );
+    return db.select({
+      id: borrowingRecords.id,
+      copy_id: borrowingRecords.copy_id,
+      user_id: borrowingRecords.user_id,
+      borrowed_at: borrowingRecords.borrowed_at,
+      due_date: borrowingRecords.due_date,
+      returned_at: borrowingRecords.returned_at,
+      fine_amount: borrowingRecords.fine_amount,
+      book_title: books.title,
+      member_name: users.name,
+      member_id_number: users.id_number,
+    }).from(borrowingRecords)
+      .innerJoin(bookCopies, eq(borrowingRecords.copy_id, bookCopies.id))
+      .innerJoin(books, eq(bookCopies.book_id, books.id))
+      .innerJoin(users, eq(borrowingRecords.user_id, users.id))
+      .where(and(
+        isNull(borrowingRecords.returned_at),
+        lt(borrowingRecords.due_date, sql`datetime('now')`)
+      ))
+      .orderBy(asc(borrowingRecords.due_date)) as Promise<BorrowingRecord[]>;
   },
 
   async getHistory(institutionId: number, limit = 50): Promise<BorrowingRecord[]> {
-    const db = await getDatabase();
-    return db.getAllAsync<BorrowingRecord>(
-      `SELECT br.*, b.title as book_title, u.name as member_name
-       FROM borrowing_records br
-       JOIN book_copies bc ON br.copy_id = bc.id
-       JOIN books b ON bc.book_id = b.id
-       JOIN users u ON br.user_id = u.id
-       WHERE b.institution_id = ?
-       ORDER BY br.borrowed_at DESC LIMIT ?`,
-      [institutionId, limit]
-    );
+    return db.select({
+      id: borrowingRecords.id,
+      copy_id: borrowingRecords.copy_id,
+      user_id: borrowingRecords.user_id,
+      borrowed_at: borrowingRecords.borrowed_at,
+      due_date: borrowingRecords.due_date,
+      returned_at: borrowingRecords.returned_at,
+      fine_amount: borrowingRecords.fine_amount,
+      book_title: books.title,
+      member_name: users.name,
+    }).from(borrowingRecords)
+      .innerJoin(bookCopies, eq(borrowingRecords.copy_id, bookCopies.id))
+      .innerJoin(books, eq(bookCopies.book_id, books.id))
+      .innerJoin(users, eq(borrowingRecords.user_id, users.id))
+      .where(eq(books.institution_id, institutionId))
+      .orderBy(desc(borrowingRecords.borrowed_at))
+      .limit(limit) as Promise<BorrowingRecord[]>;
   },
 
   async getUserFines(userId: number): Promise<Fine[]> {
-    const db = await getDatabase();
-    return db.getAllAsync<Fine>(
-      `SELECT f.* FROM fines f
-       JOIN borrowing_records br ON f.borrowing_id = br.id
-       WHERE br.user_id = ? AND f.paid = 0`,
-      [userId]
-    );
+    return db.select({
+      id: fines.id,
+      borrowing_id: fines.borrowing_id,
+      amount: fines.amount,
+      paid: fines.paid,
+      paid_at: fines.paid_at,
+    }).from(fines)
+      .innerJoin(borrowingRecords, eq(fines.borrowing_id, borrowingRecords.id))
+      .where(and(eq(borrowingRecords.user_id, userId), eq(fines.paid, false))) as Promise<Fine[]>;
   },
 
   async payFine(fineId: number): Promise<void> {
-    const db = await getDatabase();
-    await db.runAsync(
-      "UPDATE fines SET paid = 1, paid_at = datetime('now') WHERE id = ?",
-      [fineId]
-    );
+    await db.update(fines)
+      .set({ paid: true, paid_at: new Date().toISOString() })
+      .where(eq(fines.id, fineId));
   },
 
   async getFullHistoryByUser(userId: number): Promise<BorrowingRecord[]> {
-    const db = await getDatabase();
-    return db.getAllAsync<BorrowingRecord>(
-      `SELECT br.*, b.title as book_title, b.author as book_author
-       FROM borrowing_records br
-       JOIN book_copies bc ON br.copy_id = bc.id
-       JOIN books b ON bc.book_id = b.id
-       WHERE br.user_id = ?
-       ORDER BY br.borrowed_at DESC`,
-      [userId]
-    );
+    return db.select({
+      id: borrowingRecords.id,
+      copy_id: borrowingRecords.copy_id,
+      user_id: borrowingRecords.user_id,
+      borrowed_at: borrowingRecords.borrowed_at,
+      due_date: borrowingRecords.due_date,
+      returned_at: borrowingRecords.returned_at,
+      fine_amount: borrowingRecords.fine_amount,
+      book_title: books.title,
+      book_author: books.author,
+    }).from(borrowingRecords)
+      .innerJoin(bookCopies, eq(borrowingRecords.copy_id, bookCopies.id))
+      .innerJoin(books, eq(bookCopies.book_id, books.id))
+      .where(eq(borrowingRecords.user_id, userId))
+      .orderBy(desc(borrowingRecords.borrowed_at)) as Promise<BorrowingRecord[]>;
   },
 
   async getHistoryByBook(bookId: number, limit = 20): Promise<BorrowingRecord[]> {
-    const db = await getDatabase();
-    return db.getAllAsync<BorrowingRecord>(
-      `SELECT br.*, u.name as member_name, u.id_number as member_id_number
-       FROM borrowing_records br
-       JOIN book_copies bc ON br.copy_id = bc.id
-       JOIN users u ON br.user_id = u.id
-       WHERE bc.book_id = ?
-       ORDER BY br.borrowed_at DESC LIMIT ?`,
-      [bookId, limit]
-    );
+    return db.select({
+      id: borrowingRecords.id,
+      copy_id: borrowingRecords.copy_id,
+      user_id: borrowingRecords.user_id,
+      borrowed_at: borrowingRecords.borrowed_at,
+      due_date: borrowingRecords.due_date,
+      returned_at: borrowingRecords.returned_at,
+      fine_amount: borrowingRecords.fine_amount,
+      member_name: users.name,
+      member_id_number: users.id_number,
+    }).from(borrowingRecords)
+      .innerJoin(bookCopies, eq(borrowingRecords.copy_id, bookCopies.id))
+      .innerJoin(users, eq(borrowingRecords.user_id, users.id))
+      .where(eq(bookCopies.book_id, bookId))
+      .orderBy(desc(borrowingRecords.borrowed_at))
+      .limit(limit) as Promise<BorrowingRecord[]>;
   },
 
   async canBorrow(userId: number): Promise<{ allowed: boolean; reason?: string }> {
-    const db = await getDatabase();
     const settings = await SettingsService.getAll();
 
-    const activeCount = await db.getFirstAsync<{ count: number }>(
-      'SELECT COUNT(*) as count FROM borrowing_records WHERE user_id = ? AND returned_at IS NULL',
-      [userId]
-    );
-    if ((activeCount?.count ?? 0) >= settings.max_books_per_member) {
+    const activeRows = await db.select({ count: count() })
+      .from(borrowingRecords)
+      .where(and(eq(borrowingRecords.user_id, userId), isNull(borrowingRecords.returned_at)));
+    if ((activeRows[0]?.count ?? 0) >= settings.max_books_per_member) {
       return { allowed: false, reason: `Maximum ${settings.max_books_per_member} books allowed` };
     }
 
-    const unpaidFines = await db.getFirstAsync<{ count: number }>(
-      `SELECT COUNT(*) as count FROM fines f
-       JOIN borrowing_records br ON f.borrowing_id = br.id
-       WHERE br.user_id = ? AND f.paid = 0`,
-      [userId]
-    );
-    if ((unpaidFines?.count ?? 0) > 0) {
+    const fineRows = await db.select({ count: count() })
+      .from(fines)
+      .innerJoin(borrowingRecords, eq(fines.borrowing_id, borrowingRecords.id))
+      .where(and(eq(borrowingRecords.user_id, userId), eq(fines.paid, false)));
+    if ((fineRows[0]?.count ?? 0) > 0) {
       return { allowed: false, reason: 'Please settle outstanding fines first' };
     }
 

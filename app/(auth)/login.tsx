@@ -4,8 +4,9 @@ import { useRouter } from 'expo-router';
 import { UserService } from '../../src/services/UserService';
 import { SettingsService } from '../../src/services/SettingsService';
 import { useAppStore } from '../../src/store/appStore';
-import { getDatabase } from '../../src/db/database';
-import { Institution } from '../../src/types';
+import { db } from '../../src/db';
+import { institutions } from '../../src/db/schema';
+import { eq } from 'drizzle-orm';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -26,10 +27,11 @@ export default function LoginScreen() {
         Alert.alert('Login Failed', 'Invalid ID number or PIN');
         return;
       }
-      const [settings, db] = await Promise.all([SettingsService.getAll(), getDatabase()]);
-      const institution = await db.getFirstAsync<Institution>(
-        'SELECT * FROM institutions WHERE id = ?', [user.institution_id]
-      );
+      const [settings, institutionRows] = await Promise.all([
+        SettingsService.getAll(),
+        db.select().from(institutions).where(eq(institutions.id, user.institution_id)).limit(1),
+      ]);
+      const institution = institutionRows[0] ?? null;
       setCurrentUser(user);
       setSettings(settings);
       if (institution) setInstitution(institution);
