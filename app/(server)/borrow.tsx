@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Modal } from 'react-native';
+import { Alert, Modal, ScrollView, StatusBar, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { UserService } from '../../src/services/UserService';
@@ -14,22 +15,23 @@ export default function BorrowScreen() {
   const [mode, setMode] = useState<Mode>('checkout');
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Borrow / Return</Text>
-        <View style={styles.toggle}>
-          <TouchableOpacity
-            style={[styles.toggleBtn, mode === 'checkout' && styles.toggleActive]}
-            onPress={() => setMode('checkout')}
-          >
-            <Text style={[styles.toggleText, mode === 'checkout' && styles.toggleTextActive]}>Check Out</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.toggleBtn, mode === 'return' && styles.toggleActive]}
-            onPress={() => setMode('return')}
-          >
-            <Text style={[styles.toggleText, mode === 'return' && styles.toggleTextActive]}>Return</Text>
-          </TouchableOpacity>
+    <View className="flex-1 bg-bio">
+      <StatusBar barStyle="light-content" backgroundColor="#2A5C33" />
+
+      <View className="bg-brand px-5 pb-5 rounded-b-[28px]" style={{ paddingTop: 52 }}>
+        <Text className="text-2xl font-extrabold text-white mb-4">Borrow / Return</Text>
+        <View className="flex-row bg-[#1C3E23] rounded-2xl p-1">
+          {(['checkout', 'return'] as Mode[]).map((m) => (
+            <TouchableOpacity
+              key={m}
+              className={`flex-1 py-2.5 rounded-xl items-center ${mode === m ? 'bg-white' : ''}`}
+              onPress={() => setMode(m)}
+            >
+              <Text className={`text-sm font-bold ${mode === m ? 'text-brand' : 'text-[#A8D5A2]'}`}>
+                {m === 'checkout' ? 'Check Out' : 'Return'}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </View>
 
@@ -64,10 +66,7 @@ function CheckoutForm() {
     },
     onSuccess: () => {
       Alert.alert('Success', `"${book!.title}" checked out to ${member!.name}`);
-      setMember(null);
-      setBook(null);
-      setMemberQuery('');
-      setBookQuery('');
+      setMember(null); setBook(null); setMemberQuery(''); setBookQuery('');
       queryClient.invalidateQueries({ queryKey: ['books'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['overdue'] });
@@ -83,39 +82,63 @@ function CheckoutForm() {
   };
 
   return (
-    <ScrollView style={styles.form}>
-      <Text style={styles.stepLabel}>1. Find Member</Text>
-      <View style={styles.row}>
-        <TextInput style={[styles.input, { flex: 1 }]} value={memberQuery} onChangeText={setMemberQuery} placeholder="Enter member ID number" />
-        <TouchableOpacity style={styles.scanBtn} onPress={() => setScannerOpen(true)}>
-          <Text style={styles.lookupBtnText}>Scan</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.lookupBtn} onPress={lookupMember}>
-          <Text style={styles.lookupBtnText}>Find</Text>
-        </TouchableOpacity>
-      </View>
-      {member && <ResultCard label={member.name} sub={`${member.role} • ID: ${member.id_number}`} color="#EFF6FF" />}
+    <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 110 }}>
+      <StepCard step={1} label="Find Member">
+        <View className="flex-row gap-2">
+          <TextInput
+            className="flex-1 bg-bio border border-mint rounded-xl px-3 py-3 text-sm text-[#1C2B1E]"
+            value={memberQuery}
+            onChangeText={setMemberQuery}
+            placeholder="Enter member ID number"
+            placeholderTextColor="#94A3B8"
+          />
+          <TouchableOpacity className="bg-brand rounded-xl px-3 justify-center" onPress={() => setScannerOpen(true)}>
+            <Ionicons name="qr-code-outline" size={18} color="#FFFFFF" />
+          </TouchableOpacity>
+          <TouchableOpacity className="bg-leaf rounded-xl px-4 justify-center" onPress={() => lookupMember()}>
+            <Text className="text-white font-bold text-sm">Find</Text>
+          </TouchableOpacity>
+        </View>
+        {member && <ResultCard label={member.name} sub={`${member.role} · ID: ${member.id_number}`} variant="mint" />}
+      </StepCard>
+
       <QrScannerModal
         visible={scannerOpen}
         onClose={() => setScannerOpen(false)}
         onScanned={(id) => { setMemberQuery(id); setScannerOpen(false); lookupMember(id); }}
       />
 
-      <Text style={styles.stepLabel}>2. Find Book</Text>
-      <View style={styles.row}>
-        <TextInput style={[styles.input, { flex: 1 }]} value={bookQuery} onChangeText={setBookQuery} placeholder="Title, author, or ISBN" />
-        <TouchableOpacity style={styles.lookupBtn} onPress={lookupBook}>
-          <Text style={styles.lookupBtnText}>Find</Text>
-        </TouchableOpacity>
-      </View>
-      {book && <ResultCard label={book.title} sub={`${book.author} • ${book.available_copies} available`} color={book.available_copies > 0 ? '#F0FDF4' : '#FEF2F2'} />}
+      <StepCard step={2} label="Find Book">
+        <View className="flex-row gap-2">
+          <TextInput
+            className="flex-1 bg-bio border border-mint rounded-xl px-3 py-3 text-sm text-[#1C2B1E]"
+            value={bookQuery}
+            onChangeText={setBookQuery}
+            placeholder="Title, author, or ISBN"
+            placeholderTextColor="#94A3B8"
+          />
+          <TouchableOpacity className="bg-leaf rounded-xl px-4 justify-center" onPress={lookupBook}>
+            <Text className="text-white font-bold text-sm">Find</Text>
+          </TouchableOpacity>
+        </View>
+        {book && (
+          <ResultCard
+            label={book.title}
+            sub={`${book.author} · ${book.available_copies} available`}
+            variant={book.available_copies > 0 ? 'mint' : 'red'}
+          />
+        )}
+      </StepCard>
 
       <TouchableOpacity
-        style={[styles.actionBtn, { opacity: (member && book) ? 1 : 0.5 }]}
+        className="bg-leaf rounded-2xl py-4 items-center"
+        style={{ opacity: (member && book) ? 1 : 0.45, elevation: 4, shadowColor: '#5CB85C', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 6 }}
         onPress={() => borrowMutation.mutate()}
         disabled={borrowMutation.isPending || !member || !book}
       >
-        <Text style={styles.actionBtnText}>{borrowMutation.isPending ? 'Processing...' : 'Check Out Book'}</Text>
+        <Text className="text-white font-bold text-base">
+          {borrowMutation.isPending ? 'Processing…' : 'Check Out Book'}
+        </Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -142,14 +165,10 @@ function ReturnForm() {
   };
 
   const returnMutation = useMutation({
-    mutationFn: ({ borrowId }: { borrowId: number; bookTitle: string }) =>
-      BorrowService.returnBook(borrowId),
+    mutationFn: ({ borrowId }: { borrowId: number; bookTitle: string }) => BorrowService.returnBook(borrowId),
     onSuccess: (fine, { bookTitle }) => {
-      if (fine) {
-        Alert.alert('Book Returned', `"${bookTitle}" returned.\nFine: ₱${fine.amount.toFixed(2)}`);
-      } else {
-        Alert.alert('Book Returned', `"${bookTitle}" returned successfully.`);
-      }
+      if (fine) Alert.alert('Book Returned', `"${bookTitle}" returned.\nFine: ₱${fine.amount.toFixed(2)}`);
+      else Alert.alert('Book Returned', `"${bookTitle}" returned successfully.`);
       queryClient.invalidateQueries({ queryKey: queryKeys.activeBorrows(member!.id) });
       queryClient.invalidateQueries({ queryKey: ['books'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
@@ -159,73 +178,101 @@ function ReturnForm() {
   });
 
   return (
-    <ScrollView style={styles.form}>
-      <Text style={styles.stepLabel}>Find Member</Text>
-      <View style={styles.row}>
-        <TextInput style={[styles.input, { flex: 1 }]} value={memberQuery} onChangeText={setMemberQuery} placeholder="Enter member ID number" />
-        <TouchableOpacity style={styles.scanBtn} onPress={() => setScannerOpen(true)}>
-          <Text style={styles.lookupBtnText}>Scan</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.lookupBtn} onPress={() => lookupMember()}>
-          <Text style={styles.lookupBtnText}>Find</Text>
-        </TouchableOpacity>
-      </View>
-      {member && <ResultCard label={member.name} sub={`${activeBorrows.length} books borrowed`} color="#EFF6FF" />}
+    <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 110 }}>
+      <StepCard step={1} label="Find Member">
+        <View className="flex-row gap-2">
+          <TextInput
+            className="flex-1 bg-bio border border-mint rounded-xl px-3 py-3 text-sm text-[#1C2B1E]"
+            value={memberQuery}
+            onChangeText={setMemberQuery}
+            placeholder="Enter member ID number"
+            placeholderTextColor="#94A3B8"
+          />
+          <TouchableOpacity className="bg-brand rounded-xl px-3 justify-center" onPress={() => setScannerOpen(true)}>
+            <Ionicons name="qr-code-outline" size={18} color="#FFFFFF" />
+          </TouchableOpacity>
+          <TouchableOpacity className="bg-leaf rounded-xl px-4 justify-center" onPress={() => lookupMember()}>
+            <Text className="text-white font-bold text-sm">Find</Text>
+          </TouchableOpacity>
+        </View>
+        {member && <ResultCard label={member.name} sub={`${activeBorrows.length} books borrowed`} variant="mint" />}
+      </StepCard>
+
       <QrScannerModal
         visible={scannerOpen}
         onClose={() => setScannerOpen(false)}
         onScanned={(id) => { setMemberQuery(id); setScannerOpen(false); lookupMember(id); }}
       />
 
-      {activeBorrows.map(b => (
-        <View key={b.id} style={styles.borrowItem}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.borrowTitle}>{b.book_title}</Text>
-            <Text style={styles.borrowDue}>Due: {new Date(b.due_date).toLocaleDateString()}</Text>
-            {new Date(b.due_date) < new Date() && <Text style={styles.overdue}>OVERDUE</Text>}
+      {activeBorrows.map((b) => {
+        const overdue = new Date(b.due_date) < new Date();
+        return (
+          <View key={b.id} className="bg-white rounded-2xl p-4 flex-row items-center"
+            style={{ elevation: 2, shadowColor: '#2A5C33', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4 }}>
+            <View className="flex-1">
+              <Text className="text-sm font-bold text-[#1C2B1E]">{b.book_title}</Text>
+              <Text className="text-xs text-[#5A7A5E] mt-0.5">Due: {new Date(b.due_date).toLocaleDateString()}</Text>
+              {overdue && (
+                <View className="self-start bg-red-100 rounded px-1.5 py-0.5 mt-1">
+                  <Text className="text-[10px] font-bold text-red-600">OVERDUE</Text>
+                </View>
+              )}
+            </View>
+            <TouchableOpacity
+              className="bg-leaf rounded-xl px-4 py-2"
+              onPress={() => returnMutation.mutate({ borrowId: b.id, bookTitle: b.book_title ?? '' })}
+              disabled={returnMutation.isPending}
+            >
+              <Text className="text-white font-bold text-sm">Return</Text>
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            style={styles.returnBtn}
-            onPress={() => returnMutation.mutate({ borrowId: b.id, bookTitle: b.book_title ?? '' })}
-            disabled={returnMutation.isPending}
-          >
-            <Text style={styles.returnBtnText}>Return</Text>
-          </TouchableOpacity>
-        </View>
-      ))}
+        );
+      })}
     </ScrollView>
   );
 }
 
-function ResultCard({ label, sub, color }: { label: string; sub: string; color: string }) {
+function StepCard({ step, label, children }: { step: number; label: string; children: React.ReactNode }) {
   return (
-    <View style={[styles.resultCard, { backgroundColor: color }]}>
-      <Text style={styles.resultLabel}>{label}</Text>
-      <Text style={styles.resultSub}>{sub}</Text>
+    <View className="bg-white rounded-2xl p-4 gap-3"
+      style={{ elevation: 2, shadowColor: '#2A5C33', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4 }}>
+      <View className="flex-row items-center gap-2">
+        <View className="w-6 h-6 rounded-full bg-brand items-center justify-center">
+          <Text className="text-white text-xs font-extrabold">{step}</Text>
+        </View>
+        <Text className="text-sm font-bold text-[#1C2B1E]">{label}</Text>
+      </View>
+      {children}
     </View>
   );
 }
 
-function QrScannerModal({ visible, onClose, onScanned }: {
-  visible: boolean;
-  onClose: () => void;
-  onScanned: (id: string) => void;
-}) {
+function ResultCard({ label, sub, variant }: { label: string; sub: string; variant: 'mint' | 'red' }) {
+  return (
+    <View className={`rounded-xl p-3 ${variant === 'mint' ? 'bg-mint' : 'bg-red-50'}`}>
+      <Text className={`text-sm font-bold ${variant === 'mint' ? 'text-brand' : 'text-red-700'}`}>{label}</Text>
+      <Text className={`text-xs mt-0.5 ${variant === 'mint' ? 'text-[#5A7A5E]' : 'text-red-500'}`}>{sub}</Text>
+    </View>
+  );
+}
+
+function QrScannerModal({ visible, onClose, onScanned }: { visible: boolean; onClose: () => void; onScanned: (id: string) => void }) {
   const [permission, requestPermission] = useCameraPermissions();
   const scanned = { current: false };
-
   if (!visible) return null;
 
   if (!permission?.granted) {
     return (
       <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-        <View style={scanner.permissionBox}>
-          <Text style={scanner.permissionText}>Camera permission is required to scan QR codes.</Text>
-          <TouchableOpacity style={scanner.permissionBtn} onPress={requestPermission}>
-            <Text style={scanner.permissionBtnText}>Grant Permission</Text>
+        <View className="flex-1 justify-center items-center px-8 bg-bio">
+          <Ionicons name="camera-outline" size={56} color="#C8DFC5" />
+          <Text className="text-base font-bold text-brand mt-4 mb-2">Camera Permission Needed</Text>
+          <Text className="text-sm text-[#7A9A7E] text-center mb-6">Camera access is required to scan QR codes.</Text>
+          <TouchableOpacity className="bg-leaf rounded-2xl px-8 py-3.5 mb-3" onPress={requestPermission}>
+            <Text className="text-white font-bold">Grant Permission</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={onClose} style={{ marginTop: 12 }}>
-            <Text style={{ color: '#64748B', textAlign: 'center' }}>Cancel</Text>
+          <TouchableOpacity onPress={onClose}>
+            <Text className="text-[#94A3B8] text-sm">Cancel</Text>
           </TouchableOpacity>
         </View>
       </Modal>
@@ -234,9 +281,9 @@ function QrScannerModal({ visible, onClose, onScanned }: {
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <View style={scanner.container}>
+      <View style={{ flex: 1, backgroundColor: '#000' }}>
         <CameraView
-          style={scanner.camera}
+          style={{ flex: 1 }}
           barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
           onBarcodeScanned={({ data }) => {
             if (scanned.current) return;
@@ -244,57 +291,17 @@ function QrScannerModal({ visible, onClose, onScanned }: {
             onScanned(data);
           }}
         />
-        <View style={scanner.overlay}>
-          <View style={scanner.frame} />
-          <Text style={scanner.hint}>Point at a member's QR code</Text>
-          <TouchableOpacity style={scanner.closeBtn} onPress={onClose}>
-            <Text style={scanner.closeBtnText}>Cancel</Text>
+        <View style={{ position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center', gap: 20 }}>
+          <View style={{ width: 220, height: 220, borderWidth: 2, borderColor: '#5CB85C', borderRadius: 16 }} />
+          <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '500' }}>Point at a member's QR code</Text>
+          <TouchableOpacity
+            style={{ backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 12, paddingHorizontal: 28, paddingVertical: 12 }}
+            onPress={onClose}
+          >
+            <Text style={{ color: '#FFFFFF', fontWeight: '700' }}>Cancel</Text>
           </TouchableOpacity>
         </View>
       </View>
     </Modal>
   );
 }
-
-const scanner = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
-  camera: { flex: 1 },
-  overlay: { position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center', gap: 20 },
-  frame: { width: 220, height: 220, borderWidth: 2, borderColor: '#FFFFFF', borderRadius: 12, backgroundColor: 'transparent' },
-  hint: { color: '#FFFFFF', fontSize: 14, fontWeight: '500' },
-  closeBtn: { backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 10, paddingHorizontal: 24, paddingVertical: 12, marginTop: 12 },
-  closeBtnText: { color: '#FFFFFF', fontWeight: '600', fontSize: 15 },
-  permissionBox: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32, backgroundColor: '#F8FAFC' },
-  permissionText: { fontSize: 15, color: '#374151', textAlign: 'center', marginBottom: 20 },
-  permissionBtn: { backgroundColor: '#2563EB', borderRadius: 10, paddingHorizontal: 24, paddingVertical: 12 },
-  permissionBtnText: { color: '#FFFFFF', fontWeight: '600' },
-});
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  header: { backgroundColor: '#FFFFFF', padding: 16, paddingTop: 56, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
-  title: { fontSize: 20, fontWeight: '700', color: '#1E293B', marginBottom: 12 },
-  toggle: { flexDirection: 'row', backgroundColor: '#F1F5F9', borderRadius: 8, padding: 3 },
-  toggleBtn: { flex: 1, paddingVertical: 8, borderRadius: 6, alignItems: 'center' },
-  toggleActive: { backgroundColor: '#FFFFFF', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, elevation: 2 },
-  toggleText: { fontSize: 14, fontWeight: '600', color: '#64748B' },
-  toggleTextActive: { color: '#2563EB' },
-  form: { padding: 16 },
-  stepLabel: { fontSize: 14, fontWeight: '700', color: '#374151', marginBottom: 8, marginTop: 16 },
-  row: { flexDirection: 'row', gap: 8 },
-  input: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, padding: 12, fontSize: 15 },
-  lookupBtn: { backgroundColor: '#2563EB', borderRadius: 10, paddingHorizontal: 16, justifyContent: 'center' },
-  scanBtn: { backgroundColor: '#0F172A', borderRadius: 10, paddingHorizontal: 14, justifyContent: 'center' },
-  lookupBtnText: { color: '#FFFFFF', fontWeight: '600' },
-  resultCard: { borderRadius: 10, padding: 12, marginTop: 8 },
-  resultLabel: { fontSize: 15, fontWeight: '600', color: '#1E293B' },
-  resultSub: { fontSize: 13, color: '#64748B', marginTop: 2 },
-  actionBtn: { backgroundColor: '#2563EB', borderRadius: 10, padding: 16, alignItems: 'center', marginTop: 24 },
-  actionBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
-  borrowItem: { backgroundColor: '#FFFFFF', borderRadius: 10, padding: 14, marginTop: 10, flexDirection: 'row', alignItems: 'center', elevation: 1 },
-  borrowTitle: { fontSize: 14, fontWeight: '600', color: '#1E293B' },
-  borrowDue: { fontSize: 12, color: '#64748B', marginTop: 2 },
-  overdue: { fontSize: 11, fontWeight: '700', color: '#DC2626', marginTop: 2 },
-  returnBtn: { backgroundColor: '#16A34A', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
-  returnBtnText: { color: '#FFFFFF', fontWeight: '600', fontSize: 13 },
-});

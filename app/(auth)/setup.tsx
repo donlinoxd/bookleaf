@@ -1,7 +1,9 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Image, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppStore } from '../../src/store/appStore';
+
+import MASCOT from '../../assets/images/bookleaf-mascot.png';
 
 export default function SetupScreen() {
   const router = useRouter();
@@ -10,60 +12,56 @@ export default function SetupScreen() {
   const selectMode = async (mode: 'server' | 'client') => {
     await AsyncStorage.setItem('app_mode', mode);
     setMode(mode);
-    if (mode === 'server') {
-      router.replace('/(auth)/register');
-    } else {
-      router.replace('/(auth)/connect');
-    }
+    router.replace(mode === 'server' ? '/(auth)/register' : '/(auth)/connect');
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Bookleaf</Text>
-        <Text style={styles.subtitle}>Choose how this device will be used</Text>
+    <View className="flex-1 bg-bio px-6 justify-center">
+      <StatusBar barStyle="dark-content" backgroundColor="#FAFDF9" />
+
+      <View className="items-center mb-10">
+        <Image source={MASCOT} className="w-32 h-32 mb-4" resizeMode="contain" />
+        <Text className="text-4xl font-extrabold text-brand">BookLeaf</Text>
+        <Text className="text-base text-[#7A9A7E] mt-2 text-center">
+          Choose how this device will be used
+        </Text>
       </View>
 
-      <View style={styles.cards}>
-        <TouchableOpacity style={[styles.card, styles.serverCard]} onPress={() => selectMode('server')}>
-          <Text style={styles.cardIcon}>📚</Text>
-          <Text style={styles.cardTitle}>Bookleaf Server</Text>
-          <Text style={styles.cardDesc}>
-            This device manages the library.{'\n'}
-            Hosts the database and API for all other devices.
+      <View className="gap-4">
+        {/* Server card */}
+        <TouchableOpacity
+          className="bg-brand rounded-3xl p-6"
+          onPress={() => selectMode('server')}
+          style={{ elevation: 6, shadowColor: '#2A5C33', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10 }}
+          activeOpacity={0.88}
+        >
+          <Text className="text-3xl mb-3">📚</Text>
+          <Text className="text-xl font-extrabold text-white mb-2">Bookleaf Server</Text>
+          <Text className="text-sm text-[#A8D5A2] leading-5 mb-3">
+            This device manages the library.{'\n'}Hosts the database and API for all other devices.
           </Text>
-          <Text style={styles.cardHint}>For the librarian's device</Text>
+          <View className="bg-[#ffffff20] self-start rounded-full px-3 py-1">
+            <Text className="text-xs text-white font-semibold">For the librarian's device</Text>
+          </View>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.card, styles.clientCard]} onPress={() => selectMode('client')}>
-          <Text style={styles.cardIcon}>🔍</Text>
-          <Text style={styles.cardTitle}>OPAC Client</Text>
-          <Text style={styles.cardDesc}>
-            Browse and search the library catalog.{'\n'}
-            Connects to the server over Wi-Fi.
+        {/* Client card */}
+        <TouchableOpacity
+          className="bg-white rounded-3xl p-6 border-2 border-mint"
+          onPress={() => selectMode('client')}
+          style={{ elevation: 3, shadowColor: '#2A5C33', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8 }}
+          activeOpacity={0.88}
+        >
+          <Text className="text-3xl mb-3">🔍</Text>
+          <Text className="text-xl font-extrabold text-brand mb-2">OPAC Client</Text>
+          <Text className="text-sm text-[#5A7A5E] leading-5 mb-3">
+            Browse and search the library catalog.{'\n'}Connects to the server over Wi-Fi.
           </Text>
-          <Text style={styles.cardHint}>For students and teachers</Text>
+          <View className="bg-mint self-start rounded-full px-3 py-1">
+            <Text className="text-xs text-brand font-semibold">For students and teachers</Text>
+          </View>
         </TouchableOpacity>
       </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC', padding: 24, justifyContent: 'center' },
-  header: { alignItems: 'center', marginBottom: 40 },
-  title: { fontSize: 32, fontWeight: '700', color: '#1E293B' },
-  subtitle: { fontSize: 16, color: '#64748B', marginTop: 8, textAlign: 'center' },
-  cards: { gap: 16 },
-  card: {
-    borderRadius: 16, padding: 24,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08, shadowRadius: 8, elevation: 3,
-  },
-  serverCard: { backgroundColor: '#2563EB' },
-  clientCard: { backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: '#E2E8F0' },
-  cardIcon: { fontSize: 36, marginBottom: 12 },
-  cardTitle: { fontSize: 20, fontWeight: '700', color: '#1E293B', marginBottom: 8 },
-  cardDesc: { fontSize: 14, color: '#475569', lineHeight: 20, marginBottom: 12 },
-  cardHint: { fontSize: 12, color: '#94A3B8', fontStyle: 'italic' },
-});

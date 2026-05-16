@@ -113,7 +113,7 @@ export default function ClientHomeScreen() {
         data={books}
         keyExtractor={(b) => String(b.id)}
         renderItem={renderBook}
-        contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 110 }}
         ListHeaderComponent={
           searched && books.length > 0 ? (
             <Text className="text-sm text-slate-500 font-medium mb-3">

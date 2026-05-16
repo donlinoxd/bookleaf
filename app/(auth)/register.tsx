@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
+import { Alert, ScrollView, StatusBar, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { db } from '../../src/db';
 import { institutions } from '../../src/db/schema';
@@ -17,36 +17,17 @@ export default function RegisterScreen() {
 
   const handleSetup = async () => {
     if (!institutionName.trim() || !adminName.trim() || !adminId.trim() || !adminPin.trim()) {
-      Alert.alert('Error', 'All fields are required');
-      return;
+      Alert.alert('Error', 'All fields are required'); return;
     }
-    if (adminPin !== confirmPin) {
-      Alert.alert('Error', 'PINs do not match');
-      return;
-    }
-    if (adminPin.length < 4) {
-      Alert.alert('Error', 'PIN must be at least 4 digits');
-      return;
-    }
-
+    if (adminPin !== confirmPin) { Alert.alert('Error', 'PINs do not match'); return; }
+    if (adminPin.length < 4) { Alert.alert('Error', 'PIN must be at least 4 digits'); return; }
     setLoading(true);
     try {
       const instResult = await db.insert(institutions).values({ name: institutionName.trim() }).returning({ id: institutions.id });
       const institutionId = instResult[0].id;
-
-      await UserService.create({
-        institution_id: institutionId,
-        name: adminName.trim(),
-        id_number: adminId.trim(),
-        role: 'admin',
-        pin: adminPin,
-      });
-
+      await UserService.create({ institution_id: institutionId, name: adminName.trim(), id_number: adminId.trim(), role: 'admin', pin: adminPin });
       await SettingsService.set('institution_name', institutionName.trim());
-
-      Alert.alert('Setup Complete', 'Library system is ready!', [
-        { text: 'Login', onPress: () => router.replace('/(auth)/login') }
-      ]);
+      Alert.alert('Setup Complete', 'Library system is ready!', [{ text: 'Login', onPress: () => router.replace('/(auth)/login') }]);
     } catch (e: any) {
       Alert.alert('Error', e.message ?? 'Setup failed');
     } finally {
@@ -55,39 +36,76 @@ export default function RegisterScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Bookleaf Setup</Text>
-      <Text style={styles.subtitle}>Set up your institution and admin account</Text>
+    <ScrollView className="flex-1 bg-bio" contentContainerStyle={{ paddingBottom: 40 }}>
+      <StatusBar barStyle="light-content" backgroundColor="#2A5C33" />
 
-      <Text style={styles.section}>Institution</Text>
-      <TextInput style={styles.input} value={institutionName} onChangeText={setInstitutionName} placeholder="Institution name" />
+      <View className="bg-brand px-6 pb-8 rounded-b-[32px]" style={{ paddingTop: 60 }}>
+        <Text className="text-3xl font-extrabold text-white">Bookleaf Setup</Text>
+        <Text className="text-sm text-[#A8D5A2] mt-1">Set up your institution and admin account</Text>
+      </View>
 
-      <Text style={styles.section}>Admin Account</Text>
-      <TextInput style={styles.input} value={adminName} onChangeText={setAdminName} placeholder="Full name" />
-      <TextInput style={styles.input} value={adminId} onChangeText={setAdminId} placeholder="ID number" autoCapitalize="none" />
-      <TextInput style={styles.input} value={adminPin} onChangeText={setAdminPin} placeholder="PIN (min 4 digits)" secureTextEntry keyboardType="numeric" />
-      <TextInput style={styles.input} value={confirmPin} onChangeText={setConfirmPin} placeholder="Confirm PIN" secureTextEntry keyboardType="numeric" />
+      <View className="px-6 pt-6 gap-4">
+        {/* Institution */}
+        <View className="bg-white rounded-2xl p-4 gap-3"
+          style={{ elevation: 2, shadowColor: '#2A5C33', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4 }}>
+          <Text className="text-xs font-bold text-brand uppercase tracking-widest">Institution</Text>
+          <TextInput
+            className="bg-bio border border-mint rounded-xl px-4 py-3 text-base text-[#1C2B1E]"
+            value={institutionName}
+            onChangeText={setInstitutionName}
+            placeholder="Institution name"
+            placeholderTextColor="#94A3B8"
+          />
+        </View>
 
-      <TouchableOpacity style={styles.button} onPress={handleSetup} disabled={loading}>
-        <Text style={styles.buttonText}>{loading ? 'Setting up...' : 'Complete Setup'}</Text>
-      </TouchableOpacity>
+        {/* Admin account */}
+        <View className="bg-white rounded-2xl p-4 gap-3"
+          style={{ elevation: 2, shadowColor: '#2A5C33', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4 }}>
+          <Text className="text-xs font-bold text-brand uppercase tracking-widest">Admin Account</Text>
+          <TextInput
+            className="bg-bio border border-mint rounded-xl px-4 py-3 text-base text-[#1C2B1E]"
+            value={adminName}
+            onChangeText={setAdminName}
+            placeholder="Full name"
+            placeholderTextColor="#94A3B8"
+          />
+          <TextInput
+            className="bg-bio border border-mint rounded-xl px-4 py-3 text-base text-[#1C2B1E]"
+            value={adminId}
+            onChangeText={setAdminId}
+            placeholder="ID number"
+            placeholderTextColor="#94A3B8"
+            autoCapitalize="none"
+          />
+          <TextInput
+            className="bg-bio border border-mint rounded-xl px-4 py-3 text-base text-[#1C2B1E]"
+            value={adminPin}
+            onChangeText={setAdminPin}
+            placeholder="PIN (min 4 digits)"
+            placeholderTextColor="#94A3B8"
+            secureTextEntry
+            keyboardType="numeric"
+          />
+          <TextInput
+            className="bg-bio border border-mint rounded-xl px-4 py-3 text-base text-[#1C2B1E]"
+            value={confirmPin}
+            onChangeText={setConfirmPin}
+            placeholder="Confirm PIN"
+            placeholderTextColor="#94A3B8"
+            secureTextEntry
+            keyboardType="numeric"
+          />
+        </View>
+
+        <TouchableOpacity
+          className="bg-leaf rounded-2xl py-4 items-center"
+          onPress={handleSetup}
+          disabled={loading}
+          style={{ elevation: 4, shadowColor: '#5CB85C', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 6 }}
+        >
+          <Text className="text-white font-bold text-base">{loading ? 'Setting up…' : 'Complete Setup'}</Text>
+        </TouchableOpacity>
+      </View>
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  content: { padding: 24, paddingTop: 60 },
-  title: { fontSize: 26, fontWeight: '700', color: '#1E293B', textAlign: 'center' },
-  subtitle: { fontSize: 14, color: '#64748B', textAlign: 'center', marginTop: 4, marginBottom: 24 },
-  section: { fontSize: 13, fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, marginTop: 16 },
-  input: {
-    backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0',
-    borderRadius: 10, padding: 14, fontSize: 16, marginBottom: 10,
-  },
-  button: {
-    backgroundColor: '#2563EB', borderRadius: 10, padding: 16,
-    alignItems: 'center', marginTop: 16,
-  },
-  buttonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
-});

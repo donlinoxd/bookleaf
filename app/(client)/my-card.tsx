@@ -1,23 +1,22 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import { Alert, Image, ScrollView, StatusBar, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../src/store/appStore';
 import { MemberCard } from '../../src/components/members/MemberCard';
+
+import MASCOT from '../../assets/images/bookleaf-mascot.png';
 
 export default function MyCardScreen() {
   const serverUrl = useAppStore((s) => s.serverUrl);
   const [idNumber, setIdNumber] = useState('');
   const [submitted, setSubmitted] = useState('');
   const [name, setName] = useState('');
-  const role = 'member';
   const [loading, setLoading] = useState(false);
 
   const handleLookup = async () => {
     const id = idNumber.trim();
     if (!id) return;
-    if (!serverUrl) {
-      Alert.alert('Not Connected', 'Connect to a library server first.');
-      return;
-    }
+    if (!serverUrl) { Alert.alert('Not Connected', 'Connect to a library server first.'); return; }
     setLoading(true);
     try {
       const res = await fetch(`${serverUrl}/api/members/${encodeURIComponent(id)}/borrows`);
@@ -33,61 +32,64 @@ export default function MyCardScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.header}>
-        <Text style={styles.title}>My Library Card</Text>
-        <Text style={styles.subtitle}>Enter your ID to generate your QR card</Text>
-        <View style={styles.row}>
+    <ScrollView className="flex-1 bg-bio" contentContainerStyle={{ paddingBottom: 110 }}>
+      <StatusBar barStyle="light-content" backgroundColor="#2A5C33" />
+
+      <View className="bg-brand px-5 pb-6 rounded-b-[28px]" style={{ paddingTop: 52 }}>
+        <View className="flex-row items-end justify-between mb-4">
+          <View>
+            <Text className="text-2xl font-extrabold text-white">My Library Card</Text>
+            <Text className="text-xs text-[#A8D5A2] mt-1">Enter your ID to generate your QR card</Text>
+          </View>
+          <Image source={MASCOT} className="w-16 h-16 -mb-1" resizeMode="contain" />
+        </View>
+
+        <View className="flex-row bg-white rounded-2xl overflow-hidden"
+          style={{ elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 4 }}>
           <TextInput
-            style={styles.input}
+            className="flex-1 px-4 py-3.5 text-sm text-[#1C2B1E]"
             value={idNumber}
             onChangeText={setIdNumber}
             placeholder="Your ID number"
+            placeholderTextColor="#94A3B8"
             autoCapitalize="none"
             returnKeyType="done"
             onSubmitEditing={handleLookup}
           />
-          <TouchableOpacity style={styles.btn} onPress={handleLookup} disabled={loading}>
-            <Text style={styles.btnText}>{loading ? '…' : 'Get Card'}</Text>
+          <TouchableOpacity className="bg-leaf px-5 justify-center" onPress={handleLookup} disabled={loading}>
+            <Text className="text-white font-bold text-sm">{loading ? '…' : 'Get Card'}</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {submitted ? (
-        <View style={styles.cardWrapper}>
-          <MemberCard
-            name={name || submitted}
-            idNumber={submitted}
-            role={role}
-            institutionName="Library Card"
-          />
-          <Text style={styles.hint}>
-            Show this QR code to the librarian when borrowing or returning books.
-          </Text>
-        </View>
-      ) : (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyIcon}>🪪</Text>
-          <Text style={styles.emptyText}>Your QR card will appear here</Text>
-        </View>
-      )}
+      <View className="px-5 pt-5">
+        {submitted ? (
+          <>
+            <MemberCard
+              name={name || submitted}
+              idNumber={submitted}
+              role="member"
+              institutionName="Library Card"
+            />
+            <View className="bg-mint rounded-2xl px-4 py-3 mt-4 flex-row items-center gap-3">
+              <Ionicons name="qr-code-outline" size={22} color="#2A5C33" />
+              <Text className="flex-1 text-xs text-brand leading-4 font-medium">
+                Show this QR code to the librarian when borrowing or returning books.
+              </Text>
+            </View>
+          </>
+        ) : (
+          <View className="items-center pt-10">
+            <View className="w-28 h-28 rounded-full bg-mint items-center justify-center mb-4">
+              <Ionicons name="card-outline" size={52} color="#2A5C33" />
+            </View>
+            <Text className="text-base font-bold text-brand mb-1">Your card will appear here</Text>
+            <Text className="text-xs text-[#7A9A7E] text-center">
+              Enter your library ID number above to generate your QR card
+            </Text>
+          </View>
+        )}
+      </View>
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  content: { paddingBottom: 40 },
-  header: { backgroundColor: '#1E293B', padding: 20, paddingTop: 56, gap: 8 },
-  title: { fontSize: 22, fontWeight: '700', color: '#FFFFFF' },
-  subtitle: { fontSize: 13, color: '#94A3B8', marginBottom: 4 },
-  row: { flexDirection: 'row', gap: 8 },
-  input: { flex: 1, backgroundColor: '#FFFFFF', borderRadius: 10, padding: 12, fontSize: 15 },
-  btn: { backgroundColor: '#2563EB', borderRadius: 10, paddingHorizontal: 16, justifyContent: 'center' },
-  btnText: { color: '#FFFFFF', fontWeight: '600' },
-  cardWrapper: { padding: 20, gap: 16 },
-  hint: { fontSize: 13, color: '#64748B', textAlign: 'center', lineHeight: 19 },
-  emptyState: { alignItems: 'center', paddingTop: 80, gap: 12 },
-  emptyIcon: { fontSize: 48 },
-  emptyText: { fontSize: 15, color: '#94A3B8' },
-});

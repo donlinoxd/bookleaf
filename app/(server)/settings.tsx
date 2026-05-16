@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StatusBar, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { SettingsService } from '../../src/services/SettingsService';
 import { BackupService } from '../../src/services/BackupService';
@@ -8,23 +9,15 @@ import { Settings } from '../../src/types';
 
 export default function SettingsScreen() {
   const queryClient = useQueryClient();
-
-  const { data: saved } = useQuery({
-    queryKey: queryKeys.settings(),
-    queryFn: () => SettingsService.getAll(),
-  });
-
+  const { data: saved } = useQuery({ queryKey: queryKeys.settings(), queryFn: () => SettingsService.getAll() });
   const [form, setForm] = useState<Partial<Settings>>({});
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
 
-  useEffect(() => {
-    if (saved) setForm(saved);
-  }, [saved]);
+  useEffect(() => { if (saved) setForm(saved); }, [saved]);
 
-  const set = (key: keyof Settings, value: string) =>
-    setForm((prev) => ({ ...prev, [key]: value }));
+  const set = (key: keyof Settings, value: string) => setForm((prev) => ({ ...prev, [key]: value }));
 
   const handleSave = async () => {
     setSaving(true);
@@ -46,143 +39,128 @@ export default function SettingsScreen() {
 
   const handleExport = async () => {
     setExporting(true);
-    try {
-      await BackupService.exportJson();
-    } catch (e) {
-      Alert.alert('Export Failed', e instanceof Error ? e.message : 'Could not create backup.');
-    } finally {
-      setExporting(false);
-    }
+    try { await BackupService.exportJson(); }
+    catch (e) { Alert.alert('Export Failed', e instanceof Error ? e.message : 'Could not create backup.'); }
+    finally { setExporting(false); }
   };
 
   const handleImport = () => {
-    Alert.alert(
-      'Restore Backup',
-      'This will permanently replace ALL current data (books, members, records) with the backup. This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Restore',
-          style: 'destructive',
-          onPress: async () => {
-            setImporting(true);
-            try {
-              await BackupService.importJson();
-              await queryClient.invalidateQueries();
-              Alert.alert('Restored', 'Backup restored successfully. Please restart the app.');
-            } catch (e) {
-              Alert.alert('Import Failed', e instanceof Error ? e.message : 'Could not restore backup.');
-            } finally {
-              setImporting(false);
-            }
-          },
-        },
-      ],
-    );
+    Alert.alert('Restore Backup', 'This will permanently replace ALL current data. This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Restore', style: 'destructive', onPress: async () => {
+        setImporting(true);
+        try {
+          await BackupService.importJson();
+          await queryClient.invalidateQueries();
+          Alert.alert('Restored', 'Backup restored successfully. Please restart the app.');
+        } catch (e) {
+          Alert.alert('Import Failed', e instanceof Error ? e.message : 'Could not restore backup.');
+        } finally { setImporting(false); }
+      }},
+    ]);
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.pageTitle}>Settings</Text>
+    <ScrollView className="flex-1 bg-bio" contentContainerStyle={{ paddingBottom: 110 }}>
+      <StatusBar barStyle="light-content" backgroundColor="#2A5C33" />
 
-      {/* Library Configuration */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Library Configuration</Text>
-
-        <Text style={styles.label}>Institution Name</Text>
-        <TextInput
-          style={styles.input}
-          value={String(form.institution_name ?? '')}
-          onChangeText={(v) => set('institution_name', v)}
-          placeholder="My School Library"
-        />
-
-        <Text style={styles.label}>Fine per Day (₱)</Text>
-        <TextInput
-          style={styles.input}
-          value={String(form.fine_per_day ?? '')}
-          onChangeText={(v) => set('fine_per_day', v)}
-          keyboardType="numeric"
-          placeholder="5"
-        />
-
-        <Text style={styles.label}>Max Borrow Days</Text>
-        <TextInput
-          style={styles.input}
-          value={String(form.max_borrow_days ?? '')}
-          onChangeText={(v) => set('max_borrow_days', v)}
-          keyboardType="numeric"
-          placeholder="7"
-        />
-
-        <Text style={styles.label}>Max Books per Member</Text>
-        <TextInput
-          style={styles.input}
-          value={String(form.max_books_per_member ?? '')}
-          onChangeText={(v) => set('max_books_per_member', v)}
-          keyboardType="numeric"
-          placeholder="3"
-        />
-
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave} disabled={saving}>
-          <Text style={styles.saveButtonText}>{saving ? 'Saving…' : 'Save Changes'}</Text>
-        </TouchableOpacity>
+      <View className="bg-brand px-5 pb-6 rounded-b-[28px]" style={{ paddingTop: 52 }}>
+        <Text className="text-2xl font-extrabold text-white">Settings</Text>
+        <Text className="text-xs text-[#A8D5A2] mt-1">Library configuration & backup</Text>
       </View>
 
-      {/* Backup & Restore */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Backup & Restore</Text>
-        <Text style={styles.sectionHint}>
-          Export saves all books, members, and records to a JSON file you can store safely.
-          Restoring from a backup will replace all current data.
-        </Text>
+      <View className="px-4 pt-4 gap-4">
+        {/* Library config */}
+        <View className="bg-white rounded-2xl p-4 gap-3"
+          style={{ elevation: 2, shadowColor: '#2A5C33', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4 }}>
+          <Text className="text-sm font-bold text-[#1C2B1E]">Library Configuration</Text>
 
-        <TouchableOpacity style={styles.exportButton} onPress={handleExport} disabled={exporting}>
-          <Text style={styles.exportButtonText}>{exporting ? 'Preparing…' : '⬆ Export Backup'}</Text>
-        </TouchableOpacity>
+          <Field label="Institution Name">
+            <TextInput
+              className="bg-bio border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]"
+              value={String(form.institution_name ?? '')}
+              onChangeText={(v) => set('institution_name', v)}
+              placeholder="My School Library"
+              placeholderTextColor="#94A3B8"
+            />
+          </Field>
+          <Field label="Fine per Day (₱)">
+            <TextInput
+              className="bg-bio border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]"
+              value={String(form.fine_per_day ?? '')}
+              onChangeText={(v) => set('fine_per_day', v)}
+              keyboardType="numeric"
+              placeholder="5"
+              placeholderTextColor="#94A3B8"
+            />
+          </Field>
+          <Field label="Max Borrow Days">
+            <TextInput
+              className="bg-bio border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]"
+              value={String(form.max_borrow_days ?? '')}
+              onChangeText={(v) => set('max_borrow_days', v)}
+              keyboardType="numeric"
+              placeholder="7"
+              placeholderTextColor="#94A3B8"
+            />
+          </Field>
+          <Field label="Max Books per Member">
+            <TextInput
+              className="bg-bio border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]"
+              value={String(form.max_books_per_member ?? '')}
+              onChangeText={(v) => set('max_books_per_member', v)}
+              keyboardType="numeric"
+              placeholder="3"
+              placeholderTextColor="#94A3B8"
+            />
+          </Field>
 
-        <TouchableOpacity style={styles.importButton} onPress={handleImport} disabled={importing}>
-          <Text style={styles.importButtonText}>{importing ? 'Restoring…' : '⬇ Restore from Backup'}</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            className="bg-leaf rounded-xl py-3.5 items-center"
+            onPress={handleSave}
+            disabled={saving}
+            style={{ elevation: 3, shadowColor: '#5CB85C', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4 }}
+          >
+            <Text className="text-white font-bold">{saving ? 'Saving…' : 'Save Changes'}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Backup */}
+        <View className="bg-white rounded-2xl p-4 gap-3"
+          style={{ elevation: 2, shadowColor: '#2A5C33', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4 }}>
+          <Text className="text-sm font-bold text-[#1C2B1E]">Backup & Restore</Text>
+          <Text className="text-xs text-[#7A9A7E] leading-4">
+            Export saves all books, members, and records to a JSON file. Restoring replaces all current data.
+          </Text>
+
+          <TouchableOpacity
+            className="bg-mint border border-[#C8DFC5] rounded-xl py-3.5 flex-row items-center justify-center gap-2"
+            onPress={handleExport}
+            disabled={exporting}
+          >
+            <Ionicons name="cloud-upload-outline" size={18} color="#2A5C33" />
+            <Text className="text-brand font-bold">{exporting ? 'Preparing…' : 'Export Backup'}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            className="bg-orange-50 border border-orange-200 rounded-xl py-3.5 flex-row items-center justify-center gap-2"
+            onPress={handleImport}
+            disabled={importing}
+          >
+            <Ionicons name="cloud-download-outline" size={18} color="#C2410C" />
+            <Text className="text-orange-700 font-bold">{importing ? 'Restoring…' : 'Restore from Backup'}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  content: { padding: 20, paddingBottom: 40 },
-  pageTitle: { fontSize: 26, fontWeight: '700', color: '#1E293B', marginBottom: 24 },
-
-  section: {
-    backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16,
-    marginBottom: 20, elevation: 1,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05,
-  },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#374151', marginBottom: 14 },
-  sectionHint: { fontSize: 13, color: '#64748B', marginBottom: 16, lineHeight: 19 },
-
-  label: { fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 4 },
-  input: {
-    backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#E2E8F0',
-    borderRadius: 8, padding: 12, fontSize: 15, marginBottom: 12,
-  },
-
-  saveButton: {
-    backgroundColor: '#2563EB', borderRadius: 8, padding: 14,
-    alignItems: 'center', marginTop: 4,
-  },
-  saveButtonText: { color: '#FFFFFF', fontWeight: '600', fontSize: 15 },
-
-  exportButton: {
-    backgroundColor: '#F0FDF4', borderWidth: 1, borderColor: '#86EFAC',
-    borderRadius: 8, padding: 14, alignItems: 'center', marginBottom: 10,
-  },
-  exportButtonText: { color: '#16A34A', fontWeight: '600', fontSize: 15 },
-
-  importButton: {
-    backgroundColor: '#FFF7ED', borderWidth: 1, borderColor: '#FED7AA',
-    borderRadius: 8, padding: 14, alignItems: 'center',
-  },
-  importButtonText: { color: '#C2410C', fontWeight: '600', fontSize: 15 },
-});
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <View className="gap-1">
+      <Text className="text-xs font-bold text-brand uppercase tracking-wider">{label}</Text>
+      {children}
+    </View>
+  );
+}

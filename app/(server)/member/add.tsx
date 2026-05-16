@@ -1,9 +1,7 @@
 import { useState } from 'react';
-import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, Alert, ActivityIndicator,
-} from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { UserService } from '../../../src/services/UserService';
 import { useAppStore } from '../../../src/store/appStore';
@@ -11,17 +9,16 @@ import { UserRole } from '../../../src/types';
 
 const ROLES: UserRole[] = ['member', 'librarian', 'admin'];
 
-const ROLE_COLOR: Record<UserRole, string> = {
-  admin: '#7C3AED',
-  librarian: '#2563EB',
-  member: '#16A34A',
+const ROLE_CONFIG: Record<UserRole, { label: string; hint: string; active: string; activeBg: string }> = {
+  member:    { label: 'Member',    hint: 'Borrow only',   active: '#15803D', activeBg: '#DCFCE7' },
+  librarian: { label: 'Librarian', hint: 'Manage books',  active: '#2A5C33', activeBg: '#E2EFE0' },
+  admin:     { label: 'Admin',     hint: 'Full access',   active: '#7C3AED', activeBg: '#EDE9FE' },
 };
 
 export default function AddMemberScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const institution = useAppStore((s) => s.institution);
-
   const [name, setName] = useState('');
   const [idNumber, setIdNumber] = useState('');
   const [role, setRole] = useState<UserRole>('member');
@@ -29,13 +26,7 @@ export default function AddMemberScreen() {
   const [confirmPin, setConfirmPin] = useState('');
 
   const createMutation = useMutation({
-    mutationFn: () => UserService.create({
-      institution_id: institution!.id,
-      name: name.trim(),
-      id_number: idNumber.trim(),
-      role,
-      pin,
-    }),
+    mutationFn: () => UserService.create({ institution_id: institution!.id, name: name.trim(), id_number: idNumber.trim(), role, pin }),
     onSuccess: (userId) => {
       queryClient.invalidateQueries({ queryKey: ['members'] });
       Alert.alert('Member Added', `${name.trim()} has been registered.`, [
@@ -44,11 +35,7 @@ export default function AddMemberScreen() {
       ]);
     },
     onError: (e: any) => {
-      if (e.message?.includes('UNIQUE')) {
-        Alert.alert('Error', 'That ID number is already registered.');
-      } else {
-        Alert.alert('Error', e.message ?? 'Failed to save member');
-      }
+      Alert.alert('Error', e.message?.includes('UNIQUE') ? 'That ID number is already registered.' : e.message ?? 'Failed to save member');
     },
   });
 
@@ -61,118 +48,107 @@ export default function AddMemberScreen() {
     createMutation.mutate();
   };
 
+  const pinStrength = pin.length >= 6 ? 'strong' : pin.length >= 4 ? 'ok' : 'weak';
+
   return (
-    <View style={styles.container}>
-      <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backText}>← Cancel</Text>
+    <View className="flex-1 bg-bio">
+      {/* Top bar */}
+      <View className="bg-brand flex-row items-center justify-between px-5 pb-4 rounded-b-[24px]"
+        style={{ paddingTop: 52 }}>
+        <TouchableOpacity onPress={() => router.back()} className="flex-row items-center gap-1">
+          <Ionicons name="chevron-back" size={20} color="#A8D5A2" />
+          <Text className="text-[#A8D5A2] text-sm font-medium">Cancel</Text>
         </TouchableOpacity>
-        <Text style={styles.screenTitle}>Add Member</Text>
-        <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={createMutation.isPending}>
+        <Text className="text-white font-extrabold text-base">Add Member</Text>
+        <TouchableOpacity
+          className="bg-leaf rounded-xl px-4 py-2 items-center min-w-[60px]"
+          onPress={handleSave}
+          disabled={createMutation.isPending}
+          style={{ elevation: 3, shadowColor: '#5CB85C', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4 }}
+        >
           {createMutation.isPending
             ? <ActivityIndicator color="#FFFFFF" size="small" />
-            : <Text style={styles.saveBtnText}>Save</Text>
-          }
+            : <Text className="text-white font-bold text-sm">Save</Text>}
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.form} contentContainerStyle={styles.formContent}>
-        <Text style={styles.sectionLabel}>Personal Info</Text>
-        <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Full name *" />
-        <TextInput
-          style={styles.input}
-          value={idNumber}
-          onChangeText={setIdNumber}
-          placeholder="ID number * (must be unique)"
-          autoCapitalize="none"
-        />
-
-        <Text style={styles.sectionLabel}>Role</Text>
-        <View style={styles.roleRow}>
-          {ROLES.map((r) => (
-            <TouchableOpacity
-              key={r}
-              style={[styles.roleBtn, role === r && { backgroundColor: ROLE_COLOR[r] }]}
-              onPress={() => setRole(r)}
-            >
-              <Text style={[styles.roleBtnText, role === r && styles.roleBtnActive]}>{r}</Text>
-              {r === 'admin' && (
-                <Text style={[styles.roleHint, role === r && { color: '#DDD6FE' }]}>Full access</Text>
-              )}
-              {r === 'librarian' && (
-                <Text style={[styles.roleHint, role === r && { color: '#BFDBFE' }]}>Manage books</Text>
-              )}
-              {r === 'member' && (
-                <Text style={[styles.roleHint, role === r && { color: '#BBF7D0' }]}>Borrow only</Text>
-              )}
-            </TouchableOpacity>
-          ))}
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 40 }}>
+        {/* Personal info */}
+        <View className="bg-white rounded-2xl p-4 gap-3"
+          style={{ elevation: 2, shadowColor: '#2A5C33', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4 }}>
+          <Text className="text-xs font-bold text-brand uppercase tracking-widest">Personal Info</Text>
+          <TextInput
+            className="bg-bio border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]"
+            value={name}
+            onChangeText={setName}
+            placeholder="Full name *"
+            placeholderTextColor="#94A3B8"
+          />
+          <TextInput
+            className="bg-bio border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]"
+            value={idNumber}
+            onChangeText={setIdNumber}
+            placeholder="ID number * (must be unique)"
+            placeholderTextColor="#94A3B8"
+            autoCapitalize="none"
+          />
         </View>
 
-        <Text style={styles.sectionLabel}>Login PIN</Text>
-        <Text style={styles.pinHint}>The member will use this PIN to log in to the system.</Text>
-        <TextInput
-          style={styles.input}
-          value={pin}
-          onChangeText={setPin}
-          placeholder="PIN (min 4 digits) *"
-          secureTextEntry
-          keyboardType="numeric"
-        />
-        <TextInput
-          style={styles.input}
-          value={confirmPin}
-          onChangeText={setConfirmPin}
-          placeholder="Confirm PIN *"
-          secureTextEntry
-          keyboardType="numeric"
-        />
-
-        {pin.length > 0 && (
-          <View style={[styles.pinStrength, pin.length >= 6 ? styles.pinStrong : pin.length >= 4 ? styles.pinOk : styles.pinWeak]}>
-            <Text style={styles.pinStrengthText}>
-              {pin.length >= 6 ? 'Strong PIN' : pin.length >= 4 ? 'Acceptable PIN' : `${4 - pin.length} more digit${4 - pin.length > 1 ? 's' : ''} needed`}
-            </Text>
+        {/* Role */}
+        <View className="bg-white rounded-2xl p-4 gap-3"
+          style={{ elevation: 2, shadowColor: '#2A5C33', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4 }}>
+          <Text className="text-xs font-bold text-brand uppercase tracking-widest">Role</Text>
+          <View className="flex-row gap-2">
+            {ROLES.map((r) => {
+              const cfg = ROLE_CONFIG[r];
+              const active = role === r;
+              return (
+                <TouchableOpacity
+                  key={r}
+                  className="flex-1 rounded-xl py-3 items-center gap-0.5"
+                  style={{ backgroundColor: active ? cfg.activeBg : '#F1F5F9' }}
+                  onPress={() => setRole(r)}
+                >
+                  <Text className="text-sm font-bold capitalize" style={{ color: active ? cfg.active : '#64748B' }}>{cfg.label}</Text>
+                  <Text className="text-[10px]" style={{ color: active ? cfg.active + 'AA' : '#94A3B8' }}>{cfg.hint}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
-        )}
+        </View>
+
+        {/* PIN */}
+        <View className="bg-white rounded-2xl p-4 gap-3"
+          style={{ elevation: 2, shadowColor: '#2A5C33', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4 }}>
+          <Text className="text-xs font-bold text-brand uppercase tracking-widest">Login PIN</Text>
+          <Text className="text-xs text-[#7A9A7E]">The member will use this PIN to log in to the system.</Text>
+          <TextInput
+            className="bg-bio border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]"
+            value={pin}
+            onChangeText={setPin}
+            placeholder="PIN (min 4 digits) *"
+            placeholderTextColor="#94A3B8"
+            secureTextEntry
+            keyboardType="numeric"
+          />
+          <TextInput
+            className="bg-bio border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]"
+            value={confirmPin}
+            onChangeText={setConfirmPin}
+            placeholder="Confirm PIN *"
+            placeholderTextColor="#94A3B8"
+            secureTextEntry
+            keyboardType="numeric"
+          />
+          {pin.length > 0 && (
+            <View className={`rounded-xl py-2.5 px-4 ${pinStrength === 'strong' ? 'bg-mint' : pinStrength === 'ok' ? 'bg-yellow-50' : 'bg-red-50'}`}>
+              <Text className={`text-xs font-bold text-center ${pinStrength === 'strong' ? 'text-brand' : pinStrength === 'ok' ? 'text-yellow-700' : 'text-red-600'}`}>
+                {pinStrength === 'strong' ? 'Strong PIN ✓' : pinStrength === 'ok' ? 'Acceptable PIN' : `${4 - pin.length} more digit${4 - pin.length > 1 ? 's' : ''} needed`}
+              </Text>
+            </View>
+          )}
+        </View>
       </ScrollView>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  topBar: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 16, paddingTop: 52, paddingBottom: 12,
-    backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#F1F5F9',
-  },
-  backText: { fontSize: 15, color: '#64748B' },
-  screenTitle: { fontSize: 17, fontWeight: '700', color: '#1E293B' },
-  saveBtn: {
-    backgroundColor: '#2563EB', borderRadius: 8,
-    paddingHorizontal: 16, paddingVertical: 8, minWidth: 64, alignItems: 'center',
-  },
-  saveBtnText: { color: '#FFFFFF', fontWeight: '700', fontSize: 14 },
-  form: { flex: 1 },
-  formContent: { padding: 16, gap: 10, paddingBottom: 40 },
-  sectionLabel: {
-    fontSize: 12, fontWeight: '700', color: '#94A3B8',
-    textTransform: 'uppercase', letterSpacing: 1, marginTop: 8, marginBottom: 2,
-  },
-  input: {
-    backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0',
-    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15,
-  },
-  roleRow: { flexDirection: 'row', gap: 8 },
-  roleBtn: { flex: 1, borderRadius: 10, padding: 12, alignItems: 'center', backgroundColor: '#F1F5F9', gap: 3 },
-  roleBtnText: { fontSize: 14, fontWeight: '700', color: '#374151', textTransform: 'capitalize' },
-  roleBtnActive: { color: '#FFFFFF' },
-  roleHint: { fontSize: 11, color: '#94A3B8' },
-  pinHint: { fontSize: 13, color: '#64748B', marginBottom: 4 },
-  pinStrength: { borderRadius: 8, padding: 10 },
-  pinStrong: { backgroundColor: '#DCFCE7' },
-  pinOk: { backgroundColor: '#FEF9C3' },
-  pinWeak: { backgroundColor: '#FEE2E2' },
-  pinStrengthText: { fontSize: 13, fontWeight: '600', color: '#374151', textAlign: 'center' },
-});

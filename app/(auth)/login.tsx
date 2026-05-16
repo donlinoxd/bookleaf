@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { Alert, Image, KeyboardAvoidingView, Platform, StatusBar, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { UserService } from '../../src/services/UserService';
 import { SettingsService } from '../../src/services/SettingsService';
@@ -7,6 +7,8 @@ import { useAppStore } from '../../src/store/appStore';
 import { db } from '../../src/db';
 import { institutions } from '../../src/db/schema';
 import { eq } from 'drizzle-orm';
+
+import MASCOT from '../../assets/images/bookleaf-mascot.png';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -23,10 +25,7 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       const user = await UserService.authenticate(idNumber.trim(), pin.trim());
-      if (!user) {
-        Alert.alert('Login Failed', 'Invalid ID number or PIN');
-        return;
-      }
+      if (!user) { Alert.alert('Login Failed', 'Invalid ID number or PIN'); return; }
       const [settings, institutionRows] = await Promise.all([
         SettingsService.getAll(),
         db.select().from(institutions).where(eq(institutions.id, user.institution_id)).limit(1),
@@ -35,13 +34,8 @@ export default function LoginScreen() {
       setCurrentUser(user);
       setSettings(settings);
       if (institution) setInstitution(institution);
-
-      if (user.role === 'admin' || user.role === 'librarian') {
-        router.replace('/(server)/dashboard');
-      } else {
-        router.replace('/(server)/opac');
-      }
-    } catch (e) {
+      router.replace(user.role === 'admin' || user.role === 'librarian' ? '/(server)/dashboard' : '/(server)/opac');
+    } catch {
       Alert.alert('Error', 'Login failed. Please try again.');
     } finally {
       setLoading(false);
@@ -49,59 +43,57 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View style={styles.inner}>
-        <Text style={styles.title}>Bookleaf</Text>
-        <Text style={styles.subtitle}>Sign in to continue</Text>
+    <KeyboardAvoidingView className="flex-1 bg-bio" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <StatusBar barStyle="light-content" backgroundColor="#2A5C33" />
 
-        <View style={styles.form}>
-          <Text style={styles.label}>ID Number</Text>
-          <TextInput
-            style={styles.input}
-            value={idNumber}
-            onChangeText={setIdNumber}
-            placeholder="Enter your ID number"
-            autoCapitalize="none"
-          />
+      {/* Header */}
+      <View className="bg-brand items-center px-6 pb-8 rounded-b-[36px]" style={{ paddingTop: 64 }}>
+        <Image source={MASCOT} className="w-20 h-20 mb-3" resizeMode="contain" />
+        <Text className="text-3xl font-extrabold text-white">BookLeaf</Text>
+        <Text className="text-sm text-[#A8D5A2] mt-1">Sign in to continue</Text>
+      </View>
 
-          <Text style={styles.label}>PIN</Text>
-          <TextInput
-            style={styles.input}
-            value={pin}
-            onChangeText={setPin}
-            placeholder="Enter your PIN"
-            secureTextEntry
-            keyboardType="numeric"
-          />
+      <View className="flex-1 px-6 pt-8">
+        <View className="gap-3">
+          <View>
+            <Text className="text-xs font-bold text-brand uppercase tracking-widest mb-1.5">ID Number</Text>
+            <TextInput
+              className="bg-white border border-mint rounded-2xl px-4 py-3.5 text-base text-[#1C2B1E]"
+              value={idNumber}
+              onChangeText={setIdNumber}
+              placeholder="Enter your ID number"
+              placeholderTextColor="#94A3B8"
+              autoCapitalize="none"
+            />
+          </View>
 
-          <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
-            <Text style={styles.buttonText}>{loading ? 'Signing in...' : 'Sign In'}</Text>
+          <View>
+            <Text className="text-xs font-bold text-brand uppercase tracking-widest mb-1.5">PIN</Text>
+            <TextInput
+              className="bg-white border border-mint rounded-2xl px-4 py-3.5 text-base text-[#1C2B1E]"
+              value={pin}
+              onChangeText={setPin}
+              placeholder="Enter your PIN"
+              placeholderTextColor="#94A3B8"
+              secureTextEntry
+              keyboardType="numeric"
+            />
+          </View>
+
+          <TouchableOpacity
+            className="bg-leaf rounded-2xl py-4 items-center mt-2"
+            onPress={handleLogin}
+            disabled={loading}
+            style={{ elevation: 4, shadowColor: '#5CB85C', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 6 }}
+          >
+            <Text className="text-white font-bold text-base">{loading ? 'Signing in…' : 'Sign In'}</Text>
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity onPress={() => router.push('/(auth)/guest')}>
-          <Text style={styles.guestText}>Browse catalog as guest</Text>
+        <TouchableOpacity className="mt-6 items-center" onPress={() => router.push('/(auth)/guest')}>
+          <Text className="text-brand font-semibold text-sm">Browse catalog as guest</Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  inner: { flex: 1, padding: 24, justifyContent: 'center' },
-  title: { fontSize: 28, fontWeight: '700', color: '#1E293B', textAlign: 'center' },
-  subtitle: { fontSize: 15, color: '#64748B', textAlign: 'center', marginTop: 4, marginBottom: 32 },
-  form: { gap: 8 },
-  label: { fontSize: 14, fontWeight: '600', color: '#374151' },
-  input: {
-    backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0',
-    borderRadius: 10, padding: 14, fontSize: 16, marginBottom: 8,
-  },
-  button: {
-    backgroundColor: '#2563EB', borderRadius: 10, padding: 16,
-    alignItems: 'center', marginTop: 8,
-  },
-  buttonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
-  guestText: { color: '#2563EB', textAlign: 'center', marginTop: 24, fontSize: 14 },
-});

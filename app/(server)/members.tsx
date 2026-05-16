@@ -1,11 +1,18 @@
 import { useState } from 'react';
-import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { FlatList, StatusBar, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { UserService } from '../../src/services/UserService';
 import { useAppStore } from '../../src/store/appStore';
 import { User } from '../../src/types';
 import { queryKeys } from '../../src/lib/queryKeys';
+
+const ROLE_STYLE: Record<string, { bg: string; text: string; dot: string }> = {
+  admin:     { bg: '#EDE9FE', text: '#7C3AED', dot: '#7C3AED' },
+  librarian: { bg: '#E2EFE0', text: '#2A5C33', dot: '#2A5C33' },
+  member:    { bg: '#DCFCE7', text: '#15803D', dot: '#5CB85C' },
+};
 
 export default function MembersScreen() {
   const router = useRouter();
@@ -20,76 +27,84 @@ export default function MembersScreen() {
     enabled: !!institution,
   });
 
-  const roleColor: Record<string, string> = {
-    admin: '#7C3AED',
-    librarian: '#2563EB',
-    member: '#16A34A',
+  const renderMember = ({ item }: { item: User }) => {
+    const rs = ROLE_STYLE[item.role] ?? ROLE_STYLE.member;
+    return (
+      <TouchableOpacity
+        className="bg-white rounded-2xl flex-row items-center p-4 mb-3"
+        style={{ elevation: 2, shadowColor: '#2A5C33', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4 }}
+        onPress={() => router.push(`/(server)/member/${item.id}`)}
+        activeOpacity={0.75}
+      >
+        <View className="w-11 h-11 rounded-full items-center justify-center" style={{ backgroundColor: rs.bg }}>
+          <Text className="text-lg font-extrabold" style={{ color: rs.text }}>
+            {item.name.charAt(0).toUpperCase()}
+          </Text>
+        </View>
+        <View className="flex-1 ml-3">
+          <View className="flex-row items-center gap-2">
+            <Text className="text-sm font-bold text-[#1C2B1E]">{item.name}</Text>
+            {!item.is_active && (
+              <View className="bg-red-100 rounded px-1.5 py-0.5">
+                <Text className="text-[10px] font-bold text-red-600">Inactive</Text>
+              </View>
+            )}
+          </View>
+          <Text className="text-xs text-[#5A7A5E] mt-0.5">ID: {item.id_number}</Text>
+          <View className="self-start rounded-md px-2 py-0.5 mt-1" style={{ backgroundColor: rs.bg }}>
+            <Text className="text-[10px] font-bold uppercase tracking-wider" style={{ color: rs.text }}>{item.role}</Text>
+          </View>
+        </View>
+        <Ionicons name="chevron-forward" size={16} color="#C8DFC5" />
+      </TouchableOpacity>
+    );
   };
 
-  const renderMember = ({ item }: { item: User }) => (
-    <TouchableOpacity style={styles.memberItem} onPress={() => router.push(`/(server)/member/${item.id}`)}>
-      <View style={[styles.avatar, { backgroundColor: roleColor[item.role] + '20' }]}>
-        <Text style={[styles.avatarText, { color: roleColor[item.role] }]}>
-          {item.name.charAt(0).toUpperCase()}
-        </Text>
-      </View>
-      <View style={styles.memberInfo}>
-        <Text style={styles.memberName}>{item.name}</Text>
-        <Text style={styles.memberId}>ID: {item.id_number}</Text>
-        <View style={[styles.roleBadge, { backgroundColor: roleColor[item.role] + '20' }]}>
-          <Text style={[styles.roleText, { color: roleColor[item.role] }]}>{item.role}</Text>
+  return (
+    <View className="flex-1 bg-bio">
+      <StatusBar barStyle="light-content" backgroundColor="#2A5C33" />
+
+      <View className="bg-brand px-5 pb-5 rounded-b-[28px]" style={{ paddingTop: 52 }}>
+        <View className="flex-row items-center justify-between mb-4">
+          <Text className="text-2xl font-extrabold text-white">Members</Text>
+          <TouchableOpacity
+            className="bg-leaf rounded-xl px-4 py-2 flex-row items-center gap-1"
+            onPress={() => router.push('/(server)/member/add')}
+            style={{ elevation: 3, shadowColor: '#5CB85C', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4 }}
+          >
+            <Ionicons name="add" size={16} color="#FFFFFF" />
+            <Text className="text-white font-bold text-sm">Add Member</Text>
+          </TouchableOpacity>
+        </View>
+        <View className="bg-white rounded-2xl flex-row items-center px-3 overflow-hidden">
+          <Ionicons name="search-outline" size={18} color="#94A3B8" />
+          <TextInput
+            className="flex-1 px-2 py-3 text-sm text-[#1C2B1E]"
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Search name or ID number…"
+            placeholderTextColor="#94A3B8"
+            clearButtonMode="while-editing"
+          />
         </View>
       </View>
-      {!item.is_active && <Text style={styles.inactiveTag}>Inactive</Text>}
-    </TouchableOpacity>
-  );
-
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Members</Text>
-        <TouchableOpacity style={styles.addButton} onPress={() => router.push('/(server)/member/add')}>
-          <Text style={styles.addButtonText}>+ Add</Text>
-        </TouchableOpacity>
-      </View>
-
-      <TextInput
-        style={styles.search}
-        value={query}
-        onChangeText={setQuery}
-        placeholder="Search name or ID number..."
-        clearButtonMode="while-editing"
-      />
 
       <FlatList
         data={members}
         keyExtractor={(m) => String(m.id)}
         renderItem={renderMember}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={{ padding: 16, paddingBottom: 110 }}
         onRefresh={refetch}
         refreshing={isFetching}
-        ListEmptyComponent={<Text style={styles.empty}>{isFetching ? 'Loading...' : 'No members found'}</Text>}
+        ListEmptyComponent={
+          <View className="items-center pt-16">
+            <Ionicons name="people-outline" size={48} color="#C8DFC5" />
+            <Text className="text-sm text-[#94A3B8] mt-3">
+              {isFetching ? 'Loading…' : 'No members found'}
+            </Text>
+          </View>
+        }
       />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, paddingTop: 56, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
-  title: { fontSize: 20, fontWeight: '700', color: '#1E293B' },
-  addButton: { backgroundColor: '#2563EB', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
-  addButtonText: { color: '#FFFFFF', fontWeight: '600', fontSize: 13 },
-  search: { margin: 12, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, padding: 12, fontSize: 15 },
-  list: { padding: 12, gap: 10 },
-  memberItem: { backgroundColor: '#FFFFFF', borderRadius: 12, flexDirection: 'row', padding: 14, alignItems: 'center', elevation: 1 },
-  avatar: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontSize: 18, fontWeight: '700' },
-  memberInfo: { flex: 1, marginLeft: 12 },
-  memberName: { fontSize: 15, fontWeight: '600', color: '#1E293B' },
-  memberId: { fontSize: 12, color: '#64748B', marginTop: 2 },
-  roleBadge: { alignSelf: 'flex-start', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2, marginTop: 4 },
-  roleText: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
-  inactiveTag: { fontSize: 11, color: '#DC2626', fontWeight: '600' },
-  empty: { textAlign: 'center', color: '#94A3B8', marginTop: 60 },
-});

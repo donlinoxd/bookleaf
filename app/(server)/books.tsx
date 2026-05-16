@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { FlatList, StatusBar, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { BookService } from '../../src/services/BookService';
 import { useAppStore } from '../../src/store/appStore';
@@ -21,76 +22,77 @@ export default function BooksScreen() {
   });
 
   const renderBook = ({ item }: { item: Book }) => (
-    <TouchableOpacity style={styles.bookItem} onPress={() => router.push(`/(server)/book/${item.id}`)}>
-      <View style={styles.coverPlaceholder}>
-        <Text style={styles.coverInitial}>{item.title[0]}</Text>
+    <TouchableOpacity
+      className="bg-white rounded-2xl flex-row p-4 mb-3"
+      style={{ elevation: 2, shadowColor: '#2A5C33', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4 }}
+      onPress={() => router.push(`/(server)/book/${item.id}`)}
+      activeOpacity={0.75}
+    >
+      <View className="w-12 h-16 bg-mint rounded-xl items-center justify-center">
+        <Text className="text-xl font-extrabold text-brand">{item.title[0]}</Text>
       </View>
-      <View style={styles.bookInfo}>
-        <Text style={styles.bookTitle} numberOfLines={2}>{item.title}</Text>
-        <Text style={styles.bookAuthor}>{item.author}</Text>
-        {item.genre && <Text style={styles.bookGenre}>{item.genre}</Text>}
-        <View style={styles.availabilityRow}>
-          <View style={[styles.badge, item.available_copies > 0 ? styles.badgeGreen : styles.badgeRed]}>
-            <Text style={styles.badgeText}>
+      <View className="flex-1 ml-3">
+        <Text className="text-sm font-bold text-[#1C2B1E] leading-5" numberOfLines={2}>{item.title}</Text>
+        <Text className="text-xs text-[#5A7A5E] mt-1 font-medium">{item.author}</Text>
+        {item.genre && <Text className="text-xs text-[#94A3B8] mt-0.5">{item.genre}</Text>}
+        <View className="flex-row items-center gap-2 mt-2">
+          <View className={`rounded-md px-2 py-0.5 ${item.available_copies > 0 ? 'bg-mint' : 'bg-red-100'}`}>
+            <Text className={`text-xs font-bold ${item.available_copies > 0 ? 'text-brand' : 'text-red-600'}`}>
               {item.available_copies > 0 ? `${item.available_copies} available` : 'Unavailable'}
             </Text>
           </View>
-          <Text style={styles.totalCopies}>{item.total_copies} copies total</Text>
+          <Text className="text-xs text-[#94A3B8]">{item.total_copies} total</Text>
         </View>
       </View>
+      <Ionicons name="chevron-forward" size={16} color="#C8DFC5" style={{ alignSelf: 'center' }} />
     </TouchableOpacity>
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Books</Text>
-        <TouchableOpacity style={styles.addButton} onPress={() => router.push('/(server)/book/add')}>
-          <Text style={styles.addButtonText}>+ Add Book</Text>
-        </TouchableOpacity>
-      </View>
+    <View className="flex-1 bg-bio">
+      <StatusBar barStyle="light-content" backgroundColor="#2A5C33" />
 
-      <TextInput
-        style={styles.search}
-        value={query}
-        onChangeText={setQuery}
-        placeholder="Search title, author, ISBN, genre..."
-        clearButtonMode="while-editing"
-      />
+      <View className="bg-brand px-5 pb-5 rounded-b-[28px]" style={{ paddingTop: 52 }}>
+        <View className="flex-row items-center justify-between mb-4">
+          <Text className="text-2xl font-extrabold text-white">Books</Text>
+          <TouchableOpacity
+            className="bg-leaf rounded-xl px-4 py-2 flex-row items-center gap-1"
+            onPress={() => router.push('/(server)/book/add')}
+            style={{ elevation: 3, shadowColor: '#5CB85C', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4 }}
+          >
+            <Ionicons name="add" size={16} color="#FFFFFF" />
+            <Text className="text-white font-bold text-sm">Add Book</Text>
+          </TouchableOpacity>
+        </View>
+        <View className="bg-white rounded-2xl flex-row items-center px-3 overflow-hidden">
+          <Ionicons name="search-outline" size={18} color="#94A3B8" />
+          <TextInput
+            className="flex-1 px-2 py-3 text-sm text-[#1C2B1E]"
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Search title, author, ISBN, genre…"
+            placeholderTextColor="#94A3B8"
+            clearButtonMode="while-editing"
+          />
+        </View>
+      </View>
 
       <FlatList
         data={books}
         keyExtractor={(b) => String(b.id)}
         renderItem={renderBook}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={{ padding: 16, paddingBottom: 110 }}
         onRefresh={refetch}
         refreshing={isFetching}
-        ListEmptyComponent={<Text style={styles.empty}>{isFetching ? 'Loading...' : 'No books found'}</Text>}
+        ListEmptyComponent={
+          <View className="items-center pt-16">
+            <Ionicons name="book-outline" size={48} color="#C8DFC5" />
+            <Text className="text-sm text-[#94A3B8] mt-3">
+              {isFetching ? 'Loading…' : 'No books found'}
+            </Text>
+          </View>
+        }
       />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, paddingTop: 56, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
-  title: { fontSize: 20, fontWeight: '700', color: '#1E293B' },
-  addButton: { backgroundColor: '#2563EB', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
-  addButtonText: { color: '#FFFFFF', fontWeight: '600', fontSize: 13 },
-  search: { margin: 12, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, padding: 12, fontSize: 15 },
-  list: { padding: 12, gap: 10 },
-  bookItem: { backgroundColor: '#FFFFFF', borderRadius: 12, flexDirection: 'row', padding: 12, elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05 },
-  coverPlaceholder: { width: 48, height: 64, backgroundColor: '#EFF6FF', borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
-  coverInitial: { fontSize: 22, fontWeight: '700', color: '#2563EB' },
-  bookInfo: { flex: 1, marginLeft: 12 },
-  bookTitle: { fontSize: 15, fontWeight: '600', color: '#1E293B' },
-  bookAuthor: { fontSize: 13, color: '#64748B', marginTop: 2 },
-  bookGenre: { fontSize: 11, color: '#94A3B8', marginTop: 2 },
-  availabilityRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 },
-  badge: { borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
-  badgeGreen: { backgroundColor: '#DCFCE7' },
-  badgeRed: { backgroundColor: '#FEE2E2' },
-  badgeText: { fontSize: 11, fontWeight: '600', color: '#374151' },
-  totalCopies: { fontSize: 11, color: '#94A3B8' },
-  empty: { textAlign: 'center', color: '#94A3B8', marginTop: 60 },
-});

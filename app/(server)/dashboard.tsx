@@ -35,7 +35,7 @@ export default function DashboardScreen() {
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'librarian';
 
   return (
-    <ScrollView className="flex-1 bg-bio" contentContainerStyle={{ paddingBottom: 32 }}>
+    <ScrollView className="flex-1 bg-bio" contentContainerStyle={{ paddingBottom: 110 }}>
       <StatusBar barStyle="light-content" backgroundColor="#2A5C33" />
 
       {/* Header */}
