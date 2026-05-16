@@ -49,6 +49,15 @@ export default function ServerLayout() {
           tabBarIcon: ({ color, size }) => <Ionicons name="search-outline" size={size} color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: 'Settings',
+          tabBarLabel: 'Settings',
+          href: isAdmin ? undefined : null,
+          tabBarIcon: ({ color, size }) => <Ionicons name="settings-outline" size={size} color={color} />,
+        }}
+      />
       <Tabs.Screen name="book/[id]" options={{ href: null }} />
       <Tabs.Screen name="book/add" options={{ href: null }} />
       <Tabs.Screen name="member/[id]" options={{ href: null }} />

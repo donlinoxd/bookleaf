@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   Alert, Modal, TextInput, ActivityIndicator,
@@ -10,6 +10,8 @@ import { BorrowService } from '../../../src/services/BorrowService';
 import { useAppStore } from '../../../src/store/appStore';
 import { User, Fine, UserRole } from '../../../src/types';
 import { queryKeys } from '../../../src/lib/queryKeys';
+import { MemberCard } from '../../../src/components/members/MemberCard';
+import { printMemberCard } from '../../../src/utils/printMemberCard';
 
 const ROLE_COLOR: Record<UserRole, string> = {
   admin: '#7C3AED',
@@ -22,11 +24,14 @@ export default function MemberDetailScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const currentUser = useAppStore((s) => s.currentUser);
+  const institution = useAppStore((s) => s.institution);
   const isAdmin = currentUser?.role === 'admin';
   const userId = parseInt(id);
 
   const [editVisible, setEditVisible] = useState(false);
   const [pinVisible, setPinVisible] = useState(false);
+  const [printing, setPrinting] = useState(false);
+  const qrRef = useRef<{ toDataURL: (cb: (data: string) => void) => void } | null>(null);
 
   const { data: member, isLoading } = useQuery({
     queryKey: queryKeys.member(userId),
@@ -91,6 +96,26 @@ export default function MemberDetailScreen() {
     ]);
   };
 
+  const handlePrintCard = () => {
+    if (!member || !qrRef.current) return;
+    setPrinting(true);
+    qrRef.current.toDataURL(async (dataUrl) => {
+      try {
+        await printMemberCard({
+          name: member.name,
+          idNumber: member.id_number,
+          role: member.role,
+          institutionName: institution?.name ?? 'Library',
+          qrDataUrl: `data:image/png;base64,${dataUrl}`,
+        });
+      } catch (e) {
+        Alert.alert('Print Failed', e instanceof Error ? e.message : 'Could not generate card PDF.');
+      } finally {
+        setPrinting(false);
+      }
+    });
+  };
+
   const totalFines = fines.reduce((sum, f) => sum + f.amount, 0);
   const isOverdue = (dueDate: string) => new Date(dueDate) < new Date();
 
@@ -147,6 +172,26 @@ export default function MemberDetailScreen() {
               <Text style={styles.toggleBtnText}>{member.is_active ? 'Deactivate' : 'Reactivate'}</Text>
             </TouchableOpacity>
           )}
+        </View>
+
+        <View style={styles.cardSection}>
+          <View style={styles.cardSectionHeader}>
+            <Text style={styles.sectionTitle}>Member Card</Text>
+            <TouchableOpacity
+              style={[styles.topBtn, printing && { opacity: 0.5 }]}
+              onPress={handlePrintCard}
+              disabled={printing}
+            >
+              <Text style={styles.topBtnText}>{printing ? 'Preparing…' : 'Print / Share'}</Text>
+            </TouchableOpacity>
+          </View>
+          <MemberCard
+            name={member.name}
+            idNumber={member.id_number}
+            role={member.role}
+            institutionName={institution?.name ?? 'Library'}
+            getRef={(ref) => { qrRef.current = ref; }}
+          />
         </View>
 
         <View style={styles.statsRow}>
@@ -432,6 +477,8 @@ const styles = StyleSheet.create({
   returnedText: { fontSize: 12, fontWeight: '600', color: '#16A34A' },
   activeText: { fontSize: 12, fontWeight: '600', color: '#2563EB' },
   emptyText: { fontSize: 14, color: '#94A3B8', textAlign: 'center', paddingVertical: 8 },
+  cardSection: { marginHorizontal: 16, marginBottom: 12 },
+  cardSectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
 });
 
 const modal = StyleSheet.create({

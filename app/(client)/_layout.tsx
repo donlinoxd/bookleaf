@@ -20,6 +20,14 @@ export default function ClientLayout() {
           tabBarIcon: ({ color, size }) => <Ionicons name="bookmark-outline" size={size} color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="my-card"
+        options={{
+          title: 'My Card',
+          tabBarLabel: 'My Card',
+          tabBarIcon: ({ color, size }) => <Ionicons name="card-outline" size={size} color={color} />,
+        }}
+      />
     </Tabs>
   );
 }

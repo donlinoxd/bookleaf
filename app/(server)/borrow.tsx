@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Modal } from 'react-native';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { UserService } from '../../src/services/UserService';
 import { BookService } from '../../src/services/BookService';
@@ -43,6 +44,15 @@ function CheckoutForm() {
   const [bookQuery, setBookQuery] = useState('');
   const [member, setMember] = useState<User | null>(null);
   const [book, setBook] = useState<Book | null>(null);
+  const [scannerOpen, setScannerOpen] = useState(false);
+
+  const lookupMember = async (idOverride?: string) => {
+    const id = idOverride ?? memberQuery.trim();
+    if (!id) return;
+    const found = await UserService.getByIdNumber(id);
+    if (!found) return Alert.alert('Not Found', 'No member with that ID');
+    setMember(found);
+  };
 
   const borrowMutation = useMutation({
     mutationFn: async () => {
@@ -65,12 +75,6 @@ function CheckoutForm() {
     onError: (e: any) => Alert.alert('Error', e.message),
   });
 
-  const lookupMember = async () => {
-    const found = await UserService.getByIdNumber(memberQuery.trim());
-    if (!found) return Alert.alert('Not Found', 'No member with that ID');
-    setMember(found);
-  };
-
   const lookupBook = async () => {
     if (!bookQuery.trim()) return;
     const results = await BookService.search(1, bookQuery.trim());
@@ -83,11 +87,19 @@ function CheckoutForm() {
       <Text style={styles.stepLabel}>1. Find Member</Text>
       <View style={styles.row}>
         <TextInput style={[styles.input, { flex: 1 }]} value={memberQuery} onChangeText={setMemberQuery} placeholder="Enter member ID number" />
+        <TouchableOpacity style={styles.scanBtn} onPress={() => setScannerOpen(true)}>
+          <Text style={styles.lookupBtnText}>Scan</Text>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.lookupBtn} onPress={lookupMember}>
           <Text style={styles.lookupBtnText}>Find</Text>
         </TouchableOpacity>
       </View>
       {member && <ResultCard label={member.name} sub={`${member.role} • ID: ${member.id_number}`} color="#EFF6FF" />}
+      <QrScannerModal
+        visible={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onScanned={(id) => { setMemberQuery(id); setScannerOpen(false); lookupMember(id); }}
+      />
 
       <Text style={styles.stepLabel}>2. Find Book</Text>
       <View style={styles.row}>
@@ -113,6 +125,7 @@ function ReturnForm() {
   const queryClient = useQueryClient();
   const [memberQuery, setMemberQuery] = useState('');
   const [member, setMember] = useState<User | null>(null);
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   const { data: activeBorrows = [] } = useQuery({
     queryKey: queryKeys.activeBorrows(member?.id ?? 0),
@@ -120,8 +133,10 @@ function ReturnForm() {
     enabled: !!member,
   });
 
-  const lookupMember = async () => {
-    const found = await UserService.getByIdNumber(memberQuery.trim());
+  const lookupMember = async (idOverride?: string) => {
+    const id = idOverride ?? memberQuery.trim();
+    if (!id) return;
+    const found = await UserService.getByIdNumber(id);
     if (!found) return Alert.alert('Not Found', 'No member with that ID');
     setMember(found);
   };
@@ -148,11 +163,19 @@ function ReturnForm() {
       <Text style={styles.stepLabel}>Find Member</Text>
       <View style={styles.row}>
         <TextInput style={[styles.input, { flex: 1 }]} value={memberQuery} onChangeText={setMemberQuery} placeholder="Enter member ID number" />
-        <TouchableOpacity style={styles.lookupBtn} onPress={lookupMember}>
+        <TouchableOpacity style={styles.scanBtn} onPress={() => setScannerOpen(true)}>
+          <Text style={styles.lookupBtnText}>Scan</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.lookupBtn} onPress={() => lookupMember()}>
           <Text style={styles.lookupBtnText}>Find</Text>
         </TouchableOpacity>
       </View>
       {member && <ResultCard label={member.name} sub={`${activeBorrows.length} books borrowed`} color="#EFF6FF" />}
+      <QrScannerModal
+        visible={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onScanned={(id) => { setMemberQuery(id); setScannerOpen(false); lookupMember(id); }}
+      />
 
       {activeBorrows.map(b => (
         <View key={b.id} style={styles.borrowItem}>
@@ -183,6 +206,70 @@ function ResultCard({ label, sub, color }: { label: string; sub: string; color: 
   );
 }
 
+function QrScannerModal({ visible, onClose, onScanned }: {
+  visible: boolean;
+  onClose: () => void;
+  onScanned: (id: string) => void;
+}) {
+  const [permission, requestPermission] = useCameraPermissions();
+  const scanned = { current: false };
+
+  if (!visible) return null;
+
+  if (!permission?.granted) {
+    return (
+      <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+        <View style={scanner.permissionBox}>
+          <Text style={scanner.permissionText}>Camera permission is required to scan QR codes.</Text>
+          <TouchableOpacity style={scanner.permissionBtn} onPress={requestPermission}>
+            <Text style={scanner.permissionBtnText}>Grant Permission</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={onClose} style={{ marginTop: 12 }}>
+            <Text style={{ color: '#64748B', textAlign: 'center' }}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+    );
+  }
+
+  return (
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+      <View style={scanner.container}>
+        <CameraView
+          style={scanner.camera}
+          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+          onBarcodeScanned={({ data }) => {
+            if (scanned.current) return;
+            scanned.current = true;
+            onScanned(data);
+          }}
+        />
+        <View style={scanner.overlay}>
+          <View style={scanner.frame} />
+          <Text style={scanner.hint}>Point at a member's QR code</Text>
+          <TouchableOpacity style={scanner.closeBtn} onPress={onClose}>
+            <Text style={scanner.closeBtnText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const scanner = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#000' },
+  camera: { flex: 1 },
+  overlay: { position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center', gap: 20 },
+  frame: { width: 220, height: 220, borderWidth: 2, borderColor: '#FFFFFF', borderRadius: 12, backgroundColor: 'transparent' },
+  hint: { color: '#FFFFFF', fontSize: 14, fontWeight: '500' },
+  closeBtn: { backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 10, paddingHorizontal: 24, paddingVertical: 12, marginTop: 12 },
+  closeBtnText: { color: '#FFFFFF', fontWeight: '600', fontSize: 15 },
+  permissionBox: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32, backgroundColor: '#F8FAFC' },
+  permissionText: { fontSize: 15, color: '#374151', textAlign: 'center', marginBottom: 20 },
+  permissionBtn: { backgroundColor: '#2563EB', borderRadius: 10, paddingHorizontal: 24, paddingVertical: 12 },
+  permissionBtnText: { color: '#FFFFFF', fontWeight: '600' },
+});
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFC' },
   header: { backgroundColor: '#FFFFFF', padding: 16, paddingTop: 56, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
@@ -197,6 +284,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 8 },
   input: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, padding: 12, fontSize: 15 },
   lookupBtn: { backgroundColor: '#2563EB', borderRadius: 10, paddingHorizontal: 16, justifyContent: 'center' },
+  scanBtn: { backgroundColor: '#0F172A', borderRadius: 10, paddingHorizontal: 14, justifyContent: 'center' },
   lookupBtnText: { color: '#FFFFFF', fontWeight: '600' },
   resultCard: { borderRadius: 10, padding: 12, marginTop: 8 },
   resultLabel: { fontSize: 15, fontWeight: '600', color: '#1E293B' },

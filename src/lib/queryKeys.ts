@@ -10,4 +10,5 @@ export const queryKeys = {
   activeBorrows: (userId: number) => ['member', userId, 'activeBorrows'] as const,
   memberHistory: (userId: number) => ['member', userId, 'history'] as const,
   memberFines: (userId: number) => ['member', userId, 'fines'] as const,
+  settings: () => ['settings'] as const,
 };
