@@ -65,6 +65,21 @@ export const BookService = {
     );
   },
 
+  async addCopy(bookId: number): Promise<void> {
+    const db = await getDatabase();
+    const last = await db.getFirstAsync<{ max_copy: number }>(
+      'SELECT MAX(copy_number) as max_copy FROM book_copies WHERE book_id = ?', [bookId]
+    );
+    const nextNum = (last?.max_copy ?? 0) + 1;
+    await db.runAsync(
+      'INSERT INTO book_copies (book_id, copy_number) VALUES (?, ?)', [bookId, nextNum]
+    );
+    await db.runAsync(
+      'UPDATE books SET total_copies = total_copies + 1, available_copies = available_copies + 1 WHERE id = ?',
+      [bookId]
+    );
+  },
+
   async getAvailableCopy(bookId: number): Promise<BookCopy | null> {
     const db = await getDatabase();
     return db.getFirstAsync<BookCopy>(
