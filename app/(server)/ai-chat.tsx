@@ -3,7 +3,9 @@ import { useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, Text, TextInput, TouchableOpacity, View, Keyboard } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { ChatMessage, LlmService } from '../../src/services/LlmService'
+import { ChatMessage, LlmService, SYSTEM_PROMPT, TOOL_LABELS } from '../../src/services/LlmService'
+import { ToolName } from '../../src/services/LibraryTools'
+import { useAppStore } from '../../src/store/appStore'
 
 const BRAND = '#2A5C33'
 const LEAF = '#5CB85C'
@@ -16,20 +18,17 @@ type UIMessage = {
     content: string
 }
 
-const SYSTEM_PROMPT =
-    'You are Leaf, a helpful AI assistant embedded in Bookleaf — a library management system. ' +
-    'You help librarians and patrons with questions about books, members, borrowing, fines, and reports. ' +
-    'Be concise, friendly, and practical. When given data, format it clearly.'
-
 export default function AiChatScreen() {
     const router = useRouter()
     const insets = useSafeAreaInsets()
+    const { institution } = useAppStore()
     const [phase, setPhase] = useState<Phase>('checking')
     const [downloadProgress, setDownloadProgress] = useState(0)
     const [messages, setMessages] = useState<UIMessage[]>([])
     const [input, setInput] = useState('')
     const [isGenerating, setIsGenerating] = useState(false)
     const [streamingText, setStreamingText] = useState('')
+    const [toolStatus, setToolStatus] = useState('')
     const [error, setError] = useState('')
     const [keyboardHeight, setKeyboardHeight] = useState(0)
     const flatListRef = useRef<FlatList>(null)
@@ -99,6 +98,7 @@ export default function AiChatScreen() {
         setInput('')
         setIsGenerating(true)
         setStreamingText('')
+        setToolStatus('')
 
         try {
             const apiMessages: ChatMessage[] = [
@@ -106,16 +106,25 @@ export default function AiChatScreen() {
                 ...next.map((m) => ({ role: m.role, content: m.content })),
             ]
             let full = ''
-            await LlmService.chat(apiMessages, (token) => {
-                full += token
-                setStreamingText(full)
-            })
+            await LlmService.chat(
+                apiMessages,
+                (token) => {
+                    setToolStatus('')
+                    full += token
+                    setStreamingText(full)
+                },
+                {
+                    institutionId: institution?.id,
+                    onToolCall: (tool: ToolName) => setToolStatus(TOOL_LABELS[tool] || ''),
+                },
+            )
             setMessages((prev) => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: full }])
             setStreamingText('')
         } catch (e) {
             setError(String(e))
         } finally {
             setIsGenerating(false)
+            setToolStatus('')
         }
     }
 
@@ -247,6 +256,8 @@ export default function AiChatScreen() {
     const displayMessages: UIMessage[] =
         isGenerating && streamingText ? [...messages, { id: 'streaming', role: 'assistant', content: streamingText }] : messages
 
+    const showToolStatus = isGenerating && toolStatus && !streamingText
+
     return (
         <KeyboardAvoidingView style={{ flex: 1, backgroundColor: '#F8FAF8', marginBottom: Platform.OS === 'android' ? keyboardHeight + insets.bottom : 0 }} behavior='padding' enabled={Platform.OS === 'ios'}>
             {/* Header */}
@@ -302,6 +313,19 @@ export default function AiChatScreen() {
                 style={{ flex: 1 }}
                 contentContainerStyle={{ padding: 16, paddingBottom: 16 }}
                 onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+                ListFooterComponent={
+                    showToolStatus ? (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, paddingHorizontal: 4 }}>
+                            <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: LEAF, alignItems: 'center', justifyContent: 'center' }}>
+                                <Ionicons name='sparkles' size={10} color='#fff' />
+                            </View>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 8, gap: 8, elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 3 }}>
+                                <ActivityIndicator size='small' color={LEAF} />
+                                <Text style={{ fontSize: 13, color: '#64748B' }}>{toolStatus}</Text>
+                            </View>
+                        </View>
+                    ) : null
+                }
                 ListEmptyComponent={
                     <View style={{ alignItems: 'center', marginTop: 60, paddingHorizontal: 24 }}>
                         <Ionicons name='chatbubbles-outline' size={52} color='#CBD5E1' />
