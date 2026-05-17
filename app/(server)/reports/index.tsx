@@ -82,7 +82,7 @@ export default function ReportsHubScreen() {
                 <Text style={{ color: '#A8D5A2', fontSize: 13, marginTop: 4 }}>Generate and share accreditation-ready reports.</Text>
             </View>
 
-            <ScrollView contentContainerStyle={{ padding: 20, gap: 12 }} showsVerticalScrollIndicator={false}>
+            <ScrollView contentContainerStyle={{ padding: 20, gap: 12, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
                 <Text style={{ fontSize: 11, fontWeight: '700', color: '#7A9A7E', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 4 }}>
                     Available
                 </Text>
@@ -133,7 +133,17 @@ export default function ReportsHubScreen() {
                 ))}
 
                 {COMING_SOON.length > 0 && (
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#7A9A7E', letterSpacing: 0.8, textTransform: 'uppercase', marginTop: 8, marginBottom: 4 }}>
+                    <Text
+                        style={{
+                            fontSize: 11,
+                            fontWeight: '700',
+                            color: '#7A9A7E',
+                            letterSpacing: 0.8,
+                            textTransform: 'uppercase',
+                            marginTop: 8,
+                            marginBottom: 4,
+                        }}
+                    >
                         Coming Soon
                     </Text>
                 )}
