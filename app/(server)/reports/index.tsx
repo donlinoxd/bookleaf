@@ -42,11 +42,18 @@ const REPORTS: ReportCard[] = [
         bg: '#EDE9FE',
         route: '/(server)/reports/inventory',
     },
+    {
+        title: 'Fines Report',
+        description: 'Total fines issued, collected vs. pending, monthly trends, and top debtors.',
+        icon: 'cash-outline',
+        color: '#B45309',
+        bg: '#FEF3C7',
+        route: '/(server)/reports/fines',
+    },
 ]
 
 const COMING_SOON = [
     { title: 'Patron Report', description: 'Registered users, active borrowers, department breakdown.', icon: 'people-outline' },
-    { title: 'Fines Report', description: 'Total fines collected, pending, and by date range.', icon: 'cash-outline' },
 ]
 
 export default function ReportsHubScreen() {

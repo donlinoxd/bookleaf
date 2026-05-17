@@ -25,4 +25,11 @@ export const queryKeys = {
   collectionByMaterialType: (institutionId: number) => ['report', 'collection', 'materialType', institutionId] as const,
   collectionByYear: (institutionId: number) => ['report', 'collection', 'year', institutionId] as const,
   collectionCondition: (institutionId: number) => ['report', 'collection', 'condition', institutionId] as const,
+  inventoryLatestSession: (institutionId: number) => ['report', 'inventory', 'latestSession', institutionId] as const,
+  inventoryAccessionRegister: (institutionId: number) => ['report', 'inventory', 'accession', institutionId] as const,
+  inventoryConditionByMaterial: (institutionId: number) => ['report', 'inventory', 'conditionByMaterial', institutionId] as const,
+  finesReportSummary: (institutionId: number) => ['report', 'fines', 'summary', institutionId] as const,
+  finesReportMonthly: (institutionId: number) => ['report', 'fines', 'monthly', institutionId] as const,
+  finesReportDebtors: (institutionId: number) => ['report', 'fines', 'debtors', institutionId] as const,
+  finesReportDetails: (institutionId: number) => ['report', 'fines', 'details', institutionId] as const,
 };
