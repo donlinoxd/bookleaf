@@ -50,11 +50,18 @@ const REPORTS: ReportCard[] = [
         bg: '#FEF3C7',
         route: '/(server)/reports/fines',
     },
+    {
+        title: 'Patron Report',
+        description: 'Registered members by type and department, attendance trends, and new registrations.',
+        icon: 'people-outline',
+        color: '#0F766E',
+        bg: '#CCFBF1',
+        route: '/(server)/reports/patron',
+        badge: 'CHED',
+    },
 ]
 
-const COMING_SOON = [
-    { title: 'Patron Report', description: 'Registered users, active borrowers, department breakdown.', icon: 'people-outline' },
-]
+const COMING_SOON: { title: string; description: string; icon: string }[] = []
 
 export default function ReportsHubScreen() {
     const insets = useSafeAreaInsets()
@@ -125,19 +132,11 @@ export default function ReportsHubScreen() {
                     </TouchableOpacity>
                 ))}
 
-                <Text
-                    style={{
-                        fontSize: 11,
-                        fontWeight: '700',
-                        color: '#7A9A7E',
-                        letterSpacing: 0.8,
-                        textTransform: 'uppercase',
-                        marginTop: 8,
-                        marginBottom: 4,
-                    }}
-                >
-                    Coming Soon
-                </Text>
+                {COMING_SOON.length > 0 && (
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#7A9A7E', letterSpacing: 0.8, textTransform: 'uppercase', marginTop: 8, marginBottom: 4 }}>
+                        Coming Soon
+                    </Text>
+                )}
 
                 {COMING_SOON.map((r) => (
                     <View

@@ -8,7 +8,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { UserService } from '../../../src/services/UserService';
 import { BorrowService } from '../../../src/services/BorrowService';
 import { useAppStore } from '../../../src/store/appStore';
-import { User, Fine, UserRole } from '../../../src/types';
+import { User, Fine, UserRole, UserType } from '../../../src/types';
 import { queryKeys } from '../../../src/lib/queryKeys';
 import { MemberCard } from '../../../src/components/members/MemberCard';
 import { printMemberCard } from '../../../src/utils/printMemberCard';
@@ -159,10 +159,18 @@ export default function MemberDetailScreen() {
               <View style={[styles.roleBadge, { backgroundColor: ROLE_COLOR[member.role] + '20' }]}>
                 <Text style={[styles.roleText, { color: ROLE_COLOR[member.role] }]}>{member.role}</Text>
               </View>
+              {member.user_type && (
+                <View style={[styles.roleBadge, { backgroundColor: '#E2EFE0' }]}>
+                  <Text style={[styles.roleText, { color: '#2A5C33' }]}>{member.user_type}</Text>
+                </View>
+              )}
               <View style={[styles.statusBadge, member.is_active ? styles.activeStyle : styles.inactiveStyle]}>
                 <Text style={styles.statusText}>{member.is_active ? 'Active' : 'Inactive'}</Text>
               </View>
             </View>
+            {member.department ? (
+              <Text style={{ fontSize: 12, color: '#7A9A7E', marginTop: 2 }}>{member.department}</Text>
+            ) : null}
           </View>
           {isAdmin && (
             <TouchableOpacity
@@ -297,21 +305,31 @@ interface EditModalProps {
 }
 
 const ROLES: UserRole[] = ['member', 'librarian', 'admin'];
+const USER_TYPES: { value: UserType; label: string }[] = [
+  { value: 'student', label: 'Student' },
+  { value: 'faculty', label: 'Faculty' },
+  { value: 'alumni', label: 'Alumni' },
+  { value: 'external', label: 'External' },
+];
 
 function EditMemberModal({ visible, member, onClose, onSaved, userId }: EditModalProps) {
   const queryClient = useQueryClient();
   const [name, setName] = useState(member.name);
   const [idNumber, setIdNumber] = useState(member.id_number);
   const [role, setRole] = useState<UserRole>(member.role);
+  const [userType, setUserType] = useState<UserType | null>(member.user_type ?? null);
+  const [department, setDepartment] = useState(member.department ?? '');
 
   useEffect(() => {
     setName(member.name);
     setIdNumber(member.id_number);
     setRole(member.role);
+    setUserType(member.user_type ?? null);
+    setDepartment(member.department ?? '');
   }, [member]);
 
   const updateMutation = useMutation({
-    mutationFn: () => UserService.update(member.id, { name: name.trim(), id_number: idNumber.trim(), role }),
+    mutationFn: () => UserService.update(member.id, { name: name.trim(), id_number: idNumber.trim(), role, department: department.trim() || undefined, user_type: userType }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.member(userId) });
       queryClient.invalidateQueries({ queryKey: ['members'] });
@@ -359,6 +377,25 @@ function EditMemberModal({ visible, member, onClose, onSaved, userId }: EditModa
               </TouchableOpacity>
             ))}
           </View>
+
+          <Text style={modal.label}>Patron Type</Text>
+          <View style={modal.roleRow}>
+            {USER_TYPES.map((t) => {
+              const active = userType === t.value;
+              return (
+                <TouchableOpacity
+                  key={t.value}
+                  style={[modal.roleBtn, active && { backgroundColor: '#2A5C33' }]}
+                  onPress={() => setUserType(active ? null : t.value)}
+                >
+                  <Text style={[modal.roleBtnText, active && { color: '#FFFFFF' }]}>{t.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <Text style={modal.label}>Department / Program</Text>
+          <TextInput style={modal.input} value={department} onChangeText={setDepartment} placeholder="e.g. College of Engineering" />
         </ScrollView>
       </View>
     </Modal>

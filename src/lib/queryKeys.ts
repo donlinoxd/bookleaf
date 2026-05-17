@@ -32,4 +32,9 @@ export const queryKeys = {
   finesReportMonthly: (institutionId: number) => ['report', 'fines', 'monthly', institutionId] as const,
   finesReportDebtors: (institutionId: number) => ['report', 'fines', 'debtors', institutionId] as const,
   finesReportDetails: (institutionId: number) => ['report', 'fines', 'details', institutionId] as const,
+  patronOverview: (institutionId: number) => ['report', 'patron', 'overview', institutionId] as const,
+  patronByType: (institutionId: number) => ['report', 'patron', 'byType', institutionId] as const,
+  patronByDepartment: (institutionId: number) => ['report', 'patron', 'byDepartment', institutionId] as const,
+  patronRegistrations: (institutionId: number) => ['report', 'patron', 'registrations', institutionId] as const,
+  patronAttendance: (institutionId: number) => ['report', 'patron', 'attendance', institutionId] as const,
 };

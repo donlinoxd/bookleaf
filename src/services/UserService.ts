@@ -2,7 +2,7 @@ import { eq, asc, and, like, or } from 'drizzle-orm';
 import { db } from '../db';
 import { users } from '../db/schema';
 import { hashPin, verifyPin } from '../db/database';
-import { User, UserRole } from '../types';
+import { User, UserRole, UserType } from '../types';
 
 export const UserService = {
   async getAll(institutionId: number): Promise<User[]> {
@@ -38,6 +38,8 @@ export const UserService = {
     role: UserRole;
     pin: string;
     photo_uri?: string;
+    department?: string;
+    user_type?: UserType;
   }): Promise<number> {
     const pin_hash = hashPin(user.pin);
     const result = await db.insert(users).values({
@@ -47,6 +49,8 @@ export const UserService = {
       role: user.role,
       pin_hash,
       photo_uri: user.photo_uri ?? null,
+      department: user.department ?? null,
+      user_type: user.user_type ?? null,
     }).returning({ id: users.id });
     return result[0].id;
   },
@@ -61,11 +65,13 @@ export const UserService = {
     await db.update(users).set({ is_active: isActive }).where(eq(users.id, id));
   },
 
-  async update(id: number, data: { name: string; id_number: string; role: UserRole }): Promise<void> {
+  async update(id: number, data: { name: string; id_number: string; role: UserRole; department?: string; user_type?: UserType | null }): Promise<void> {
     await db.update(users).set({
       name: data.name,
       id_number: data.id_number,
       role: data.role,
+      department: data.department ?? null,
+      user_type: data.user_type ?? null,
     }).where(eq(users.id, id));
   },
 

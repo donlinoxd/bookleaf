@@ -19,6 +19,8 @@ export const users = sqliteTable('users', {
   photo_uri: text('photo_uri'),
   is_active: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   created_at: text('created_at').notNull().default(sql`(datetime('now'))`),
+  department: text('department'),
+  user_type: text('user_type', { enum: ['student', 'faculty', 'alumni', 'external'] }),
 });
 
 export const resources = sqliteTable('resources', {

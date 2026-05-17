@@ -5,9 +5,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { UserService } from '../../../src/services/UserService';
 import { useAppStore } from '../../../src/store/appStore';
-import { UserRole } from '../../../src/types';
+import { UserRole, UserType } from '../../../src/types';
 
 const ROLES: UserRole[] = ['member', 'librarian', 'admin'];
+
+const USER_TYPES: { value: UserType; label: string }[] = [
+  { value: 'student', label: 'Student' },
+  { value: 'faculty', label: 'Faculty' },
+  { value: 'alumni', label: 'Alumni' },
+  { value: 'external', label: 'External' },
+];
 
 const ROLE_CONFIG: Record<UserRole, { label: string; hint: string; active: string; activeBg: string }> = {
   member:    { label: 'Member',    hint: 'Borrow only',   active: '#15803D', activeBg: '#DCFCE7' },
@@ -22,11 +29,13 @@ export default function AddMemberScreen() {
   const [name, setName] = useState('');
   const [idNumber, setIdNumber] = useState('');
   const [role, setRole] = useState<UserRole>('member');
+  const [userType, setUserType] = useState<UserType | null>(null);
+  const [department, setDepartment] = useState('');
   const [pin, setPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
 
   const createMutation = useMutation({
-    mutationFn: () => UserService.create({ institution_id: institution!.id, name: name.trim(), id_number: idNumber.trim(), role, pin }),
+    mutationFn: () => UserService.create({ institution_id: institution!.id, name: name.trim(), id_number: idNumber.trim(), role, pin, department: department.trim() || undefined, user_type: userType ?? undefined }),
     onSuccess: (userId) => {
       queryClient.invalidateQueries({ queryKey: ['members'] });
       Alert.alert('Member Added', `${name.trim()} has been registered.`, [
@@ -115,6 +124,35 @@ export default function AddMemberScreen() {
               );
             })}
           </View>
+        </View>
+
+        {/* Patron Classification */}
+        <View className="bg-white rounded-2xl p-4 gap-3"
+          style={{ elevation: 2, shadowColor: '#2A5C33', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4 }}>
+          <Text className="text-xs font-bold text-brand uppercase tracking-widest">Patron Classification</Text>
+          <Text className="text-xs text-[#7A9A7E]">Used for accreditation reports. Optional but recommended.</Text>
+          <View className="flex-row flex-wrap gap-2">
+            {USER_TYPES.map((t) => {
+              const active = userType === t.value;
+              return (
+                <TouchableOpacity
+                  key={t.value}
+                  className="rounded-xl px-4 py-2.5"
+                  style={{ backgroundColor: active ? '#2A5C33' : '#F1F5F9' }}
+                  onPress={() => setUserType(active ? null : t.value)}
+                >
+                  <Text className="text-sm font-bold" style={{ color: active ? '#FFFFFF' : '#64748B' }}>{t.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          <TextInput
+            className="bg-bio border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]"
+            value={department}
+            onChangeText={setDepartment}
+            placeholder="Department / Program (optional)"
+            placeholderTextColor="#94A3B8"
+          />
         </View>
 
         {/* PIN */}

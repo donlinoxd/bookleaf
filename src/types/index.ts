@@ -1,4 +1,5 @@
 export type UserRole = 'admin' | 'librarian' | 'member';
+export type UserType = 'student' | 'faculty' | 'alumni' | 'external';
 export type GateDirection = 'in' | 'out';
 export type GateMethod = 'app' | 'browser' | 'manual';
 export type AppMode = 'server' | 'client' | null;
@@ -29,6 +30,8 @@ export interface User {
   photo_uri: string | null;
   is_active: boolean;
   created_at: string;
+  department: string | null;
+  user_type: UserType | null;
 }
 
 export interface Resource {
