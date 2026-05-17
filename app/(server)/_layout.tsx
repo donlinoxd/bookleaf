@@ -58,7 +58,7 @@ export default function ServerLayout() {
                 name='opac'
                 options={{
                     title: 'OPAC',
-                    tabBarLabel: 'Catalog',
+                    tabBarLabel: 'OPAC',
                     tabBarIcon: ({ color, size, focused }) => <Ionicons name={focused ? 'search' : 'search-outline'} size={size} color={color} />,
                 }}
             />
