@@ -26,10 +26,17 @@ const REPORTS: ReportCard[] = [
     route: '/(server)/reports/collection',
     badge: 'CHED',
   },
+  {
+    title: 'Circulation Report',
+    description: 'Most borrowed books, overdue materials, monthly trends, and top borrowers.',
+    icon: 'swap-horizontal-outline',
+    color: '#0F766E',
+    bg: '#CCFBF1',
+    route: '/(server)/reports/circulation',
+  },
 ];
 
 const COMING_SOON = [
-  { title: 'Circulation Report', description: 'Most borrowed books, overdue trends, monthly transactions.', icon: 'swap-horizontal-outline' },
   { title: 'Patron Report', description: 'Registered users, active borrowers, department breakdown.', icon: 'people-outline' },
   { title: 'Fines Report', description: 'Total fines collected, pending, and by date range.', icon: 'cash-outline' },
 ];
