@@ -94,6 +94,22 @@ export const fines = sqliteTable('fines', {
   paid_at: text('paid_at'),
 });
 
+export const scanSessions = sqliteTable('scan_sessions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  institution_id: integer('institution_id').notNull().references(() => institutions.id),
+  started_at: text('started_at').notNull().default(sql`(datetime('now'))`),
+  ended_at: text('ended_at'),
+  status: text('status', { enum: ['in_progress', 'completed'] }).notNull().default('in_progress'),
+});
+
+export const scanEntries = sqliteTable('scan_entries', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  session_id: integer('session_id').notNull().references(() => scanSessions.id),
+  isbn: text('isbn').notNull(),
+  resource_id: integer('resource_id').references(() => resources.id),
+  scanned_at: text('scanned_at').notNull().default(sql`(datetime('now'))`),
+});
+
 export const settings = sqliteTable('settings', {
   key: text('key').primaryKey(),
   value: text('value').notNull(),

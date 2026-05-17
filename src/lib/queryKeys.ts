@@ -11,4 +11,8 @@ export const queryKeys = {
   memberHistory: (userId: number) => ['member', userId, 'history'] as const,
   memberFines: (userId: number) => ['member', userId, 'fines'] as const,
   settings: () => ['settings'] as const,
+  inventoryActiveSession: (institutionId: number) => ['inventory', 'session', 'active', institutionId] as const,
+  inventorySessionProgress: (sessionId: number) => ['inventory', 'session', sessionId, 'progress'] as const,
+  inventoryReport: (sessionId: number) => ['inventory', 'report', sessionId] as const,
+  inventorySessions: (institutionId: number) => ['inventory', 'sessions', institutionId] as const,
 };

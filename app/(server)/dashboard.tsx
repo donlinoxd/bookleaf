@@ -80,6 +80,7 @@ export default function DashboardScreen() {
                         <ActionButton label='Check Out' emoji='📤' color='#2A5C33' onPress={() => router.push('/(server)/borrow')} />
                         <ActionButton label='Return' emoji='📥' color='#5CB85C' onPress={() => router.push('/(server)/borrow')} />
                         <ActionButton label='Add Book' emoji='📚' color='#3A7A45' onPress={() => router.push('/(server)/books')} />
+                        <ActionButton label='Inventory' emoji='🔍' color='#1E6B8C' onPress={() => router.push('/(server)/inventory-scan')} />
                     </View>
                 </View>
 

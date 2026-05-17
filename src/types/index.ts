@@ -120,3 +120,69 @@ export interface ServerInfo {
   port: number;
   institutionName: string;
 }
+
+export interface ScanSession {
+  id: number;
+  institution_id: number;
+  started_at: string;
+  ended_at: string | null;
+  status: 'in_progress' | 'completed';
+}
+
+export interface ScanEntry {
+  id: number;
+  session_id: number;
+  isbn: string;
+  resource_id: number | null;
+  scanned_at: string;
+}
+
+export interface GhostCopy {
+  resource_id: number;
+  title: string;
+  author: string;
+  isbn: string;
+  call_number: string | null;
+  db_available: number;
+  scan_count: number;
+  missing_count: number;
+}
+
+export interface PhantomReturn {
+  resource_id: number;
+  title: string;
+  author: string;
+  isbn: string;
+  call_number: string | null;
+  db_available: number;
+  scan_count: number;
+  phantom_count: number;
+}
+
+export interface UnknownScan {
+  isbn: string;
+  scan_count: number;
+}
+
+export interface ExtraCopy {
+  resource_id: number;
+  title: string;
+  author: string;
+  isbn: string;
+  call_number: string | null;
+  total_copies: number;
+  scan_count: number;
+  extra_count: number;
+}
+
+export interface DiscrepancyReport {
+  session_id: number;
+  started_at: string;
+  ended_at: string;
+  total_scanned: number;
+  unique_isbns_scanned: number;
+  ghost_copies: GhostCopy[];
+  phantom_returns: PhantomReturn[];
+  unknown_scans: UnknownScan[];
+  extra_copies: ExtraCopy[];
+}

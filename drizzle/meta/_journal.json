@@ -15,6 +15,13 @@
       "when": 1747497600000,
       "tag": "0001_resources_rda",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1747584000000,
+      "tag": "0002_inventory_scan",
+      "breakpoints": true
     }
   ]
 }
