@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  Alert, TextInput, Modal, ActivityIndicator, Switch,
+  Alert, Image, TextInput, Modal, ActivityIndicator, Switch,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -104,9 +104,13 @@ export default function ResourceDetailScreen() {
 
           {/* Hero */}
           <View className="flex-row gap-4 items-start">
-            <View className="w-16 h-20 bg-[#1C3E23] rounded-2xl items-center justify-center">
-              <Ionicons name={meta.icon as any} size={28} color="#A8D5A2" />
-            </View>
+            {resource.cover_uri ? (
+              <Image source={{ uri: resource.cover_uri }} className="w-16 h-20 rounded-2xl" resizeMode="cover" />
+            ) : (
+              <View className="w-16 h-20 bg-[#1C3E23] rounded-2xl items-center justify-center">
+                <Ionicons name={meta.icon as any} size={28} color="#A8D5A2" />
+              </View>
+            )}
             <View className="flex-1">
               <View className="flex-row items-center gap-2 mb-1">
                 <View className="bg-[#1C3E23] rounded-md px-2 py-0.5">

@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import {
-  ActivityIndicator, Alert, Modal, ScrollView, Switch,
+  ActivityIndicator, Alert, Image, Modal, ScrollView, Switch,
   Text, TextInput, TouchableOpacity, View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { ResourceService } from '../../../src/services/ResourceService';
+import { IsbnLookupService } from '../../../src/services/IsbnLookupService';
 import { useAppStore } from '../../../src/store/appStore';
 import { MaterialType, CallNumberType } from '../../../src/types';
 import { MATERIAL_TYPES, MATERIAL_TYPE_META, IDENTIFIER_LABEL } from '../../../src/lib/materialTypes';
@@ -50,6 +51,11 @@ export default function AddResourceScreen() {
   const [carrierType, setCarrierType] = useState('');
   const [loanPeriodDays, setLoanPeriodDays] = useState('');
 
+  // Cover + lookup state
+  const [coverUri, setCoverUri] = useState<string | null>(null);
+  const [lookingUp, setLookingUp] = useState(false);
+  const [autoFilled, setAutoFilled] = useState(false);
+
   const [scannerVisible, setScannerVisible] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
   const scannedRef = useRef(false);
@@ -70,7 +76,7 @@ export default function AddResourceScreen() {
         year: year.trim() ? parseInt(year.trim()) : null,
         genre: genre.trim() || null,
         description: description.trim() || null,
-        cover_uri: null,
+        cover_uri: coverUri,
         subtitle: subtitle.trim() || null,
         edition: edition.trim() || null,
         volume: volume.trim() || null,
@@ -121,6 +127,35 @@ export default function AddResourceScreen() {
     }
     scannedRef.current = false;
     setScannerVisible(true);
+  };
+
+  const handleBarcodeScanned = async (data: string) => {
+    if (scannedRef.current) return;
+    scannedRef.current = true;
+    setScannerVisible(false);
+    setIdentifier(data);
+    setAutoFilled(false);
+    setCoverUri(null);
+
+    setLookingUp(true);
+    const result = await IsbnLookupService.lookup(data);
+    setLookingUp(false);
+
+    if (result) {
+      if (result.title) setTitle(result.title);
+      if (result.subtitle) setSubtitle(result.subtitle);
+      if (result.author) setAuthor(result.author);
+      if (result.publisher) setPublisher(result.publisher);
+      if (result.year) setYear(String(result.year));
+      if (result.genre) setGenre(result.genre);
+      if (result.description) setDescription(result.description);
+      if (result.series_title) setSeriesTitle(result.series_title);
+      if (result.language) setLanguage(result.language);
+      if (result.cover_uri) setCoverUri(result.cover_uri);
+      if (result.call_number) setCallNumber(result.call_number);
+      if (result.call_number_type) setCallNumberType(result.call_number_type);
+      setAutoFilled(true);
+    }
   };
 
   return (
@@ -192,7 +227,7 @@ export default function AddResourceScreen() {
               <TextInput
                 className="flex-1 bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]"
                 value={identifier}
-                onChangeText={setIdentifier}
+                onChangeText={(v) => { setIdentifier(v); setAutoFilled(false); }}
                 placeholder={`${identifierLabel} (optional)`}
                 placeholderTextColor="#94A3B8"
                 autoCapitalize="none"
@@ -207,6 +242,41 @@ export default function AddResourceScreen() {
                 </TouchableOpacity>
               )}
             </View>
+
+            {/* Lookup feedback */}
+            {lookingUp && (
+              <View className="flex-row items-center gap-2 px-1">
+                <ActivityIndicator size="small" color="#2A5C33" />
+                <Text className="text-xs text-[#5A7A5E]">Looking up details…</Text>
+              </View>
+            )}
+            {!lookingUp && autoFilled && (
+              <View className="flex-row items-center gap-1.5 px-1">
+                <Ionicons name="checkmark-circle" size={14} color="#2A5C33" />
+                <Text className="text-xs font-semibold text-brand">Details filled automatically</Text>
+              </View>
+            )}
+
+            {/* Cover preview */}
+            {coverUri && (
+              <View className="flex-row items-center gap-3 bg-mint rounded-xl p-3">
+                <Image
+                  source={{ uri: coverUri }}
+                  className="w-12 h-16 rounded-lg"
+                  resizeMode="cover"
+                />
+                <View className="flex-1">
+                  <Text className="text-xs font-bold text-brand">Cover found</Text>
+                  <Text className="text-xs text-[#5A7A5E] mt-0.5" numberOfLines={1}>{title || 'Untitled'}</Text>
+                  <TouchableOpacity
+                    className="mt-1.5"
+                    onPress={() => setCoverUri(null)}
+                  >
+                    <Text className="text-xs text-red-500 font-medium">Remove cover</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
           </FormSection>
 
           {/* Core Details */}
@@ -337,12 +407,7 @@ export default function AddResourceScreen() {
           <CameraView
             style={{ flex: 1 }}
             barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128'] }}
-            onBarcodeScanned={({ data }) => {
-              if (scannedRef.current) return;
-              scannedRef.current = true;
-              setScannerVisible(false);
-              setIdentifier(data);
-            }}
+            onBarcodeScanned={({ data }) => handleBarcodeScanned(data)}
           >
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: 24 }}>
               <View style={{ width: 260, height: 120, borderWidth: 2, borderColor: '#5CB85C', borderRadius: 10 }} />

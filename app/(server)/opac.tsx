@@ -36,9 +36,13 @@ export default function OPACScreen() {
         onPress={() => router.push(`/(server)/book/${item.id}`)}
         activeOpacity={0.75}
       >
-        <View className="w-14 h-[72px] bg-mint rounded-xl items-center justify-center">
-          <Ionicons name={meta.icon as any} size={24} color="#2A5C33" />
-        </View>
+        {item.cover_uri ? (
+          <Image source={{ uri: item.cover_uri }} className="w-14 h-[72px] rounded-xl" resizeMode="cover" />
+        ) : (
+          <View className="w-14 h-[72px] bg-mint rounded-xl items-center justify-center">
+            <Ionicons name={meta.icon as any} size={24} color="#2A5C33" />
+          </View>
+        )}
         <View className="flex-1 ml-4">
           <Text className="text-sm font-bold text-[#1C2B1E] leading-5" numberOfLines={2}>{item.title}</Text>
           <Text className="text-xs font-medium text-[#5A7A5E] mt-1">{item.author}</Text>

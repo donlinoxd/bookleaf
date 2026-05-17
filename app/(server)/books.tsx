@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FlatList, StatusBar, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, Image, StatusBar, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
@@ -31,9 +31,13 @@ export default function CatalogScreen() {
         onPress={() => router.push(`/(server)/book/${item.id}`)}
         activeOpacity={0.75}
       >
-        <View className="w-12 h-16 bg-mint rounded-xl items-center justify-center">
-          <Ionicons name={meta.icon as any} size={22} color="#2A5C33" />
-        </View>
+        {item.cover_uri ? (
+          <Image source={{ uri: item.cover_uri }} className="w-12 h-16 rounded-xl" resizeMode="cover" />
+        ) : (
+          <View className="w-12 h-16 bg-mint rounded-xl items-center justify-center">
+            <Ionicons name={meta.icon as any} size={22} color="#2A5C33" />
+          </View>
+        )}
         <View className="flex-1 ml-3">
           <Text className="text-sm font-bold text-[#1C2B1E] leading-5" numberOfLines={2}>{item.title}</Text>
           <Text className="text-xs text-[#5A7A5E] mt-0.5 font-medium">{item.author}</Text>
