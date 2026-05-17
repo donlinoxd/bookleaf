@@ -110,6 +110,15 @@ export const scanEntries = sqliteTable('scan_entries', {
   scanned_at: text('scanned_at').notNull().default(sql`(datetime('now'))`),
 });
 
+export const gateLogs = sqliteTable('gate_logs', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  institution_id: integer('institution_id').notNull().references(() => institutions.id),
+  user_id: integer('user_id').notNull().references(() => users.id),
+  direction: text('direction', { enum: ['in', 'out'] }).notNull(),
+  method: text('method', { enum: ['app', 'browser', 'manual'] }).notNull(),
+  logged_at: text('logged_at').notNull().default(sql`(datetime('now'))`),
+});
+
 export const settings = sqliteTable('settings', {
   key: text('key').primaryKey(),
   value: text('value').notNull(),

@@ -1,6 +1,8 @@
 import { eq, like, or, and, desc, sum } from 'drizzle-orm';
 import { db } from '../db';
 import { resources, resourceCopies, borrowingRecords, users, fines } from '../db/schema';
+import { GateService } from './GateService';
+import { verifyPin } from '../db/database';
 
 export const ApiServer = {
   async ping() {
@@ -58,6 +60,29 @@ export const ApiServer = {
       .where(eq(resources.id, resourceId))
       .limit(1)
       .then(r => r[0] ?? null);
+  },
+
+  async gateLogByIdNumber(idNumber: string, institutionId: number, method: 'app' | 'browser' | 'manual') {
+    const user = await db.select({ id: users.id, name: users.name, is_active: users.is_active })
+      .from(users)
+      .where(eq(users.id_number, idNumber))
+      .limit(1)
+      .then((r) => r[0] ?? null);
+    if (!user || !user.is_active) return null;
+    const result = await GateService.logEntry(user.id, institutionId, method);
+    return { user_name: user.name, direction: result.direction, logged_at: result.logged_at };
+  },
+
+  async gateVerifyAndLog(idNumber: string, pin: string, institutionId: number) {
+    const user = await db.select({ id: users.id, name: users.name, pin_hash: users.pin_hash, is_active: users.is_active })
+      .from(users)
+      .where(eq(users.id_number, idNumber))
+      .limit(1)
+      .then((r) => r[0] ?? null);
+    if (!user || !user.is_active) return null;
+    if (!verifyPin(pin, user.pin_hash)) return null;
+    const result = await GateService.logEntry(user.id, institutionId, 'browser');
+    return { user_name: user.name, direction: result.direction, logged_at: result.logged_at };
   },
 
   async getMemberBorrows(idNumber: string) {

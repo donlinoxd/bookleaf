@@ -38,6 +38,16 @@ export default function ClientLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="gate"
+        options={{
+          title: 'Gate',
+          tabBarLabel: 'Gate',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? 'qr-code' : 'qr-code-outline'} size={size} color={color} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }

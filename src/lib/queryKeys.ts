@@ -15,4 +15,10 @@ export const queryKeys = {
   inventorySessionProgress: (sessionId: number) => ['inventory', 'session', sessionId, 'progress'] as const,
   inventoryReport: (sessionId: number) => ['inventory', 'report', sessionId] as const,
   inventorySessions: (institutionId: number) => ['inventory', 'sessions', institutionId] as const,
+  gateTodayLogs: (institutionId: number) => ['gate', 'today', institutionId] as const,
+  gateLogsByDate: (institutionId: number, date: string) => ['gate', 'date', institutionId, date] as const,
+  collectionOverview: (institutionId: number) => ['report', 'collection', 'overview', institutionId] as const,
+  collectionByMaterialType: (institutionId: number) => ['report', 'collection', 'materialType', institutionId] as const,
+  collectionByYear: (institutionId: number) => ['report', 'collection', 'year', institutionId] as const,
+  collectionCondition: (institutionId: number) => ['report', 'collection', 'condition', institutionId] as const,
 };

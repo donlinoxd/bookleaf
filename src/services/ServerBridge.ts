@@ -30,6 +30,20 @@ async function handleQuery(requestId: number, action: string, params: Record<str
       case 'getMemberBorrows':
         data = await ApiServer.getMemberBorrows(params.idNumber as string);
         break;
+      case 'gateLogByIdNumber':
+        data = await ApiServer.gateLogByIdNumber(
+          params.idNumber as string,
+          params.institutionId as number,
+          params.method as 'app' | 'browser' | 'manual',
+        );
+        break;
+      case 'gateVerifyAndLog':
+        data = await ApiServer.gateVerifyAndLog(
+          params.idNumber as string,
+          params.pin as string,
+          params.institutionId as number,
+        );
+        break;
       default:
         data = { error: `Unknown action: ${action}` };
     }

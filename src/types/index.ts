@@ -1,4 +1,6 @@
 export type UserRole = 'admin' | 'librarian' | 'member';
+export type GateDirection = 'in' | 'out';
+export type GateMethod = 'app' | 'browser' | 'manual';
 export type AppMode = 'server' | 'client' | null;
 export type CopyCondition = 'good' | 'damaged' | 'lost';
 export type CopyStatus = 'available' | 'borrowed' | 'reserved';
@@ -173,6 +175,19 @@ export interface ExtraCopy {
   total_copies: number;
   scan_count: number;
   extra_count: number;
+}
+
+export interface GateLog {
+  id: number;
+  institution_id: number;
+  user_id: number;
+  direction: GateDirection;
+  method: GateMethod;
+  logged_at: string;
+  // joined
+  user_name?: string;
+  user_id_number?: string;
+  user_role?: UserRole;
 }
 
 export interface DiscrepancyReport {

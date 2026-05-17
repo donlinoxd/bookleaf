@@ -61,6 +61,9 @@ export default function ServerLayout() {
             <Tabs.Screen name='member/add' options={{ href: null }} />
             <Tabs.Screen name='inventory-scan' options={{ href: null }} />
             <Tabs.Screen name='inventory-report/[sessionId]' options={{ href: null }} />
+            <Tabs.Screen name='gate-scan' options={{ href: null }} />
+            <Tabs.Screen name='gate-qr' options={{ href: null }} />
+            <Tabs.Screen name='reports' options={{ href: null }} />
         </Tabs>
     )
 }
