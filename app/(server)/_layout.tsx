@@ -8,7 +8,7 @@ export default function ServerLayout() {
     const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'librarian'
 
     return (
-        <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <CustomTabBar {...props} accentRoute='borrow' />}>
+        <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <CustomTabBar {...props} accentRoute='scan' />}>
             <Tabs.Screen
                 name='dashboard'
                 options={{
@@ -25,24 +25,12 @@ export default function ServerLayout() {
                     tabBarIcon: ({ color, size, focused }) => <Ionicons name={focused ? 'library' : 'library-outline'} size={size} color={color} />,
                 }}
             />
-
             <Tabs.Screen
                 name='scan'
                 options={{
                     title: 'Scan',
                     tabBarLabel: 'Scan',
                     tabBarIcon: ({ color, size, focused }) => <Ionicons name={focused ? 'scan' : 'scan-outline'} size={size} color={color} />,
-                }}
-            />
-
-            <Tabs.Screen
-                name='borrow'
-                options={{
-                    title: 'Borrow/Return',
-                    tabBarLabel: 'Borrow',
-                    tabBarIcon: ({ color, size, focused }) => (
-                        <Ionicons name={focused ? 'swap-horizontal' : 'swap-horizontal-outline'} size={size} color={color} />
-                    ),
                 }}
             />
             <Tabs.Screen
@@ -62,14 +50,10 @@ export default function ServerLayout() {
                     tabBarIcon: ({ color, size, focused }) => <Ionicons name={focused ? 'search' : 'search-outline'} size={size} color={color} />,
                 }}
             />
+            <Tabs.Screen name='borrow' options={{ href: null }} />
             <Tabs.Screen
                 name='settings'
-                options={{
-                    title: 'Settings',
-                    tabBarLabel: 'Settings',
-                    href: isAdmin ? undefined : null,
-                    tabBarIcon: ({ color, size, focused }) => <Ionicons name={focused ? 'settings' : 'settings-outline'} size={size} color={color} />,
-                }}
+                options={{ href: null }}
             />
             <Tabs.Screen name='book/[id]' options={{ href: null }} />
             <Tabs.Screen name='book/add' options={{ href: null }} />
