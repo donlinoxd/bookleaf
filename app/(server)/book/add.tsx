@@ -87,6 +87,17 @@ export default function AddResourceScreen() {
   const identifierLabel = IDENTIFIER_LABEL[materialType];
   const showScanner = materialType === 'BOOK' || materialType === 'SERIAL';
 
+  const resetForm = () => {
+    setMaterialType('BOOK');
+    setTitle(''); setAuthor(''); setIdentifier(''); setPublisher('');
+    setYear(''); setGenre(''); setDescription(''); setCopies('1'); setIsLoanable(true);
+    setSubtitle(''); setEdition(''); setVolume(''); setIssueNumber(''); setSeriesTitle('');
+    setDoi(''); setUrl(''); setDuration(''); setLanguage('');
+    setCallNumber(''); setCallNumberType('');
+    setContentType(''); setMediaType(''); setCarrierType(''); setLoanPeriodDays('');
+    setCoverUri(null); setAutoFilled(false); setRdaMode(false);
+  };
+
   const createMutation = useMutation({
     mutationFn: () => {
       const copyCount = parseInt(copies) || 1;
@@ -123,12 +134,14 @@ export default function AddResourceScreen() {
     onSuccess: (resourceId) => {
       queryClient.invalidateQueries({ queryKey: ['resources'] });
       const copyCount = parseInt(copies) || 1;
+      const savedTitle = title.trim();
+      resetForm();
       Alert.alert(
         'Resource Added',
-        `"${title.trim()}" added with ${copyCount} cop${copyCount === 1 ? 'y' : 'ies'}.`,
+        `"${savedTitle}" added with ${copyCount} cop${copyCount === 1 ? 'y' : 'ies'}.`,
         [
           { text: 'View', onPress: () => router.replace(`/(server)/book/${resourceId}`) },
-          { text: 'Add Another', onPress: () => router.replace('/(server)/book/add') },
+          { text: 'Add Another', style: 'cancel' },
         ]
       );
     },
@@ -205,7 +218,7 @@ export default function AddResourceScreen() {
           </TouchableOpacity>
         </View>
 
-        <ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 40 }}>
+        <ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 120 }}>
 
           {/* Simple / RDA toggle */}
           <View className="bg-[#1C3E23] rounded-2xl p-1 flex-row">
