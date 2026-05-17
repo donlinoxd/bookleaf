@@ -4,9 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { UserService } from '../../src/services/UserService';
-import { BookService } from '../../src/services/BookService';
+import { ResourceService } from '../../src/services/ResourceService';
 import { BorrowService } from '../../src/services/BorrowService';
-import { User, Book } from '../../src/types';
+import { User, Resource } from '../../src/types';
 import { queryKeys } from '../../src/lib/queryKeys';
 
 type Mode = 'checkout' | 'return';
@@ -43,9 +43,9 @@ export default function BorrowScreen() {
 function CheckoutForm() {
   const queryClient = useQueryClient();
   const [memberQuery, setMemberQuery] = useState('');
-  const [bookQuery, setBookQuery] = useState('');
+  const [resourceQuery, setResourceQuery] = useState('');
   const [member, setMember] = useState<User | null>(null);
-  const [book, setBook] = useState<Book | null>(null);
+  const [resource, setResource] = useState<Resource | null>(null);
   const [scannerOpen, setScannerOpen] = useState(false);
 
   const lookupMember = async (idOverride?: string) => {
@@ -60,25 +60,26 @@ function CheckoutForm() {
     mutationFn: async () => {
       const canBorrow = await BorrowService.canBorrow(member!.id);
       if (!canBorrow.allowed) throw new Error(canBorrow.reason);
-      const copy = await BookService.getAvailableCopy(book!.id);
-      if (!copy) throw new Error('No available copies of this book');
+      if (!resource!.is_loanable) throw new Error('This resource is not available for borrowing');
+      const copy = await ResourceService.getAvailableCopy(resource!.id);
+      if (!copy) throw new Error('No available copies of this resource');
       await BorrowService.borrowBook(copy.id, member!.id);
     },
     onSuccess: () => {
-      Alert.alert('Success', `"${book!.title}" checked out to ${member!.name}`);
-      setMember(null); setBook(null); setMemberQuery(''); setBookQuery('');
-      queryClient.invalidateQueries({ queryKey: ['books'] });
+      Alert.alert('Success', `"${resource!.title}" checked out to ${member!.name}`);
+      setMember(null); setResource(null); setMemberQuery(''); setResourceQuery('');
+      queryClient.invalidateQueries({ queryKey: ['resources'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['overdue'] });
     },
     onError: (e: any) => Alert.alert('Error', e.message),
   });
 
-  const lookupBook = async () => {
-    if (!bookQuery.trim()) return;
-    const results = await BookService.search(1, bookQuery.trim());
-    if (!results.length) return Alert.alert('Not Found', 'No book found');
-    setBook(results[0]);
+  const lookupResource = async () => {
+    if (!resourceQuery.trim()) return;
+    const results = await ResourceService.search(1, resourceQuery.trim());
+    if (!results.length) return Alert.alert('Not Found', 'No resource found');
+    setResource(results[0]);
   };
 
   return (
@@ -108,36 +109,36 @@ function CheckoutForm() {
         onScanned={(id) => { setMemberQuery(id); setScannerOpen(false); lookupMember(id); }}
       />
 
-      <StepCard step={2} label="Find Book">
+      <StepCard step={2} label="Find Resource">
         <View className="flex-row gap-2">
           <TextInput
             className="flex-1 bg-bio border border-mint rounded-xl px-3 py-3 text-sm text-[#1C2B1E]"
-            value={bookQuery}
-            onChangeText={setBookQuery}
+            value={resourceQuery}
+            onChangeText={setResourceQuery}
             placeholder="Title, author, or ISBN"
             placeholderTextColor="#94A3B8"
           />
-          <TouchableOpacity className="bg-leaf rounded-xl px-4 justify-center" onPress={lookupBook}>
+          <TouchableOpacity className="bg-leaf rounded-xl px-4 justify-center" onPress={lookupResource}>
             <Text className="text-white font-bold text-sm">Find</Text>
           </TouchableOpacity>
         </View>
-        {book && (
+        {resource && (
           <ResultCard
-            label={book.title}
-            sub={`${book.author} · ${book.available_copies} available`}
-            variant={book.available_copies > 0 ? 'mint' : 'red'}
+            label={resource.title}
+            sub={`${resource.author} · ${resource.available_copies} available`}
+            variant={resource.available_copies > 0 && resource.is_loanable ? 'mint' : 'red'}
           />
         )}
       </StepCard>
 
       <TouchableOpacity
         className="bg-leaf rounded-2xl py-4 items-center"
-        style={{ opacity: (member && book) ? 1 : 0.45, elevation: 4, shadowColor: '#5CB85C', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 6 }}
+        style={{ opacity: (member && resource) ? 1 : 0.45, elevation: 4, shadowColor: '#5CB85C', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 6 }}
         onPress={() => borrowMutation.mutate()}
-        disabled={borrowMutation.isPending || !member || !book}
+        disabled={borrowMutation.isPending || !member || !resource}
       >
         <Text className="text-white font-bold text-base">
-          {borrowMutation.isPending ? 'Processing…' : 'Check Out Book'}
+          {borrowMutation.isPending ? 'Processing…' : 'Check Out'}
         </Text>
       </TouchableOpacity>
     </ScrollView>
@@ -167,10 +168,10 @@ function ReturnForm() {
   const returnMutation = useMutation({
     mutationFn: ({ borrowId }: { borrowId: number; bookTitle: string }) => BorrowService.returnBook(borrowId),
     onSuccess: (fine, { bookTitle }) => {
-      if (fine) Alert.alert('Book Returned', `"${bookTitle}" returned.\nFine: ₱${fine.amount.toFixed(2)}`);
-      else Alert.alert('Book Returned', `"${bookTitle}" returned successfully.`);
+      if (fine) Alert.alert('Returned', `"${bookTitle}" returned.\nFine: ₱${fine.amount.toFixed(2)}`);
+      else Alert.alert('Returned', `"${bookTitle}" returned successfully.`);
       queryClient.invalidateQueries({ queryKey: queryKeys.activeBorrows(member!.id) });
-      queryClient.invalidateQueries({ queryKey: ['books'] });
+      queryClient.invalidateQueries({ queryKey: ['resources'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['overdue'] });
     },
@@ -195,7 +196,7 @@ function ReturnForm() {
             <Text className="text-white font-bold text-sm">Find</Text>
           </TouchableOpacity>
         </View>
-        {member && <ResultCard label={member.name} sub={`${activeBorrows.length} books borrowed`} variant="mint" />}
+        {member && <ResultCard label={member.name} sub={`${activeBorrows.length} items borrowed`} variant="mint" />}
       </StepCard>
 
       <QrScannerModal

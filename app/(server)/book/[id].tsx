@@ -1,67 +1,64 @@
 import { useEffect, useState } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  Alert, TextInput, Modal, ActivityIndicator,
+  View, Text, ScrollView, TouchableOpacity,
+  Alert, TextInput, Modal, ActivityIndicator, Switch,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { BookService } from '../../../src/services/BookService';
+import { Ionicons } from '@expo/vector-icons';
+import { ResourceService } from '../../../src/services/ResourceService';
 import { BorrowService } from '../../../src/services/BorrowService';
 import { useAppStore } from '../../../src/store/appStore';
-import { Book } from '../../../src/types';
+import { Resource, MaterialType, CallNumberType } from '../../../src/types';
 import { queryKeys } from '../../../src/lib/queryKeys';
+import { MATERIAL_TYPE_META, MATERIAL_TYPES, IDENTIFIER_LABEL, CALL_NUMBER_TYPES } from '../../../src/lib/materialTypes';
 
 const CONDITION_COLOR: Record<string, string> = {
-  good: '#16A34A',
-  damaged: '#D97706',
-  lost: '#DC2626',
+  good: '#16A34A', damaged: '#D97706', lost: '#DC2626',
 };
-
 const STATUS_COLOR: Record<string, string> = {
-  available: '#16A34A',
-  borrowed: '#2563EB',
-  reserved: '#7C3AED',
+  available: '#16A34A', borrowed: '#2563EB', reserved: '#7C3AED',
 };
 
-export default function BookDetailScreen() {
+export default function ResourceDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
   const currentUser = useAppStore((s) => s.currentUser);
   const isStaff = currentUser?.role === 'admin' || currentUser?.role === 'librarian';
-  const bookId = parseInt(id);
+  const resourceId = parseInt(id);
 
   const [editVisible, setEditVisible] = useState(false);
 
-  const { data: book, isLoading } = useQuery({
-    queryKey: queryKeys.book(bookId),
-    queryFn: () => BookService.getById(bookId),
-    enabled: !!bookId,
+  const { data: resource, isLoading } = useQuery({
+    queryKey: queryKeys.resource(resourceId),
+    queryFn: () => ResourceService.getById(resourceId),
+    enabled: !!resourceId,
   });
 
   const { data: copies = [] } = useQuery({
-    queryKey: queryKeys.bookCopies(bookId),
-    queryFn: () => BookService.getCopies(bookId),
-    enabled: !!bookId,
+    queryKey: queryKeys.resourceCopies(resourceId),
+    queryFn: () => ResourceService.getCopies(resourceId),
+    enabled: !!resourceId,
   });
 
   const { data: history = [] } = useQuery({
-    queryKey: queryKeys.bookHistory(bookId),
-    queryFn: () => BorrowService.getHistoryByBook(bookId),
-    enabled: !!bookId,
+    queryKey: queryKeys.resourceHistory(resourceId),
+    queryFn: () => BorrowService.getHistoryByResource(resourceId),
+    enabled: !!resourceId,
   });
 
   const addCopyMutation = useMutation({
-    mutationFn: () => BookService.addCopy(bookId),
+    mutationFn: () => ResourceService.addCopy(resourceId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.book(bookId) });
-      queryClient.invalidateQueries({ queryKey: ['books'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.resource(resourceId) });
+      queryClient.invalidateQueries({ queryKey: ['resources'] });
     },
     onError: (e: any) => Alert.alert('Error', e.message),
   });
 
   const handleAddCopy = () => {
-    Alert.alert('Add Copy', 'Add one more copy of this book?', [
+    Alert.alert('Add Copy', 'Add one more copy of this resource?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Add', onPress: () => addCopyMutation.mutate() },
     ]);
@@ -69,180 +66,311 @@ export default function BookDetailScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#2563EB" />
+      <View className="flex-1 items-center justify-center bg-bio">
+        <ActivityIndicator size="large" color="#2A5C33" />
       </View>
     );
   }
 
-  if (!book) {
+  if (!resource) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.errorText}>Book not found</Text>
+      <View className="flex-1 items-center justify-center bg-bio">
+        <Text className="text-red-600 text-base">Resource not found</Text>
       </View>
     );
   }
+
+  const meta = MATERIAL_TYPE_META[resource.material_type];
 
   return (
     <>
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        <View style={styles.topBar}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backText}>← Back</Text>
-          </TouchableOpacity>
-          {isStaff && (
-            <TouchableOpacity style={styles.editBtn} onPress={() => setEditVisible(true)}>
-              <Text style={styles.editBtnText}>Edit</Text>
+      <ScrollView className="flex-1 bg-bio" contentContainerStyle={{ paddingBottom: 40 }}>
+        {/* Top bar */}
+        <View className="bg-brand px-5 pb-5 rounded-b-[28px]" style={{ paddingTop: 52 }}>
+          <View className="flex-row items-center justify-between mb-4">
+            <TouchableOpacity onPress={() => router.back()} className="flex-row items-center gap-1">
+              <Ionicons name="chevron-back" size={20} color="#A8D5A2" />
+              <Text className="text-[#A8D5A2] text-sm font-medium">Back</Text>
             </TouchableOpacity>
-          )}
-        </View>
-
-        <View style={styles.hero}>
-          <View style={styles.coverLarge}>
-            <Text style={styles.coverInitial}>{book.title[0]}</Text>
-          </View>
-          <View style={styles.heroInfo}>
-            <Text style={styles.bookTitle}>{book.title}</Text>
-            <Text style={styles.bookAuthor}>{book.author}</Text>
-            {book.publisher && <Text style={styles.bookMeta}>{book.publisher}</Text>}
-            {book.year && <Text style={styles.bookMeta}>{book.year}</Text>}
-            {book.genre && (
-              <View style={styles.genreBadge}>
-                <Text style={styles.genreText}>{book.genre}</Text>
-              </View>
-            )}
-          </View>
-        </View>
-
-        <View style={styles.availRow}>
-          <View style={[styles.availCard, book.available_copies > 0 ? styles.availGreen : styles.availRed]}>
-            <Text style={styles.availNum}>{book.available_copies}</Text>
-            <Text style={styles.availLabel}>Available</Text>
-          </View>
-          <View style={styles.availCard}>
-            <Text style={styles.availNum}>{book.total_copies}</Text>
-            <Text style={styles.availLabel}>Total copies</Text>
-          </View>
-          <View style={styles.availCard}>
-            <Text style={styles.availNum}>{book.total_copies - book.available_copies}</Text>
-            <Text style={styles.availLabel}>Borrowed</Text>
-          </View>
-        </View>
-
-        {book.description ? (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Description</Text>
-            <Text style={styles.description}>{book.description}</Text>
-          </View>
-        ) : null}
-
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Copies ({copies.length})</Text>
             {isStaff && (
-              <TouchableOpacity style={styles.addCopyBtn} onPress={handleAddCopy}>
-                <Text style={styles.addCopyText}>+ Add copy</Text>
+              <TouchableOpacity
+                className="bg-[#1C3E23] rounded-xl px-4 py-2"
+                onPress={() => setEditVisible(true)}
+              >
+                <Text className="text-[#A8D5A2] text-sm font-bold">Edit</Text>
               </TouchableOpacity>
             )}
           </View>
-          {copies.map((copy) => (
-            <View key={copy.id} style={styles.copyRow}>
-              <Text style={styles.copyNum}>Copy #{copy.copy_number}</Text>
-              <View style={[styles.statusBadge, { backgroundColor: STATUS_COLOR[copy.status] + '20' }]}>
-                <Text style={[styles.statusText, { color: STATUS_COLOR[copy.status] }]}>
-                  {copy.status}
-                </Text>
-              </View>
-              <View style={[styles.condBadge, { backgroundColor: CONDITION_COLOR[copy.condition] + '20' }]}>
-                <Text style={[styles.condText, { color: CONDITION_COLOR[copy.condition] }]}>
-                  {copy.condition}
-                </Text>
-              </View>
+
+          {/* Hero */}
+          <View className="flex-row gap-4 items-start">
+            <View className="w-16 h-20 bg-[#1C3E23] rounded-2xl items-center justify-center">
+              <Ionicons name={meta.icon as any} size={28} color="#A8D5A2" />
             </View>
-          ))}
+            <View className="flex-1">
+              <View className="flex-row items-center gap-2 mb-1">
+                <View className="bg-[#1C3E23] rounded-md px-2 py-0.5">
+                  <Text className="text-[10px] font-bold text-[#A8D5A2] uppercase tracking-wide">{meta.label}</Text>
+                </View>
+                {!resource.is_loanable && (
+                  <View className="bg-[#D97706] rounded-md px-2 py-0.5">
+                    <Text className="text-[10px] font-bold text-white">Reference Only</Text>
+                  </View>
+                )}
+              </View>
+              <Text className="text-white font-extrabold text-base leading-5">{resource.title}</Text>
+              {resource.subtitle ? <Text className="text-[#C8DFC5] text-xs mt-0.5 italic">{resource.subtitle}</Text> : null}
+              <Text className="text-[#A8D5A2] text-sm mt-1">{resource.author}</Text>
+              {resource.publisher ? <Text className="text-[#7A9A7E] text-xs mt-0.5">{resource.publisher}{resource.year ? ` · ${resource.year}` : ''}</Text> : null}
+              {resource.genre ? (
+                <View className="self-start bg-[#1C3E23] rounded-md px-2 py-0.5 mt-1.5">
+                  <Text className="text-[10px] font-semibold text-[#A8D5A2]">{resource.genre}</Text>
+                </View>
+              ) : null}
+            </View>
+          </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Borrowing History ({history.length})</Text>
-          {history.length === 0 ? (
-            <Text style={styles.emptyText}>No borrowing history yet</Text>
-          ) : (
-            history.map((record) => (
-              <View key={record.id} style={styles.historyRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.historyMember}>{record.member_name}</Text>
-                  <Text style={styles.historyId}>{record.member_id_number}</Text>
+        <View style={{ padding: 16, gap: 12 }}>
+          {/* Availability stats */}
+          <View className="flex-row gap-3">
+            <StatCard label="Available" value={resource.available_copies} highlight={resource.available_copies > 0 ? 'green' : 'red'} />
+            <StatCard label="Total Copies" value={resource.total_copies} />
+            <StatCard label="Borrowed" value={resource.total_copies - resource.available_copies} />
+          </View>
+
+          {/* Description */}
+          {resource.description ? (
+            <Section title="Description">
+              <Text className="text-sm text-[#475569] leading-6">{resource.description}</Text>
+            </Section>
+          ) : null}
+
+          {/* Bibliographic details */}
+          {hasAnyRda(resource) ? (
+            <Section title="Bibliographic Details">
+              {resource.edition ? <DetailRow label="Edition" value={resource.edition} /> : null}
+              {resource.volume ? <DetailRow label="Volume" value={resource.volume} /> : null}
+              {resource.issue_number ? <DetailRow label="Issue No." value={resource.issue_number} /> : null}
+              {resource.series_title ? <DetailRow label="Series" value={resource.series_title} /> : null}
+              {resource.language ? <DetailRow label="Language" value={resource.language} /> : null}
+              {resource.isbn ? <DetailRow label={IDENTIFIER_LABEL[resource.material_type]} value={resource.isbn} /> : null}
+              {resource.doi ? <DetailRow label="DOI" value={resource.doi} /> : null}
+              {resource.url ? <DetailRow label="URL" value={resource.url} /> : null}
+              {resource.duration ? <DetailRow label="Duration" value={resource.duration} /> : null}
+              {resource.call_number ? (
+                <DetailRow label="Call Number" value={`${resource.call_number}${resource.call_number_type ? ` (${resource.call_number_type})` : ''}`} />
+              ) : null}
+              {resource.content_type ? <DetailRow label="Content Type" value={resource.content_type} /> : null}
+              {resource.media_type ? <DetailRow label="Media Type" value={resource.media_type} /> : null}
+              {resource.carrier_type ? <DetailRow label="Carrier Type" value={resource.carrier_type} /> : null}
+            </Section>
+          ) : resource.isbn ? (
+            <Section title="Identifier">
+              <DetailRow label={IDENTIFIER_LABEL[resource.material_type]} value={resource.isbn} />
+            </Section>
+          ) : null}
+
+          {/* Copies */}
+          <Section
+            title={`Copies (${copies.length})`}
+            action={isStaff ? { label: '+ Add copy', onPress: handleAddCopy } : undefined}
+          >
+            {copies.length === 0 ? (
+              <Text className="text-sm text-[#94A3B8] text-center py-2">No copies yet</Text>
+            ) : (
+              copies.map((copy) => (
+                <View key={copy.id} className="flex-row items-center gap-2 py-2.5 border-t border-[#F1F5F9]">
+                  <Text className="text-sm text-[#374151] flex-1">Copy #{copy.copy_number}</Text>
+                  <View className="rounded-md px-2.5 py-1" style={{ backgroundColor: STATUS_COLOR[copy.status] + '20' }}>
+                    <Text className="text-xs font-semibold capitalize" style={{ color: STATUS_COLOR[copy.status] }}>{copy.status}</Text>
+                  </View>
+                  <View className="rounded-md px-2.5 py-1" style={{ backgroundColor: CONDITION_COLOR[copy.condition] + '20' }}>
+                    <Text className="text-xs font-semibold capitalize" style={{ color: CONDITION_COLOR[copy.condition] }}>{copy.condition}</Text>
+                  </View>
                 </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={styles.historyDate}>
-                    {new Date(record.borrowed_at).toLocaleDateString()}
-                  </Text>
-                  {record.returned_at ? (
-                    <Text style={styles.historyReturned}>Returned</Text>
-                  ) : (
-                    <Text style={[styles.historyStatus, new Date(record.due_date) < new Date() && styles.overdueText]}>
-                      {new Date(record.due_date) < new Date() ? 'Overdue' : 'Active'}
-                    </Text>
-                  )}
-                </View>
-              </View>
-            ))
-          )}
+              ))
+            )}
+          </Section>
+
+          {/* Borrowing history */}
+          <Section title={`Borrowing History (${history.length})`}>
+            {history.length === 0 ? (
+              <Text className="text-sm text-[#94A3B8] text-center py-2">No borrowing history yet</Text>
+            ) : (
+              history.map((record) => {
+                const overdue = !record.returned_at && new Date(record.due_date) < new Date();
+                return (
+                  <View key={record.id} className="flex-row items-center py-2.5 border-t border-[#F1F5F9]">
+                    <View className="flex-1">
+                      <Text className="text-sm font-semibold text-[#1C2B1E]">{record.member_name}</Text>
+                      <Text className="text-xs text-[#94A3B8] mt-0.5">{record.member_id_number}</Text>
+                    </View>
+                    <View className="items-end">
+                      <Text className="text-xs text-[#5A7A5E]">{new Date(record.borrowed_at).toLocaleDateString()}</Text>
+                      {record.returned_at ? (
+                        <Text className="text-xs text-leaf font-semibold mt-0.5">Returned</Text>
+                      ) : (
+                        <Text className={`text-xs font-semibold mt-0.5 ${overdue ? 'text-red-600' : 'text-[#2563EB]'}`}>
+                          {overdue ? 'Overdue' : 'Active'}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                );
+              })
+            )}
+          </Section>
         </View>
       </ScrollView>
 
-      <EditBookModal
+      <EditResourceModal
         visible={editVisible}
-        book={book}
+        resource={resource}
         onClose={() => setEditVisible(false)}
-        onSaved={() => setEditVisible(false)}
+        onSaved={() => {
+          setEditVisible(false);
+          queryClient.invalidateQueries({ queryKey: queryKeys.resource(resourceId) });
+          queryClient.invalidateQueries({ queryKey: ['resources'] });
+        }}
       />
     </>
   );
 }
 
+function hasAnyRda(r: Resource) {
+  return r.edition || r.volume || r.issue_number || r.series_title || r.language ||
+    r.doi || r.url || r.duration || r.call_number || r.content_type || r.media_type || r.carrier_type;
+}
+
+function StatCard({ label, value, highlight }: { label: string; value: number; highlight?: 'green' | 'red' }) {
+  const borderColor = highlight === 'green' ? '#16A34A' : highlight === 'red' ? '#DC2626' : undefined;
+  return (
+    <View className="flex-1 bg-white rounded-2xl p-3 items-center"
+      style={{ elevation: 2, shadowColor: '#2A5C33', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, borderTopWidth: borderColor ? 3 : 0, borderTopColor: borderColor }}>
+      <Text className="text-2xl font-extrabold text-[#1C2B1E]">{value}</Text>
+      <Text className="text-xs text-[#7A9A7E] mt-0.5 text-center">{label}</Text>
+    </View>
+  );
+}
+
+function Section({ title, children, action }: { title: string; children: React.ReactNode; action?: { label: string; onPress: () => void } }) {
+  return (
+    <View className="bg-white rounded-2xl p-4"
+      style={{ elevation: 2, shadowColor: '#2A5C33', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4 }}>
+      <View className="flex-row items-center justify-between mb-3">
+        <Text className="text-sm font-bold text-[#1C2B1E]">{title}</Text>
+        {action && (
+          <TouchableOpacity onPress={action.onPress} className="bg-mint rounded-lg px-3 py-1">
+            <Text className="text-xs font-bold text-brand">{action.label}</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+      {children}
+    </View>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View className="flex-row py-1.5 border-t border-[#F8F8F8] first:border-t-0">
+      <Text className="text-xs font-semibold text-[#7A9A7E] w-28">{label}</Text>
+      <Text className="text-xs text-[#1C2B1E] flex-1">{value}</Text>
+    </View>
+  );
+}
+
+// ─── Edit Modal ──────────────────────────────────────────────────────────────
+
 interface EditModalProps {
   visible: boolean;
-  book: Book;
+  resource: Resource;
   onClose: () => void;
   onSaved: () => void;
 }
 
-function EditBookModal({ visible, book, onClose, onSaved }: EditModalProps) {
-  const queryClient = useQueryClient();
-  const [title, setTitle] = useState(book.title);
-  const [author, setAuthor] = useState(book.author);
-  const [isbn, setIsbn] = useState(book.isbn ?? '');
-  const [publisher, setPublisher] = useState(book.publisher ?? '');
-  const [year, setYear] = useState(book.year ? String(book.year) : '');
-  const [genre, setGenre] = useState(book.genre ?? '');
-  const [description, setDescription] = useState(book.description ?? '');
+function EditResourceModal({ visible, resource, onClose, onSaved }: EditModalProps) {
+  const [rdaMode, setRdaMode] = useState(false);
+  const [materialType, setMaterialType] = useState<MaterialType>(resource.material_type);
+  const [title, setTitle] = useState(resource.title);
+  const [author, setAuthor] = useState(resource.author);
+  const [identifier, setIdentifier] = useState(resource.isbn ?? '');
+  const [publisher, setPublisher] = useState(resource.publisher ?? '');
+  const [year, setYear] = useState(resource.year ? String(resource.year) : '');
+  const [genre, setGenre] = useState(resource.genre ?? '');
+  const [description, setDescription] = useState(resource.description ?? '');
+  const [subtitle, setSubtitle] = useState(resource.subtitle ?? '');
+  const [edition, setEdition] = useState(resource.edition ?? '');
+  const [volume, setVolume] = useState(resource.volume ?? '');
+  const [issueNumber, setIssueNumber] = useState(resource.issue_number ?? '');
+  const [seriesTitle, setSeriesTitle] = useState(resource.series_title ?? '');
+  const [doi, setDoi] = useState(resource.doi ?? '');
+  const [url, setUrl] = useState(resource.url ?? '');
+  const [duration, setDuration] = useState(resource.duration ?? '');
+  const [language, setLanguage] = useState(resource.language ?? '');
+  const [callNumber, setCallNumber] = useState(resource.call_number ?? '');
+  const [callNumberType, setCallNumberType] = useState<CallNumberType | ''>(resource.call_number_type ?? '');
+  const [contentType, setContentType] = useState(resource.content_type ?? '');
+  const [mediaType, setMediaType] = useState(resource.media_type ?? '');
+  const [carrierType, setCarrierType] = useState(resource.carrier_type ?? '');
+  const [isLoanable, setIsLoanable] = useState(resource.is_loanable);
+  const [loanPeriodDays, setLoanPeriodDays] = useState(resource.loan_period_days ? String(resource.loan_period_days) : '');
 
   useEffect(() => {
-    setTitle(book.title);
-    setAuthor(book.author);
-    setIsbn(book.isbn ?? '');
-    setPublisher(book.publisher ?? '');
-    setYear(book.year ? String(book.year) : '');
-    setGenre(book.genre ?? '');
-    setDescription(book.description ?? '');
-  }, [book]);
+    setMaterialType(resource.material_type);
+    setTitle(resource.title);
+    setAuthor(resource.author);
+    setIdentifier(resource.isbn ?? '');
+    setPublisher(resource.publisher ?? '');
+    setYear(resource.year ? String(resource.year) : '');
+    setGenre(resource.genre ?? '');
+    setDescription(resource.description ?? '');
+    setSubtitle(resource.subtitle ?? '');
+    setEdition(resource.edition ?? '');
+    setVolume(resource.volume ?? '');
+    setIssueNumber(resource.issue_number ?? '');
+    setSeriesTitle(resource.series_title ?? '');
+    setDoi(resource.doi ?? '');
+    setUrl(resource.url ?? '');
+    setDuration(resource.duration ?? '');
+    setLanguage(resource.language ?? '');
+    setCallNumber(resource.call_number ?? '');
+    setCallNumberType(resource.call_number_type ?? '');
+    setContentType(resource.content_type ?? '');
+    setMediaType(resource.media_type ?? '');
+    setCarrierType(resource.carrier_type ?? '');
+    setIsLoanable(resource.is_loanable);
+    setLoanPeriodDays(resource.loan_period_days ? String(resource.loan_period_days) : '');
+  }, [resource]);
 
   const updateMutation = useMutation({
-    mutationFn: () => BookService.update(book.id, {
+    mutationFn: () => ResourceService.update(resource.id, {
+      material_type: materialType,
       title: title.trim(),
       author: author.trim(),
-      isbn: isbn.trim() || null,
+      isbn: identifier.trim() || null,
       publisher: publisher.trim() || null,
       year: year.trim() ? parseInt(year.trim()) : null,
       genre: genre.trim() || null,
       description: description.trim() || null,
+      subtitle: subtitle.trim() || null,
+      edition: edition.trim() || null,
+      volume: volume.trim() || null,
+      issue_number: issueNumber.trim() || null,
+      series_title: seriesTitle.trim() || null,
+      doi: doi.trim() || null,
+      url: url.trim() || null,
+      duration: duration.trim() || null,
+      language: language.trim() || null,
+      call_number: callNumber.trim() || null,
+      call_number_type: (callNumberType as CallNumberType) || null,
+      content_type: contentType.trim() || null,
+      media_type: mediaType.trim() || null,
+      carrier_type: carrierType.trim() || null,
+      is_loanable: isLoanable,
+      loan_period_days: loanPeriodDays.trim() ? parseInt(loanPeriodDays.trim()) : null,
     }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.book(book.id) });
-      queryClient.invalidateQueries({ queryKey: ['books'] });
-      onSaved();
-    },
+    onSuccess: onSaved,
     onError: (e: any) => Alert.alert('Error', e.message),
   });
 
@@ -254,132 +382,156 @@ function EditBookModal({ visible, book, onClose, onSaved }: EditModalProps) {
     updateMutation.mutate();
   };
 
+  const identifierLabel = IDENTIFIER_LABEL[materialType];
+
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-      <View style={modal.container}>
-        <View style={modal.header}>
+      <View className="flex-1 bg-bio">
+        {/* Modal header */}
+        <View className="bg-brand flex-row items-center justify-between px-5 pb-4 rounded-b-[20px]" style={{ paddingTop: 20 }}>
           <TouchableOpacity onPress={onClose}>
-            <Text style={modal.cancel}>Cancel</Text>
+            <Text className="text-[#A8D5A2] text-sm font-medium">Cancel</Text>
           </TouchableOpacity>
-          <Text style={modal.title}>Edit Book</Text>
+          <Text className="text-white font-extrabold text-base">Edit Resource</Text>
           <TouchableOpacity onPress={handleSave} disabled={updateMutation.isPending}>
-            <Text style={modal.save}>{updateMutation.isPending ? 'Saving…' : 'Save'}</Text>
+            {updateMutation.isPending
+              ? <ActivityIndicator color="#A8D5A2" size="small" />
+              : <Text className="text-[#A8D5A2] text-sm font-bold">Save</Text>}
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={modal.body}>
-          <Field label="Title *" value={title} onChangeText={setTitle} />
-          <Field label="Author *" value={author} onChangeText={setAuthor} />
-          <Field label="ISBN" value={isbn} onChangeText={setIsbn} keyboardType="numeric" />
-          <Field label="Publisher" value={publisher} onChangeText={setPublisher} />
-          <Field label="Year" value={year} onChangeText={setYear} keyboardType="numeric" maxLength={4} />
-          <Field label="Genre" value={genre} onChangeText={setGenre} />
-          <Field label="Description" value={description} onChangeText={setDescription} multiline />
+        <ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 40 }}>
+          {/* Simple / RDA toggle */}
+          <View className="bg-[#1C3E23] rounded-2xl p-1 flex-row">
+            {(['Simple', 'RDA'] as const).map((m) => {
+              const active = (m === 'RDA') === rdaMode;
+              return (
+                <TouchableOpacity
+                  key={m}
+                  className={`flex-1 py-2.5 rounded-xl items-center ${active ? 'bg-white' : ''}`}
+                  onPress={() => setRdaMode(m === 'RDA')}
+                >
+                  <Text className={`text-sm font-bold ${active ? 'text-brand' : 'text-[#A8D5A2]'}`}>{m}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* Material Type */}
+          <EditSection label="Material Type">
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+              {MATERIAL_TYPES.map((type) => {
+                const meta = MATERIAL_TYPE_META[type];
+                const selected = materialType === type;
+                return (
+                  <TouchableOpacity
+                    key={type}
+                    onPress={() => setMaterialType(type)}
+                    className={`flex-row items-center gap-1.5 px-3 py-2 rounded-xl border ${selected ? 'bg-brand border-brand' : 'bg-white border-mint'}`}
+                  >
+                    <Ionicons name={meta.icon as any} size={14} color={selected ? '#FFFFFF' : '#2A5C33'} />
+                    <Text className={`text-xs font-bold ${selected ? 'text-white' : 'text-brand'}`}>{meta.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </EditSection>
+
+          <EditSection label={identifierLabel}>
+            <TextInput className="bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]" value={identifier} onChangeText={setIdentifier} placeholder={`${identifierLabel} (optional)`} placeholderTextColor="#94A3B8" autoCapitalize="none" />
+          </EditSection>
+
+          <EditSection label="Details">
+            <TextInput className="bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]" value={title} onChangeText={setTitle} placeholder="Title *" placeholderTextColor="#94A3B8" />
+            <TextInput className="bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]" value={author} onChangeText={setAuthor} placeholder="Author / Creator *" placeholderTextColor="#94A3B8" />
+            <TextInput className="bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]" value={publisher} onChangeText={setPublisher} placeholder="Publisher" placeholderTextColor="#94A3B8" />
+            <View className="flex-row gap-2">
+              <TextInput className="flex-1 bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]" value={year} onChangeText={setYear} placeholder="Year" placeholderTextColor="#94A3B8" keyboardType="numeric" maxLength={4} />
+              <TextInput className="flex-[2] bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]" value={genre} onChangeText={setGenre} placeholder="Genre / Subject" placeholderTextColor="#94A3B8" />
+            </View>
+            <TextInput className="bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]" style={{ height: 80, textAlignVertical: 'top' }} value={description} onChangeText={setDescription} placeholder="Description" placeholderTextColor="#94A3B8" multiline />
+          </EditSection>
+
+          {rdaMode && (
+            <>
+              <EditSection label="Bibliographic Details">
+                <TextInput className="bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]" value={subtitle} onChangeText={setSubtitle} placeholder="Subtitle" placeholderTextColor="#94A3B8" />
+                <TextInput className="bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]" value={edition} onChangeText={setEdition} placeholder="Edition" placeholderTextColor="#94A3B8" />
+                <View className="flex-row gap-2">
+                  <TextInput className="flex-1 bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]" value={volume} onChangeText={setVolume} placeholder="Volume" placeholderTextColor="#94A3B8" />
+                  <TextInput className="flex-1 bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]" value={issueNumber} onChangeText={setIssueNumber} placeholder="Issue No." placeholderTextColor="#94A3B8" />
+                </View>
+                <TextInput className="bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]" value={seriesTitle} onChangeText={setSeriesTitle} placeholder="Series Title" placeholderTextColor="#94A3B8" />
+                <TextInput className="bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]" value={language} onChangeText={setLanguage} placeholder="Language" placeholderTextColor="#94A3B8" />
+              </EditSection>
+
+              <EditSection label="Digital / Online">
+                <TextInput className="bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]" value={doi} onChangeText={setDoi} placeholder="DOI" placeholderTextColor="#94A3B8" autoCapitalize="none" />
+                <TextInput className="bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]" value={url} onChangeText={setUrl} placeholder="URL" placeholderTextColor="#94A3B8" autoCapitalize="none" keyboardType="url" />
+                {materialType === 'AUDIOVISUAL' && (
+                  <TextInput className="bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]" value={duration} onChangeText={setDuration} placeholder="Duration" placeholderTextColor="#94A3B8" />
+                )}
+              </EditSection>
+
+              <EditSection label="Classification">
+                <TextInput className="bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]" value={callNumber} onChangeText={setCallNumber} placeholder="Call Number" placeholderTextColor="#94A3B8" />
+                <View className="flex-row gap-2">
+                  {CALL_NUMBER_TYPES.map((t: CallNumberType) => (
+                    <TouchableOpacity
+                      key={t}
+                      onPress={() => setCallNumberType(callNumberType === t ? '' : t)}
+                      className={`flex-1 py-2.5 rounded-xl items-center border ${callNumberType === t ? 'bg-brand border-brand' : 'bg-white border-mint'}`}
+                    >
+                      <Text className={`text-xs font-bold ${callNumberType === t ? 'text-white' : 'text-brand'}`}>{t}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </EditSection>
+
+              <EditSection label="RDA Descriptors">
+                <TextInput className="bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]" value={contentType} onChangeText={setContentType} placeholder="Content Type" placeholderTextColor="#94A3B8" />
+                <TextInput className="bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]" value={mediaType} onChangeText={setMediaType} placeholder="Media Type" placeholderTextColor="#94A3B8" />
+                <TextInput className="bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]" value={carrierType} onChangeText={setCarrierType} placeholder="Carrier Type" placeholderTextColor="#94A3B8" />
+              </EditSection>
+            </>
+          )}
+
+          <EditSection label="Lending">
+            <View className="flex-row items-center justify-between px-1">
+              <View>
+                <Text className="text-sm font-semibold text-[#1C2B1E]">Loanable</Text>
+                <Text className="text-xs text-[#7A9A7E] mt-0.5">Can members borrow this?</Text>
+              </View>
+              <Switch
+                value={isLoanable}
+                onValueChange={setIsLoanable}
+                trackColor={{ false: '#C8DFC5', true: '#2A5C33' }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+            {rdaMode && isLoanable && (
+              <TextInput
+                className="bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]"
+                value={loanPeriodDays}
+                onChangeText={setLoanPeriodDays}
+                placeholder="Loan period (days) — leave blank for default"
+                placeholderTextColor="#94A3B8"
+                keyboardType="numeric"
+              />
+            )}
+          </EditSection>
         </ScrollView>
       </View>
     </Modal>
   );
 }
 
-function Field({
-  label, value, onChangeText, keyboardType, multiline, maxLength,
-}: {
-  label: string;
-  value: string;
-  onChangeText: (t: string) => void;
-  keyboardType?: 'default' | 'numeric';
-  multiline?: boolean;
-  maxLength?: number;
-}) {
+function EditSection({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <View style={field.wrap}>
-      <Text style={field.label}>{label}</Text>
-      <TextInput
-        style={[field.input, multiline && field.multiline]}
-        value={value}
-        onChangeText={onChangeText}
-        keyboardType={keyboardType ?? 'default'}
-        multiline={multiline}
-        maxLength={maxLength}
-        textAlignVertical={multiline ? 'top' : 'center'}
-      />
+    <View className="bg-white rounded-2xl p-4 gap-3"
+      style={{ elevation: 2, shadowColor: '#2A5C33', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4 }}>
+      <Text className="text-xs font-bold text-brand uppercase tracking-widest">{label}</Text>
+      {children}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  content: { paddingBottom: 40 },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  errorText: { color: '#DC2626', fontSize: 16 },
-  topBar: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 16, paddingTop: 52, paddingBottom: 12,
-    backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#F1F5F9',
-  },
-  backBtn: { paddingVertical: 4 },
-  backText: { fontSize: 15, color: '#2563EB', fontWeight: '600' },
-  editBtn: { backgroundColor: '#F1F5F9', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 6 },
-  editBtnText: { fontSize: 14, fontWeight: '600', color: '#374151' },
-  hero: { flexDirection: 'row', padding: 20, backgroundColor: '#FFFFFF', gap: 16 },
-  coverLarge: {
-    width: 80, height: 110, backgroundColor: '#EFF6FF', borderRadius: 8,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  coverInitial: { fontSize: 36, fontWeight: '700', color: '#2563EB' },
-  heroInfo: { flex: 1, justifyContent: 'center', gap: 4 },
-  bookTitle: { fontSize: 18, fontWeight: '700', color: '#1E293B', lineHeight: 24 },
-  bookAuthor: { fontSize: 15, color: '#475569' },
-  bookMeta: { fontSize: 13, color: '#94A3B8' },
-  genreBadge: { alignSelf: 'flex-start', backgroundColor: '#EFF6FF', borderRadius: 4, paddingHorizontal: 8, paddingVertical: 3, marginTop: 4 },
-  genreText: { fontSize: 12, fontWeight: '600', color: '#2563EB' },
-  availRow: { flexDirection: 'row', margin: 16, gap: 10 },
-  availCard: { flex: 1, backgroundColor: '#FFFFFF', borderRadius: 10, padding: 12, alignItems: 'center', elevation: 1 },
-  availGreen: { borderTopWidth: 3, borderTopColor: '#16A34A' },
-  availRed: { borderTopWidth: 3, borderTopColor: '#DC2626' },
-  availNum: { fontSize: 22, fontWeight: '700', color: '#1E293B' },
-  availLabel: { fontSize: 11, color: '#64748B', marginTop: 2 },
-  section: { backgroundColor: '#FFFFFF', marginHorizontal: 16, marginBottom: 12, borderRadius: 12, padding: 16, elevation: 1 },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#1E293B', marginBottom: 12 },
-  description: { fontSize: 14, color: '#475569', lineHeight: 22 },
-  addCopyBtn: { backgroundColor: '#EFF6FF', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4 },
-  addCopyText: { fontSize: 13, fontWeight: '600', color: '#2563EB' },
-  copyRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
-  copyNum: { fontSize: 14, color: '#374151', flex: 1 },
-  statusBadge: { borderRadius: 4, paddingHorizontal: 8, paddingVertical: 3 },
-  statusText: { fontSize: 12, fontWeight: '600', textTransform: 'capitalize' },
-  condBadge: { borderRadius: 4, paddingHorizontal: 8, paddingVertical: 3 },
-  condText: { fontSize: 12, fontWeight: '600', textTransform: 'capitalize' },
-  historyRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
-  historyMember: { fontSize: 14, fontWeight: '600', color: '#1E293B' },
-  historyId: { fontSize: 12, color: '#94A3B8', marginTop: 1 },
-  historyDate: { fontSize: 12, color: '#64748B' },
-  historyReturned: { fontSize: 12, color: '#16A34A', fontWeight: '600', marginTop: 2 },
-  historyStatus: { fontSize: 12, color: '#2563EB', fontWeight: '600', marginTop: 2 },
-  overdueText: { color: '#DC2626' },
-  emptyText: { fontSize: 14, color: '#94A3B8', textAlign: 'center', paddingVertical: 8 },
-});
-
-const modal = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  header: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    padding: 16, paddingTop: 20, backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1, borderBottomColor: '#F1F5F9',
-  },
-  title: { fontSize: 16, fontWeight: '700', color: '#1E293B' },
-  cancel: { fontSize: 15, color: '#64748B' },
-  save: { fontSize: 15, fontWeight: '700', color: '#2563EB' },
-  body: { padding: 16 },
-});
-
-const field = StyleSheet.create({
-  wrap: { marginBottom: 14 },
-  label: { fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 6 },
-  input: {
-    backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0',
-    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15,
-  },
-  multiline: { height: 100, paddingTop: 12 },
-});

@@ -21,9 +21,13 @@ export const users = sqliteTable('users', {
   created_at: text('created_at').notNull().default(sql`(datetime('now'))`),
 });
 
-export const books = sqliteTable('books', {
+export const resources = sqliteTable('resources', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   institution_id: integer('institution_id').notNull().references(() => institutions.id),
+  material_type: text('material_type', {
+    enum: ['BOOK', 'SERIAL', 'ARTICLE', 'AUDIOVISUAL', 'MAP', 'MANUSCRIPT', 'DIGITAL', 'THESIS', 'OTHER'],
+  }).notNull().default('BOOK'),
+  // Core bibliographic fields
   isbn: text('isbn'),
   title: text('title').notNull(),
   author: text('author').notNull(),
@@ -32,14 +36,33 @@ export const books = sqliteTable('books', {
   genre: text('genre'),
   description: text('description'),
   cover_uri: text('cover_uri'),
+  // RDA extended fields
+  subtitle: text('subtitle'),
+  edition: text('edition'),
+  volume: text('volume'),
+  issue_number: text('issue_number'),
+  series_title: text('series_title'),
+  doi: text('doi'),
+  url: text('url'),
+  duration: text('duration'),
+  language: text('language'),
+  call_number: text('call_number'),
+  call_number_type: text('call_number_type', { enum: ['DEWEY', 'LC', 'OTHER'] }),
+  content_type: text('content_type'),
+  media_type: text('media_type'),
+  carrier_type: text('carrier_type'),
+  // Lending rules
+  is_loanable: integer('is_loanable', { mode: 'boolean' }).notNull().default(true),
+  loan_period_days: integer('loan_period_days'),
+  // Inventory
   total_copies: integer('total_copies').notNull().default(1),
   available_copies: integer('available_copies').notNull().default(1),
   added_at: text('added_at').notNull().default(sql`(datetime('now'))`),
 });
 
-export const bookCopies = sqliteTable('book_copies', {
+export const resourceCopies = sqliteTable('resource_copies', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  book_id: integer('book_id').notNull().references(() => books.id),
+  resource_id: integer('resource_id').notNull().references(() => resources.id),
   copy_number: integer('copy_number').notNull(),
   condition: text('condition', { enum: ['good', 'damaged', 'lost'] }).notNull().default('good'),
   status: text('status', { enum: ['available', 'borrowed', 'reserved'] }).notNull().default('available'),
@@ -47,7 +70,7 @@ export const bookCopies = sqliteTable('book_copies', {
 
 export const borrowingRecords = sqliteTable('borrowing_records', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  copy_id: integer('copy_id').notNull().references(() => bookCopies.id),
+  copy_id: integer('copy_id').notNull().references(() => resourceCopies.id),
   user_id: integer('user_id').notNull().references(() => users.id),
   borrowed_at: text('borrowed_at').notNull().default(sql`(datetime('now'))`),
   due_date: text('due_date').notNull(),
@@ -57,7 +80,7 @@ export const borrowingRecords = sqliteTable('borrowing_records', {
 
 export const reservations = sqliteTable('reservations', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  book_id: integer('book_id').notNull().references(() => books.id),
+  resource_id: integer('resource_id').notNull().references(() => resources.id),
   user_id: integer('user_id').notNull().references(() => users.id),
   reserved_at: text('reserved_at').notNull().default(sql`(datetime('now'))`),
   status: text('status', { enum: ['active', 'fulfilled', 'cancelled'] }).notNull().default('active'),

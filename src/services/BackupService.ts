@@ -3,11 +3,11 @@ import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
 import { db } from '../db';
 import {
-  institutions, users, books, bookCopies,
+  institutions, users, resources, resourceCopies,
   borrowingRecords, reservations, fines, settings,
 } from '../db/schema';
 
-const BACKUP_VERSION = 1;
+const BACKUP_VERSION = 2;
 
 type BackupPayload = {
   version: number;
@@ -15,8 +15,8 @@ type BackupPayload = {
   data: {
     institutions: Record<string, unknown>[];
     users: Record<string, unknown>[];
-    books: Record<string, unknown>[];
-    book_copies: Record<string, unknown>[];
+    resources: Record<string, unknown>[];
+    resource_copies: Record<string, unknown>[];
     borrowing_records: Record<string, unknown>[];
     reservations: Record<string, unknown>[];
     fines: Record<string, unknown>[];
@@ -26,11 +26,11 @@ type BackupPayload = {
 
 export const BackupService = {
   async exportJson(): Promise<void> {
-    const [inst, usr, bks, copies, borrows, resv, fns, stgs] = await Promise.all([
+    const [inst, usr, res, copies, borrows, resv, fns, stgs] = await Promise.all([
       db.select().from(institutions),
       db.select().from(users),
-      db.select().from(books),
-      db.select().from(bookCopies),
+      db.select().from(resources),
+      db.select().from(resourceCopies),
       db.select().from(borrowingRecords),
       db.select().from(reservations),
       db.select().from(fines),
@@ -43,8 +43,8 @@ export const BackupService = {
       data: {
         institutions: inst,
         users: usr,
-        books: bks,
-        book_copies: copies,
+        resources: res,
+        resource_copies: copies,
         borrowing_records: borrows,
         reservations: resv,
         fines: fns,
@@ -83,8 +83,8 @@ export const BackupService = {
     await db.delete(fines);
     await db.delete(reservations);
     await db.delete(borrowingRecords);
-    await db.delete(bookCopies);
-    await db.delete(books);
+    await db.delete(resourceCopies);
+    await db.delete(resources);
     await db.delete(users);
     await db.delete(institutions);
     await db.delete(settings);
@@ -92,8 +92,8 @@ export const BackupService = {
     // Insert in reverse FK order (parents first)
     if (data.institutions.length) await db.insert(institutions).values(data.institutions as typeof institutions.$inferInsert[]);
     if (data.users.length) await db.insert(users).values(data.users as typeof users.$inferInsert[]);
-    if (data.books.length) await db.insert(books).values(data.books as typeof books.$inferInsert[]);
-    if (data.book_copies.length) await db.insert(bookCopies).values(data.book_copies as typeof bookCopies.$inferInsert[]);
+    if (data.resources.length) await db.insert(resources).values(data.resources as typeof resources.$inferInsert[]);
+    if (data.resource_copies.length) await db.insert(resourceCopies).values(data.resource_copies as typeof resourceCopies.$inferInsert[]);
     if (data.borrowing_records.length) await db.insert(borrowingRecords).values(data.borrowing_records as typeof borrowingRecords.$inferInsert[]);
     if (data.reservations.length) await db.insert(reservations).values(data.reservations as typeof reservations.$inferInsert[]);
     if (data.fines.length) await db.insert(fines).values(data.fines as typeof fines.$inferInsert[]);

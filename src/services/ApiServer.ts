@@ -1,6 +1,6 @@
 import { eq, like, or, and, desc, sum } from 'drizzle-orm';
 import { db } from '../db';
-import { books, bookCopies, borrowingRecords, users, fines } from '../db/schema';
+import { resources, resourceCopies, borrowingRecords, users, fines } from '../db/schema';
 
 export const ApiServer = {
   async ping() {
@@ -10,49 +10,52 @@ export const ApiServer = {
   async searchBooks(institutionId: number, query: string) {
     const q = `%${query}%`;
     return db.select({
-      id: books.id,
-      title: books.title,
-      author: books.author,
-      genre: books.genre,
-      year: books.year,
-      available_copies: books.available_copies,
-      total_copies: books.total_copies,
-    }).from(books)
+      id: resources.id,
+      title: resources.title,
+      author: resources.author,
+      genre: resources.genre,
+      year: resources.year,
+      material_type: resources.material_type,
+      available_copies: resources.available_copies,
+      total_copies: resources.total_copies,
+    }).from(resources)
       .where(and(
-        eq(books.institution_id, institutionId),
-        or(like(books.title, q), like(books.author, q), like(books.isbn, q), like(books.genre, q))
+        eq(resources.institution_id, institutionId),
+        or(like(resources.title, q), like(resources.author, q), like(resources.isbn, q), like(resources.genre, q))
       ))
-      .orderBy(books.title)
+      .orderBy(resources.title)
       .limit(50);
   },
 
   async getAllBooks(institutionId: number) {
     return db.select({
-      id: books.id,
-      title: books.title,
-      author: books.author,
-      genre: books.genre,
-      year: books.year,
-      available_copies: books.available_copies,
-      total_copies: books.total_copies,
-    }).from(books)
-      .where(eq(books.institution_id, institutionId))
-      .orderBy(books.title);
+      id: resources.id,
+      title: resources.title,
+      author: resources.author,
+      genre: resources.genre,
+      year: resources.year,
+      material_type: resources.material_type,
+      available_copies: resources.available_copies,
+      total_copies: resources.total_copies,
+    }).from(resources)
+      .where(eq(resources.institution_id, institutionId))
+      .orderBy(resources.title);
   },
 
-  async getBookDetail(bookId: number) {
+  async getBookDetail(resourceId: number) {
     return db.select({
-      id: books.id,
-      title: books.title,
-      author: books.author,
-      publisher: books.publisher,
-      year: books.year,
-      genre: books.genre,
-      description: books.description,
-      available_copies: books.available_copies,
-      total_copies: books.total_copies,
-    }).from(books)
-      .where(eq(books.id, bookId))
+      id: resources.id,
+      title: resources.title,
+      author: resources.author,
+      publisher: resources.publisher,
+      year: resources.year,
+      genre: resources.genre,
+      description: resources.description,
+      material_type: resources.material_type,
+      available_copies: resources.available_copies,
+      total_copies: resources.total_copies,
+    }).from(resources)
+      .where(eq(resources.id, resourceId))
       .limit(1)
       .then(r => r[0] ?? null);
   },
@@ -67,13 +70,13 @@ export const ApiServer = {
 
     const borrows = await db.select({
       id: borrowingRecords.id,
-      book_title: books.title,
-      book_author: books.author,
+      book_title: resources.title,
+      book_author: resources.author,
       due_date: borrowingRecords.due_date,
       returned_at: borrowingRecords.returned_at,
     }).from(borrowingRecords)
-      .innerJoin(bookCopies, eq(borrowingRecords.copy_id, bookCopies.id))
-      .innerJoin(books, eq(bookCopies.book_id, books.id))
+      .innerJoin(resourceCopies, eq(borrowingRecords.copy_id, resourceCopies.id))
+      .innerJoin(resources, eq(resourceCopies.resource_id, resources.id))
       .where(eq(borrowingRecords.user_id, member.id))
       .orderBy(desc(borrowingRecords.borrowed_at));
 

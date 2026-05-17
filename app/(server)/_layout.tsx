@@ -20,9 +20,9 @@ export default function ServerLayout() {
             <Tabs.Screen
                 name='books'
                 options={{
-                    title: 'Books',
-                    tabBarLabel: 'Books',
-                    tabBarIcon: ({ color, size, focused }) => <Ionicons name={focused ? 'book' : 'book-outline'} size={size} color={color} />,
+                    title: 'Catalog',
+                    tabBarLabel: 'Catalog',
+                    tabBarIcon: ({ color, size, focused }) => <Ionicons name={focused ? 'library' : 'library-outline'} size={size} color={color} />,
                 }}
             />
 

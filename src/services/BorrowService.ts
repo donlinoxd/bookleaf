@@ -1,6 +1,6 @@
 import { eq, and, isNull, asc, desc, lt, sql, count } from 'drizzle-orm';
 import { db } from '../db';
-import { borrowingRecords, bookCopies, books, users, fines } from '../db/schema';
+import { borrowingRecords, resourceCopies, resources, users, fines } from '../db/schema';
 import { BorrowingRecord, Fine } from '../types';
 import { SettingsService } from './SettingsService';
 
@@ -15,16 +15,16 @@ export const BorrowService = {
         .values({ copy_id: copyId, user_id: userId, due_date: dueDate.toISOString() })
         .returning({ id: borrowingRecords.id });
 
-      await tx.update(bookCopies)
+      await tx.update(resourceCopies)
         .set({ status: 'borrowed' })
-        .where(eq(bookCopies.id, copyId));
+        .where(eq(resourceCopies.id, copyId));
 
-      const copy = await tx.select({ book_id: bookCopies.book_id })
-        .from(bookCopies).where(eq(bookCopies.id, copyId)).limit(1);
+      const copy = await tx.select({ resource_id: resourceCopies.resource_id })
+        .from(resourceCopies).where(eq(resourceCopies.id, copyId)).limit(1);
       if (copy[0]) {
-        await tx.update(books)
-          .set({ available_copies: sql`${books.available_copies} - 1` })
-          .where(eq(books.id, copy[0].book_id));
+        await tx.update(resources)
+          .set({ available_copies: sql`${resources.available_copies} - 1` })
+          .where(eq(resources.id, copy[0].resource_id));
       }
 
       return result[0].id;
@@ -51,16 +51,16 @@ export const BorrowService = {
         .set({ returned_at: now.toISOString(), fine_amount: fineAmount })
         .where(eq(borrowingRecords.id, borrowingId));
 
-      await tx.update(bookCopies)
+      await tx.update(resourceCopies)
         .set({ status: 'available', condition: condition as 'good' | 'damaged' | 'lost' })
-        .where(eq(bookCopies.id, record.copy_id));
+        .where(eq(resourceCopies.id, record.copy_id));
 
-      const copy = await tx.select({ book_id: bookCopies.book_id })
-        .from(bookCopies).where(eq(bookCopies.id, record.copy_id)).limit(1);
+      const copy = await tx.select({ resource_id: resourceCopies.resource_id })
+        .from(resourceCopies).where(eq(resourceCopies.id, record.copy_id)).limit(1);
       if (copy[0]) {
-        await tx.update(books)
-          .set({ available_copies: sql`${books.available_copies} + 1` })
-          .where(eq(books.id, copy[0].book_id));
+        await tx.update(resources)
+          .set({ available_copies: sql`${resources.available_copies} + 1` })
+          .where(eq(resources.id, copy[0].resource_id));
       }
 
       if (fineAmount > 0) {
@@ -83,11 +83,11 @@ export const BorrowService = {
       due_date: borrowingRecords.due_date,
       returned_at: borrowingRecords.returned_at,
       fine_amount: borrowingRecords.fine_amount,
-      book_title: books.title,
-      book_author: books.author,
+      book_title: resources.title,
+      book_author: resources.author,
     }).from(borrowingRecords)
-      .innerJoin(bookCopies, eq(borrowingRecords.copy_id, bookCopies.id))
-      .innerJoin(books, eq(bookCopies.book_id, books.id))
+      .innerJoin(resourceCopies, eq(borrowingRecords.copy_id, resourceCopies.id))
+      .innerJoin(resources, eq(resourceCopies.resource_id, resources.id))
       .where(and(eq(borrowingRecords.user_id, userId), isNull(borrowingRecords.returned_at)))
       .orderBy(asc(borrowingRecords.due_date)) as Promise<BorrowingRecord[]>;
   },
@@ -101,12 +101,12 @@ export const BorrowService = {
       due_date: borrowingRecords.due_date,
       returned_at: borrowingRecords.returned_at,
       fine_amount: borrowingRecords.fine_amount,
-      book_title: books.title,
+      book_title: resources.title,
       member_name: users.name,
       member_id_number: users.id_number,
     }).from(borrowingRecords)
-      .innerJoin(bookCopies, eq(borrowingRecords.copy_id, bookCopies.id))
-      .innerJoin(books, eq(bookCopies.book_id, books.id))
+      .innerJoin(resourceCopies, eq(borrowingRecords.copy_id, resourceCopies.id))
+      .innerJoin(resources, eq(resourceCopies.resource_id, resources.id))
       .innerJoin(users, eq(borrowingRecords.user_id, users.id))
       .where(and(
         isNull(borrowingRecords.returned_at),
@@ -124,13 +124,13 @@ export const BorrowService = {
       due_date: borrowingRecords.due_date,
       returned_at: borrowingRecords.returned_at,
       fine_amount: borrowingRecords.fine_amount,
-      book_title: books.title,
+      book_title: resources.title,
       member_name: users.name,
     }).from(borrowingRecords)
-      .innerJoin(bookCopies, eq(borrowingRecords.copy_id, bookCopies.id))
-      .innerJoin(books, eq(bookCopies.book_id, books.id))
+      .innerJoin(resourceCopies, eq(borrowingRecords.copy_id, resourceCopies.id))
+      .innerJoin(resources, eq(resourceCopies.resource_id, resources.id))
       .innerJoin(users, eq(borrowingRecords.user_id, users.id))
-      .where(eq(books.institution_id, institutionId))
+      .where(eq(resources.institution_id, institutionId))
       .orderBy(desc(borrowingRecords.borrowed_at))
       .limit(limit) as Promise<BorrowingRecord[]>;
   },
@@ -162,16 +162,16 @@ export const BorrowService = {
       due_date: borrowingRecords.due_date,
       returned_at: borrowingRecords.returned_at,
       fine_amount: borrowingRecords.fine_amount,
-      book_title: books.title,
-      book_author: books.author,
+      book_title: resources.title,
+      book_author: resources.author,
     }).from(borrowingRecords)
-      .innerJoin(bookCopies, eq(borrowingRecords.copy_id, bookCopies.id))
-      .innerJoin(books, eq(bookCopies.book_id, books.id))
+      .innerJoin(resourceCopies, eq(borrowingRecords.copy_id, resourceCopies.id))
+      .innerJoin(resources, eq(resourceCopies.resource_id, resources.id))
       .where(eq(borrowingRecords.user_id, userId))
       .orderBy(desc(borrowingRecords.borrowed_at)) as Promise<BorrowingRecord[]>;
   },
 
-  async getHistoryByBook(bookId: number, limit = 20): Promise<BorrowingRecord[]> {
+  async getHistoryByResource(resourceId: number, limit = 20): Promise<BorrowingRecord[]> {
     return db.select({
       id: borrowingRecords.id,
       copy_id: borrowingRecords.copy_id,
@@ -183,9 +183,9 @@ export const BorrowService = {
       member_name: users.name,
       member_id_number: users.id_number,
     }).from(borrowingRecords)
-      .innerJoin(bookCopies, eq(borrowingRecords.copy_id, bookCopies.id))
+      .innerJoin(resourceCopies, eq(borrowingRecords.copy_id, resourceCopies.id))
       .innerJoin(users, eq(borrowingRecords.user_id, users.id))
-      .where(eq(bookCopies.book_id, bookId))
+      .where(eq(resourceCopies.resource_id, resourceId))
       .orderBy(desc(borrowingRecords.borrowed_at))
       .limit(limit) as Promise<BorrowingRecord[]>;
   },
@@ -197,7 +197,7 @@ export const BorrowService = {
       .from(borrowingRecords)
       .where(and(eq(borrowingRecords.user_id, userId), isNull(borrowingRecords.returned_at)));
     if ((activeRows[0]?.count ?? 0) >= settings.max_books_per_member) {
-      return { allowed: false, reason: `Maximum ${settings.max_books_per_member} books allowed` };
+      return { allowed: false, reason: `Maximum ${settings.max_books_per_member} items allowed` };
     }
 
     const fineRows = await db.select({ count: count() })

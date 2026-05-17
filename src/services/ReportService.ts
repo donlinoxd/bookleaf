@@ -1,9 +1,9 @@
 import { eq, desc, count, sql, and, gte, lte } from 'drizzle-orm';
 import { db } from '../db';
-import { books, bookCopies, borrowingRecords, fines } from '../db/schema';
+import { resources, resourceCopies, borrowingRecords, fines } from '../db/schema';
 
-export interface BookReport {
-  book_id: number;
+export interface ResourceReport {
+  resource_id: number;
   title: string;
   author: string;
   borrow_count: number;
@@ -16,24 +16,24 @@ export interface FineReport {
 }
 
 export const ReportService = {
-  async mostBorrowed(institutionId: number, limit = 10): Promise<BookReport[]> {
+  async mostBorrowed(institutionId: number, limit = 10): Promise<ResourceReport[]> {
     return db.select({
-      book_id: books.id,
-      title: books.title,
-      author: books.author,
+      resource_id: resources.id,
+      title: resources.title,
+      author: resources.author,
       borrow_count: count(borrowingRecords.id),
-    }).from(books)
-      .leftJoin(bookCopies, eq(books.id, bookCopies.book_id))
-      .leftJoin(borrowingRecords, eq(bookCopies.id, borrowingRecords.copy_id))
-      .where(eq(books.institution_id, institutionId))
-      .groupBy(books.id)
+    }).from(resources)
+      .leftJoin(resourceCopies, eq(resources.id, resourceCopies.resource_id))
+      .leftJoin(borrowingRecords, eq(resourceCopies.id, borrowingRecords.copy_id))
+      .where(eq(resources.institution_id, institutionId))
+      .groupBy(resources.id)
       .orderBy(desc(count(borrowingRecords.id)))
       .limit(limit);
   },
 
   async finesSummary(institutionId: number, from?: string, to?: string): Promise<FineReport> {
     const conditions = [
-      eq(books.institution_id, institutionId),
+      eq(resources.institution_id, institutionId),
       ...(from ? [gte(fines.paid_at, from)] : []),
       ...(to ? [lte(fines.paid_at, to)] : []),
     ];
@@ -44,8 +44,8 @@ export const ReportService = {
       total_pending: sql<number>`COALESCE(SUM(CASE WHEN ${fines.paid} = 0 THEN ${fines.amount} ELSE 0 END), 0)`,
     }).from(fines)
       .innerJoin(borrowingRecords, eq(fines.borrowing_id, borrowingRecords.id))
-      .innerJoin(bookCopies, eq(borrowingRecords.copy_id, bookCopies.id))
-      .innerJoin(books, eq(bookCopies.book_id, books.id))
+      .innerJoin(resourceCopies, eq(borrowingRecords.copy_id, resourceCopies.id))
+      .innerJoin(resources, eq(resourceCopies.resource_id, resources.id))
       .where(and(...conditions))
       .then(r => r[0]);
 
@@ -54,12 +54,12 @@ export const ReportService = {
 
   async inventorySummary(institutionId: number) {
     return db.select({
-      total_books: sql<number>`COUNT(DISTINCT ${books.id})`,
-      total_copies: sql<number>`COALESCE(SUM(${books.total_copies}), 0)`,
-      available_copies: sql<number>`COALESCE(SUM(${books.available_copies}), 0)`,
-      borrowed_copies: sql<number>`COALESCE(SUM(${books.total_copies} - ${books.available_copies}), 0)`,
-    }).from(books)
-      .where(eq(books.institution_id, institutionId))
+      total_resources: sql<number>`COUNT(DISTINCT ${resources.id})`,
+      total_copies: sql<number>`COALESCE(SUM(${resources.total_copies}), 0)`,
+      available_copies: sql<number>`COALESCE(SUM(${resources.available_copies}), 0)`,
+      borrowed_copies: sql<number>`COALESCE(SUM(${resources.total_copies} - ${resources.available_copies}), 0)`,
+    }).from(resources)
+      .where(eq(resources.institution_id, institutionId))
       .then(r => r[0] ?? null);
   },
 };
