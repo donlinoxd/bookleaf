@@ -34,6 +34,14 @@ const REPORTS: ReportCard[] = [
         bg: '#CCFBF1',
         route: '/(server)/reports/circulation',
     },
+    {
+        title: 'Inventory & Audit',
+        description: 'Accession register, condition by material type, and last physical inventory count results.',
+        icon: 'clipboard-outline',
+        color: '#7C3AED',
+        bg: '#EDE9FE',
+        route: '/(server)/reports/inventory',
+    },
 ]
 
 const COMING_SOON = [
