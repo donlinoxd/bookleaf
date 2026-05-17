@@ -3,20 +3,7 @@ import { GateService } from './GateService'
 import { ResourceService } from './ResourceService'
 import { UserService } from './UserService'
 
-export type ToolName =
-  | 'search_resources'
-  | 'get_patron_info'
-  | 'get_patron_fines'
-  | 'get_overdue_books'
-  | 'get_circulation_stats'
-  | 'get_today_gate_activity'
-  | 'general'
-  | 'off_topic'
-
-export type DetectedIntent = {
-  tool: ToolName
-  query: string
-}
+// ── Off-topic guardrail ───────────────────────────────────────────────────────
 
 const OFF_TOPIC_PATTERNS = [
   /\b(recipe|cooking|food|restaurant|cuisine)\b/i,
@@ -29,72 +16,115 @@ const OFF_TOPIC_PATTERNS = [
   /\b(politics|election|government|president)\b/i,
 ]
 
-export function detectIntent(message: string): DetectedIntent {
-  if (OFF_TOPIC_PATTERNS.some((p) => p.test(message))) {
-    return { tool: 'off_topic', query: message }
-  }
-
-  // Gate / attendance
-  if (/\b(gate|visitor|attendance|who.s (here|inside|present)|people inside|came in today)\b/i.test(message)) {
-    return { tool: 'get_today_gate_activity', query: message }
-  }
-
-  // Circulation stats / reports
-  if (/\b(statistic|stats|how many (loan|borrow|book.? borrowed)|lending activity|circulation|report|summary)\b/i.test(message)) {
-    return { tool: 'get_circulation_stats', query: message }
-  }
-
-  // Overdue
-  if (/\b(overdue|past due|late (book|return)|not returned|unreturned|still out)\b/i.test(message)) {
-    return { tool: 'get_overdue_books', query: message }
-  }
-
-  // Fines (check before patron_info since "patron fines" hits fine pattern first)
-  if (/\b(fine|penalty|owe|owes|debt|unpaid|outstanding (fine|balance))\b/i.test(message)) {
-    return { tool: 'get_patron_fines', query: extractEntityQuery(message) }
-  }
-
-  // Patron lookup
-  if (/\b(patron|member|student|faculty|borrower|who is|find (user|patron|member|student)|lookup)\b/i.test(message)) {
-    return { tool: 'get_patron_info', query: extractEntityQuery(message) }
-  }
-
-  // Resource / book search
-  if (/\b(book|resource|title|author|isbn|material|copy|copies|available|catalog|do you have|look for|find)\b/i.test(message)) {
-    return { tool: 'search_resources', query: extractSearchQuery(message) }
-  }
-
-  return { tool: 'general', query: message }
+export function isOffTopic(message: string): boolean {
+  return OFF_TOPIC_PATTERNS.some((p) => p.test(message))
 }
 
-function extractSearchQuery(raw: string): string {
-  const cleaned = raw
-    .replace(/\b(search for|find|look for|do you have|check if|any books? (about|on|by)|books? by|book by|show me|locate|can you find)\b/gi, '')
-    .replace(/\b(books?|resources?|materials?|copies?|available|the|a|an|please|title|author|isbn)\b/gi, '')
-    .replace(/[?!]/g, '')
-    .trim()
-    .replace(/\s+/g, ' ')
-  return cleaned || raw.trim()
-}
+// ── Tool definitions (OpenAI-compatible JSON Schema) ─────────────────────────
 
-function extractEntityQuery(raw: string): string {
-  const cleaned = raw
-    .replace(/\b(patron|member|student|faculty|user|borrower|who is|find|for|of|the|fines?|balance|owe|owes|information|info|about|check|what are|show me|look up|lookup)\b/gi, '')
-    .replace(/[?!]/g, '')
-    .trim()
-    .replace(/\s+/g, ' ')
-  return cleaned || raw.trim()
-}
+export const TOOL_DEFINITIONS = [
+  {
+    type: 'function',
+    function: {
+      name: 'search_resources',
+      description: 'Search the library catalog for books and resources by title, author, ISBN, or genre.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: {
+            type: 'string',
+            description: 'The search term — title, author name, ISBN, or genre keyword.',
+          },
+        },
+        required: ['query'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_patron_info',
+      description: 'Look up a library patron by name or ID number. Returns profile, active borrows, and status.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: {
+            type: 'string',
+            description: 'Patron name or ID number to search for.',
+          },
+        },
+        required: ['query'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_patron_fines',
+      description: 'Check outstanding fines. Pass a patron name/ID to get fines for a specific patron, or leave query empty to list all patrons with unpaid fines.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: {
+            type: 'string',
+            description: 'Patron name or ID number. Leave empty to list all patrons with outstanding fines.',
+          },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_overdue_books',
+      description: 'Get a list of all currently overdue books with borrower names and due dates.',
+      parameters: {
+        type: 'object',
+        properties: {},
+        required: [],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_circulation_stats',
+      description: 'Get circulation statistics: currently borrowed count, returned count, total transactions, and fines accrued.',
+      parameters: {
+        type: 'object',
+        properties: {},
+        required: [],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_today_gate_activity',
+      description: 'Get today\'s library gate/attendance activity: unique visitor count, who is currently inside, and recent entries.',
+      parameters: {
+        type: 'object',
+        properties: {},
+        required: [],
+      },
+    },
+  },
+]
+
+// ── Tool execution ────────────────────────────────────────────────────────────
 
 export async function executeTool(
-  intent: DetectedIntent,
+  name: string,
+  args: Record<string, any>,
   institutionId: number,
-): Promise<string | null> {
+): Promise<string> {
   try {
-    switch (intent.tool) {
+    switch (name) {
       case 'search_resources': {
-        const results = await ResourceService.search(institutionId, intent.query)
-        if (!results.length) return `No resources found matching "${intent.query}".`
+        const query = args.query ?? ''
+        const results = await ResourceService.search(institutionId, query)
+        if (!results.length) return `No resources found matching "${query}".`
         const lines = results.slice(0, 8).map((r, i) =>
           `${i + 1}. "${r.title}" by ${r.author}` +
           `${r.isbn ? ` | ISBN: ${r.isbn}` : ''}` +
@@ -103,17 +133,18 @@ export async function executeTool(
           `${r.genre ? ` | Genre: ${r.genre}` : ''}`,
         )
         return (
-          `Search results for "${intent.query}" (${results.length} found):\n` +
+          `Search results for "${query}" (${results.length} found):\n` +
           lines.join('\n') +
-          (results.length > 8 ? `\n...and ${results.length - 8} more results` : '')
+          (results.length > 8 ? `\n...and ${results.length - 8} more` : '')
         )
       }
 
       case 'get_patron_info': {
-        if (!intent.query.trim()) return 'Please specify a patron name or ID number to look up.'
-        const users = await UserService.search(institutionId, intent.query)
-        if (!users.length) return `No patron found matching "${intent.query}".`
-        const u = users[0]
+        const query = args.query ?? ''
+        if (!query.trim()) return 'Please specify a patron name or ID number.'
+        const matched = await UserService.search(institutionId, query)
+        if (!matched.length) return `No patron found matching "${query}".`
+        const u = matched[0]
         const active = await BorrowService.getActiveByUser(u.id)
         return (
           `Patron: ${u.name} (ID: ${u.id_number})\n` +
@@ -127,7 +158,8 @@ export async function executeTool(
       }
 
       case 'get_patron_fines': {
-        if (!intent.query.trim()) {
+        const query = (args.query ?? '').trim()
+        if (!query) {
           const overdue = await BorrowService.getOverdue()
           const withFines = overdue.filter((b: any) => (b.fine_amount ?? 0) > 0)
           if (!withFines.length) return 'No outstanding fines at the moment.'
@@ -139,9 +171,9 @@ export async function executeTool(
               .join('\n')
           )
         }
-        const users = await UserService.search(institutionId, intent.query)
-        if (!users.length) return `No patron found matching "${intent.query}".`
-        const u = users[0]
+        const matched = await UserService.search(institutionId, query)
+        if (!matched.length) return `No patron found matching "${query}".`
+        const u = matched[0]
         const fineRecords = await BorrowService.getUserFines(u.id)
         if (!fineRecords.length) return `${u.name} has no outstanding unpaid fines.`
         const total = fineRecords.reduce((sum, f) => sum + (f.amount ?? 0), 0)
@@ -201,10 +233,10 @@ export async function executeTool(
       }
 
       default:
-        return null
+        return `Unknown tool: ${name}`
     }
   } catch (e) {
-    console.error(`[LibraryTools] Tool "${intent.tool}" failed:`, e)
-    return null
+    console.error(`[LibraryTools] Tool "${name}" failed:`, e)
+    return `Error retrieving data for tool "${name}".`
   }
 }

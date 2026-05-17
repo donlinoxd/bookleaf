@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View, Keyboard } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ChatMessage, LlmService, SYSTEM_PROMPT, TOOL_LABELS } from '../../src/services/LlmService'
-import { ToolName } from '../../src/services/LibraryTools'
 import { useAppStore } from '../../src/store/appStore'
 
 const BRAND = '#2A5C33'
@@ -118,7 +117,7 @@ export default function AiChatScreen() {
                 },
                 {
                     institutionId: institution?.id,
-                    onToolCall: (tool: ToolName) => setToolStatus(TOOL_LABELS[tool] || ''),
+                    onToolCall: (tool: string) => setToolStatus(TOOL_LABELS[tool] || ''),
                 },
             )
             setMessages((prev) => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: full }])
