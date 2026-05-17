@@ -11,8 +11,13 @@ interface Props extends BottomTabBarProps {
   accentRoute?: string;
 }
 
+const HIDDEN_ROUTES = ['scan', 'ai-chat']
+
 export function CustomTabBar({ state, descriptors, navigation, accentRoute }: Props) {
   const insets = useSafeAreaInsets();
+
+  const activeRoute = state.routes[state.index]
+  if (HIDDEN_ROUTES.includes(activeRoute.name)) return null
 
   const visibleRoutes = state.routes.filter((route) => {
     const opts = descriptors[route.key].options;
