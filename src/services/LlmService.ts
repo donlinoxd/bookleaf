@@ -127,11 +127,19 @@ export const LlmService = {
     const toolCalls: Array<{ id: string; function: { name: string; arguments: string } }> =
       phase1.tool_calls ?? []
 
-    // No tool calls — model answered directly, stream the content
+    // No tool calls — stream a fresh completion so tokens arrive incrementally
     if (!toolCalls.length || !options?.institutionId) {
-      const content: string = phase1.content ?? ''
-      for (const char of content) onToken(char)
-      return content
+      let full = ''
+      await ctx.completion(
+        { messages, ...COMPLETION_PARAMS },
+        (data) => {
+          if (data.token) {
+            full += data.token
+            onToken(data.token)
+          }
+        },
+      )
+      return full
     }
 
     // Phase 2: Execute each tool the model requested
