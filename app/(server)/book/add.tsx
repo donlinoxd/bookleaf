@@ -1,9 +1,9 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   ActivityIndicator, Alert, Image, Modal, ScrollView, Switch,
   Text, TextInput, TouchableOpacity, View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -17,6 +17,7 @@ const CALL_NUMBER_TYPES: CallNumberType[] = ['DEWEY', 'LC', 'OTHER'];
 
 export default function AddResourceScreen() {
   const router = useRouter();
+  const { isbn: isbnParam } = useLocalSearchParams<{ isbn?: string }>();
   const queryClient = useQueryClient();
   const institution = useAppStore((s) => s.institution);
 
@@ -26,7 +27,7 @@ export default function AddResourceScreen() {
   // Simple fields
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
-  const [identifier, setIdentifier] = useState('');
+  const [identifier, setIdentifier] = useState(isbnParam ?? '');
   const [publisher, setPublisher] = useState('');
   const [year, setYear] = useState('');
   const [genre, setGenre] = useState('');
@@ -59,6 +60,29 @@ export default function AddResourceScreen() {
   const [scannerVisible, setScannerVisible] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
   const scannedRef = useRef(false);
+
+  useEffect(() => {
+    if (!isbnParam) return;
+    (async () => {
+      setLookingUp(true);
+      const result = await IsbnLookupService.lookup(isbnParam);
+      setLookingUp(false);
+      if (!result) return;
+      if (result.title) setTitle(result.title);
+      if (result.subtitle) setSubtitle(result.subtitle);
+      if (result.author) setAuthor(result.author);
+      if (result.publisher) setPublisher(result.publisher);
+      if (result.year) setYear(String(result.year));
+      if (result.genre) setGenre(result.genre);
+      if (result.description) setDescription(result.description);
+      if (result.series_title) setSeriesTitle(result.series_title);
+      if (result.language) setLanguage(result.language);
+      if (result.cover_uri) setCoverUri(result.cover_uri);
+      if (result.call_number) setCallNumber(result.call_number);
+      if (result.call_number_type) setCallNumberType(result.call_number_type);
+      setAutoFilled(true);
+    })();
+  }, [isbnParam]);
 
   const identifierLabel = IDENTIFIER_LABEL[materialType];
   const showScanner = materialType === 'BOOK' || materialType === 'SERIAL';

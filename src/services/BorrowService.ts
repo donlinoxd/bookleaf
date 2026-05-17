@@ -171,6 +171,29 @@ export const BorrowService = {
       .orderBy(desc(borrowingRecords.borrowed_at)) as Promise<BorrowingRecord[]>;
   },
 
+  async getActiveBorrowsByResource(resourceId: number): Promise<BorrowingRecord[]> {
+    return db.select({
+      id: borrowingRecords.id,
+      copy_id: borrowingRecords.copy_id,
+      user_id: borrowingRecords.user_id,
+      borrowed_at: borrowingRecords.borrowed_at,
+      due_date: borrowingRecords.due_date,
+      returned_at: borrowingRecords.returned_at,
+      fine_amount: borrowingRecords.fine_amount,
+      book_title: resources.title,
+      member_name: users.name,
+      member_id_number: users.id_number,
+    }).from(borrowingRecords)
+      .innerJoin(resourceCopies, eq(borrowingRecords.copy_id, resourceCopies.id))
+      .innerJoin(resources, eq(resourceCopies.resource_id, resources.id))
+      .innerJoin(users, eq(borrowingRecords.user_id, users.id))
+      .where(and(
+        eq(resourceCopies.resource_id, resourceId),
+        isNull(borrowingRecords.returned_at)
+      ))
+      .orderBy(asc(borrowingRecords.due_date)) as Promise<BorrowingRecord[]>;
+  },
+
   async getHistoryByResource(resourceId: number, limit = 20): Promise<BorrowingRecord[]> {
     return db.select({
       id: borrowingRecords.id,
