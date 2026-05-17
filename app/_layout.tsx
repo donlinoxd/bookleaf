@@ -22,7 +22,7 @@ export default function RootLayout() {
 
   if (error) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View className="flex-1 justify-center items-center">
         <Text>Database error: {error.message}</Text>
       </View>
     );
@@ -30,14 +30,14 @@ export default function RootLayout() {
 
   if (!success) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View className="flex-1 justify-center items-center">
         <ActivityIndicator />
       </View>
     );
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView className="flex-1">
       <QueryClientProvider client={queryClient}>
         <StatusBar style="dark" />
         <Stack screenOptions={{ headerShown: false }}>

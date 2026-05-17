@@ -47,7 +47,7 @@ export default function LoginScreen() {
       <StatusBar barStyle="light-content" backgroundColor="#2A5C33" />
 
       {/* Header */}
-      <View className="bg-brand items-center px-6 pb-8 rounded-b-[36px]" style={{ paddingTop: 64 }}>
+      <View className="bg-brand items-center px-6 pb-8 rounded-b-[36px] pt-16">
         <Image source={MASCOT} className="w-20 h-20 mb-3" resizeMode="contain" />
         <Text className="text-3xl font-extrabold text-white">BookLeaf</Text>
         <Text className="text-sm text-[#A8D5A2] mt-1">Sign in to continue</Text>

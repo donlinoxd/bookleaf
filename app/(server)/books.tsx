@@ -56,7 +56,7 @@ export default function CatalogScreen() {
             <Text className="text-xs text-[#94A3B8]">{item.total_copies} total</Text>
           </View>
         </View>
-        <Ionicons name="chevron-forward" size={16} color="#C8DFC5" style={{ alignSelf: 'center' }} />
+        <Ionicons name="chevron-forward" size={16} color="#C8DFC5" className="self-center" />
       </TouchableOpacity>
     );
   };
@@ -65,7 +65,7 @@ export default function CatalogScreen() {
     <View className="flex-1 bg-bio">
       <StatusBar barStyle="light-content" backgroundColor="#2A5C33" />
 
-      <View className="bg-brand px-5 pb-5 rounded-b-[28px]" style={{ paddingTop: 52 }}>
+      <View className="bg-brand px-5 pb-5 pt-[52px] rounded-b-[28px]">
         <View className="flex-row items-center justify-between mb-4">
           <Text className="text-2xl font-extrabold text-white">Catalog</Text>
           <TouchableOpacity

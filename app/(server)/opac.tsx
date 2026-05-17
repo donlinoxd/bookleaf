@@ -66,7 +66,7 @@ export default function OPACScreen() {
     <View className="flex-1 bg-bio">
       <StatusBar barStyle="light-content" backgroundColor="#2A5C33" />
 
-      <View className="bg-brand px-5 pb-6 rounded-b-[28px]" style={{ paddingTop: 52 }}>
+      <View className="bg-brand px-5 pb-6 pt-[52px] rounded-b-[28px]">
         <View className="flex-row items-end justify-between mb-5">
           <View className="flex-1">
             <Text className="text-2xl font-extrabold text-white">

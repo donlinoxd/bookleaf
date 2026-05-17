@@ -86,7 +86,7 @@ export default function ResourceDetailScreen() {
     <>
       <ScrollView className="flex-1 bg-bio" contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Top bar */}
-        <View className="bg-brand px-5 pb-5 rounded-b-[28px]" style={{ paddingTop: 52 }}>
+        <View className="bg-brand px-5 pb-5 pt-[52px] rounded-b-[28px]">
           <View className="flex-row items-center justify-between mb-4">
             <TouchableOpacity onPress={() => router.back()} className="flex-row items-center gap-1">
               <Ionicons name="chevron-back" size={20} color="#A8D5A2" />
@@ -135,7 +135,7 @@ export default function ResourceDetailScreen() {
           </View>
         </View>
 
-        <View style={{ padding: 16, gap: 12 }}>
+        <View className="p-4 gap-3">
           {/* Availability stats */}
           <View className="flex-row gap-3">
             <StatCard label="Available" value={resource.available_copies} highlight={resource.available_copies > 0 ? 'green' : 'red'} />
@@ -392,7 +392,7 @@ function EditResourceModal({ visible, resource, onClose, onSaved }: EditModalPro
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
       <View className="flex-1 bg-bio">
         {/* Modal header */}
-        <View className="bg-brand flex-row items-center justify-between px-5 pb-4 rounded-b-[20px]" style={{ paddingTop: 20 }}>
+        <View className="bg-brand flex-row items-center justify-between px-5 pb-4 pt-5 rounded-b-[20px]">
           <TouchableOpacity onPress={onClose}>
             <Text className="text-[#A8D5A2] text-sm font-medium">Cancel</Text>
           </TouchableOpacity>
@@ -453,7 +453,7 @@ function EditResourceModal({ visible, resource, onClose, onSaved }: EditModalPro
               <TextInput className="flex-1 bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]" value={year} onChangeText={setYear} placeholder="Year" placeholderTextColor="#94A3B8" keyboardType="numeric" maxLength={4} />
               <TextInput className="flex-[2] bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]" value={genre} onChangeText={setGenre} placeholder="Genre / Subject" placeholderTextColor="#94A3B8" />
             </View>
-            <TextInput className="bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]" style={{ height: 80, textAlignVertical: 'top' }} value={description} onChangeText={setDescription} placeholder="Description" placeholderTextColor="#94A3B8" multiline />
+            <TextInput className="bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E] h-20" style={{ textAlignVertical: 'top' }} value={description} onChangeText={setDescription} placeholder="Description" placeholderTextColor="#94A3B8" multiline />
           </EditSection>
 
           {rdaMode && (

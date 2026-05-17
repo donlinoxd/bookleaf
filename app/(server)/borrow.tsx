@@ -18,7 +18,7 @@ export default function BorrowScreen() {
     <View className="flex-1 bg-bio">
       <StatusBar barStyle="light-content" backgroundColor="#2A5C33" />
 
-      <View className="bg-brand px-5 pb-5 rounded-b-[28px]" style={{ paddingTop: 52 }}>
+      <View className="bg-brand px-5 pb-5 pt-[52px] rounded-b-[28px]">
         <Text className="text-2xl font-extrabold text-white mb-4">Borrow / Return</Text>
         <View className="flex-row bg-[#1C3E23] rounded-2xl p-1">
           {(['checkout', 'return'] as Mode[]).map((m) => (
@@ -282,7 +282,7 @@ function QrScannerModal({ visible, onClose, onScanned }: { visible: boolean; onC
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <View style={{ flex: 1, backgroundColor: '#000' }}>
+      <View className="flex-1 bg-black">
         <CameraView
           style={{ flex: 1 }}
           barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
@@ -292,14 +292,14 @@ function QrScannerModal({ visible, onClose, onScanned }: { visible: boolean; onC
             onScanned(data);
           }}
         />
-        <View style={{ position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center', gap: 20 }}>
-          <View style={{ width: 220, height: 220, borderWidth: 2, borderColor: '#5CB85C', borderRadius: 16 }} />
-          <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '500' }}>Point at a member's QR code</Text>
+        <View className="absolute inset-0 items-center justify-center gap-5">
+          <View className="w-[220px] h-[220px] border-2 border-leaf rounded-2xl" />
+          <Text className="text-white text-sm font-medium">Point at a member's QR code</Text>
           <TouchableOpacity
-            style={{ backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 12, paddingHorizontal: 28, paddingVertical: 12 }}
+            className="bg-black/60 rounded-xl px-7 py-3"
             onPress={onClose}
           >
-            <Text style={{ color: '#FFFFFF', fontWeight: '700' }}>Cancel</Text>
+            <Text className="text-white font-bold">Cancel</Text>
           </TouchableOpacity>
         </View>
       </View>

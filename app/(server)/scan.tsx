@@ -15,7 +15,6 @@ import { UserService } from '../../src/services/UserService';
 import { useAppStore } from '../../src/store/appStore';
 import { BorrowingRecord, Resource, User } from '../../src/types';
 
-const BRAND = '#2A5C33';
 const LEAF = '#5CB85C';
 const INACTIVE = '#94A3B8';
 
@@ -115,7 +114,7 @@ export default function ScanScreen() {
     onError: (e: any) => Alert.alert('Error', e.message),
   });
 
-  if (!permission) return <View style={{ flex: 1, backgroundColor: '#000' }} />;
+  if (!permission) return <View className="flex-1 bg-black" />;
 
   if (!permission.granted) {
     return (
@@ -134,21 +133,21 @@ export default function ScanScreen() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#000' }}>
+    <View className="flex-1 bg-black">
       <StatusBar barStyle="light-content" backgroundColor="#000" />
 
       <CameraView
-        style={{ flex: 1 }}
+        className="flex-1"
         barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'qr'] }}
         onBarcodeScanned={phase === 'scanning' ? handleBarcodeScan : undefined}
       />
 
       {/* Scanning frame overlay */}
       {phase === 'scanning' && (
-        <View style={{ position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center' }}>
-          <View style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)' }} />
-          <View style={{ width: 260, height: 120, borderWidth: 2, borderColor: LEAF, borderRadius: 12 }} />
-          <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '500', marginTop: 20 }}>
+        <View className="absolute inset-0 items-center justify-center">
+          <View className="absolute inset-0 bg-black/[0.45]" />
+          <View className="w-[260px] h-[120px] border-2 border-leaf rounded-xl" />
+          <Text className="text-white text-[14px] font-medium mt-5">
             Point at a barcode or QR code
           </Text>
         </View>
@@ -156,9 +155,9 @@ export default function ScanScreen() {
 
       {/* Resolving spinner */}
       {phase === 'resolving' && (
-        <View style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+        <View className="absolute inset-0 bg-black/60 items-center justify-center gap-4">
           <ActivityIndicator size="large" color={LEAF} />
-          <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '500' }}>
+          <Text className="text-white text-[14px] font-medium">
             Looking up {scannedIsbn}…
           </Text>
         </View>
@@ -167,18 +166,18 @@ export default function ScanScreen() {
       {/* Not found sheet */}
       {phase === 'not_found' && (
         <BottomSheet>
-          <View style={{ alignItems: 'center', gap: 8, paddingBottom: 4 }}>
-            <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: '#FEE2E2', alignItems: 'center', justifyContent: 'center' }}>
+          <View className="items-center gap-2 pb-1">
+            <View className="w-[52px] h-[52px] rounded-full bg-[#FEE2E2] items-center justify-center">
               <Ionicons name="search-outline" size={26} color="#DC2626" />
             </View>
-            <Text style={{ fontSize: 17, fontWeight: '800', color: '#1C2B1E' }}>Not in Catalog</Text>
-            <Text style={{ fontSize: 12, color: INACTIVE }}>{scannedIsbn}</Text>
+            <Text className="text-[17px] font-extrabold text-[#1C2B1E]">Not in Catalog</Text>
+            <Text className="text-[12px] text-[#94A3B8]">{scannedIsbn}</Text>
           </View>
           <TouchableOpacity
-            style={{ backgroundColor: BRAND, borderRadius: 16, paddingVertical: 14, alignItems: 'center' }}
+            className="bg-brand rounded-2xl py-[14px] items-center"
             onPress={() => router.push({ pathname: '/(server)/book/add', params: { isbn: scannedIsbn } })}
           >
-            <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 15 }}>Add to Catalog</Text>
+            <Text className="text-white font-bold text-[15px]">Add to Catalog</Text>
           </TouchableOpacity>
           <ScanAgainButton onPress={reset} />
         </BottomSheet>
@@ -188,37 +187,35 @@ export default function ScanScreen() {
       {phase === 'found' && resource && (
         <BottomSheet>
           {/* Resource card */}
-          <View style={{ backgroundColor: '#F0F7EE', borderRadius: 14, padding: 14, gap: 6 }}>
-            <Text style={{ fontSize: 15, fontWeight: '800', color: '#1C2B1E' }} numberOfLines={2}>
+          <View className="bg-[#F0F7EE] rounded-[14px] p-[14px] gap-[6px]">
+            <Text className="text-[15px] font-extrabold text-[#1C2B1E]" numberOfLines={2}>
               {resource.title}
             </Text>
-            <Text style={{ fontSize: 12, color: '#5A7A5E' }}>{resource.author}</Text>
-            <View style={{ flexDirection: 'row', gap: 8, marginTop: 2 }}>
+            <Text className="text-[12px] text-[#5A7A5E]">{resource.author}</Text>
+            <View className="flex-row gap-2 mt-[2px]">
               <Badge
                 label={`${resource.available_copies} available`}
-                color={resource.available_copies > 0 ? BRAND : '#DC2626'}
+                color={resource.available_copies > 0 ? '#2A5C33' : '#DC2626'}
               />
               <Badge label={resource.material_type} color={INACTIVE} />
             </View>
           </View>
 
           {action === 'view' && (
-            <View style={{ flexDirection: 'row', gap: 10 }}>
+            <View className="flex-row gap-[10px]">
               <TouchableOpacity
-                style={{
-                  flex: 1, borderRadius: 14, paddingVertical: 14, alignItems: 'center',
-                  backgroundColor: resource.available_copies > 0 && resource.is_loanable ? LEAF : '#C8DFC5',
-                }}
+                className="flex-1 rounded-[14px] py-[14px] items-center"
+                style={{ backgroundColor: resource.available_copies > 0 && resource.is_loanable ? '#5CB85C' : '#C8DFC5' }}
                 onPress={() => setAction('checkout')}
                 disabled={resource.available_copies === 0 || !resource.is_loanable}
               >
-                <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 15 }}>Check Out</Text>
+                <Text className="text-white font-bold text-[15px]">Check Out</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={{ flex: 1, backgroundColor: BRAND, borderRadius: 14, paddingVertical: 14, alignItems: 'center' }}
+                className="flex-1 bg-brand rounded-[14px] py-[14px] items-center"
                 onPress={() => setAction('return')}
               >
-                <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 15 }}>Return</Text>
+                <Text className="text-white font-bold text-[15px]">Return</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -252,15 +249,15 @@ export default function ScanScreen() {
 
       {/* Member QR scanner modal (used inside checkout flow) */}
       <Modal visible={memberScanOpen} animationType="slide" onRequestClose={() => setMemberScanOpen(false)}>
-        <View style={{ flex: 1, backgroundColor: '#000' }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, paddingHorizontal: 20, paddingTop: 52, paddingBottom: 16 }}>
+        <View className="flex-1 bg-black">
+          <View className="flex-row items-center gap-4 px-5 pt-[52px] pb-4">
             <TouchableOpacity onPress={() => setMemberScanOpen(false)}>
-              <Text style={{ color: LEAF, fontSize: 16, fontWeight: '600' }}>✕ Close</Text>
+              <Text className="text-leaf text-base font-semibold">✕ Close</Text>
             </TouchableOpacity>
-            <Text style={{ color: '#FFFFFF', fontSize: 17, fontWeight: '700' }}>Scan Member QR</Text>
+            <Text className="text-white text-[17px] font-bold">Scan Member QR</Text>
           </View>
           <CameraView
-            style={{ flex: 1 }}
+            className="flex-1"
             barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
             onBarcodeScanned={({ data }) => {
               if (memberScannedRef.current) return;
@@ -270,9 +267,9 @@ export default function ScanScreen() {
               lookupMember(data);
             }}
           >
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: 20 }}>
-              <View style={{ width: 220, height: 220, borderWidth: 2, borderColor: LEAF, borderRadius: 16 }} />
-              <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '500' }}>
+            <View className="flex-1 justify-center items-center gap-5">
+              <View className="w-[220px] h-[220px] border-2 border-leaf rounded-2xl" />
+              <Text className="text-white text-[14px] font-medium">
                 Point at a member's QR code
               </Text>
             </View>
@@ -287,22 +284,21 @@ export default function ScanScreen() {
 
 function BottomSheet({ children }: { children: React.ReactNode }) {
   const insets = useSafeAreaInsets();
-  // Push content above the floating tab bar: tab bar sits at (max(insets.bottom,8)+8) from bottom, height ≈ 78px
   const tabBarClearance = Math.max(insets.bottom, 8) + 8 + 78 + 12;
 
   return (
-    <View style={{
-      position: 'absolute', bottom: 0, left: 0, right: 0,
-      backgroundColor: '#FFFFFF',
-      borderTopLeftRadius: 28, borderTopRightRadius: 28,
-      elevation: 20,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: -4 },
-      shadowOpacity: 0.12,
-      shadowRadius: 16,
-    }}>
+    <View
+      className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[28px]"
+      style={{
+        elevation: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.12,
+        shadowRadius: 16,
+      }}
+    >
       {/* Handle */}
-      <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: '#E2E8F0', alignSelf: 'center', marginTop: 12, marginBottom: 4 }} />
+      <View className="w-10 h-1 rounded-sm bg-[#E2E8F0] self-center mt-3 mb-1" />
       <ScrollView
         contentContainerStyle={{ padding: 20, rowGap: 14, paddingBottom: tabBarClearance }}
         showsVerticalScrollIndicator={false}
@@ -325,10 +321,10 @@ function Badge({ label, color }: { label: string; color: string }) {
 function ScanAgainButton({ onPress }: { onPress: () => void }) {
   return (
     <TouchableOpacity
-      style={{ alignItems: 'center', paddingVertical: 6 }}
+      className="items-center py-[6px]"
       onPress={onPress}
     >
-      <Text style={{ fontSize: 13, color: INACTIVE, fontWeight: '600' }}>Scan Again</Text>
+      <Text className="text-[13px] text-[#94A3B8] font-semibold">Scan Again</Text>
     </TouchableOpacity>
   );
 }
@@ -347,17 +343,17 @@ function CheckoutAction({
   onBack: () => void;
 }) {
   return (
-    <View style={{ gap: 12 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+    <View className="gap-3">
+      <View className="flex-row items-center gap-2">
         <TouchableOpacity onPress={onBack}>
           <Ionicons name="chevron-back" size={20} color={INACTIVE} />
         </TouchableOpacity>
-        <Text style={{ fontSize: 14, fontWeight: '700', color: '#1C2B1E' }}>Find Member</Text>
+        <Text className="text-[14px] font-bold text-[#1C2B1E]">Find Member</Text>
       </View>
 
-      <View style={{ flexDirection: 'row', gap: 8 }}>
+      <View className="flex-row gap-2">
         <TextInput
-          style={{ flex: 1, backgroundColor: '#F0F7EE', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: '#1C2B1E' }}
+          className="flex-1 bg-[#F0F7EE] rounded-xl px-[14px] py-[10px] text-[14px] text-[#1C2B1E]"
           value={memberQuery}
           onChangeText={onChangeQuery}
           placeholder="Enter member ID number"
@@ -365,39 +361,40 @@ function CheckoutAction({
           keyboardType="default"
         />
         <TouchableOpacity
-          style={{ backgroundColor: BRAND, borderRadius: 12, paddingHorizontal: 12, justifyContent: 'center' }}
+          className="bg-brand rounded-xl px-3 justify-center"
           onPress={onOpenMemberScan}
         >
           <Ionicons name="qr-code-outline" size={18} color="#FFFFFF" />
         </TouchableOpacity>
         <TouchableOpacity
-          style={{ backgroundColor: LEAF, borderRadius: 12, paddingHorizontal: 14, justifyContent: 'center' }}
+          className="bg-leaf rounded-xl px-[14px] justify-center"
           onPress={onLookup}
         >
-          <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 13 }}>Find</Text>
+          <Text className="text-white font-bold text-[13px]">Find</Text>
         </TouchableOpacity>
       </View>
 
       {member && (
-        <View style={{ backgroundColor: '#F0F7EE', borderRadius: 12, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: BRAND, alignItems: 'center', justifyContent: 'center' }}>
+        <View className="bg-[#F0F7EE] rounded-xl p-3 flex-row items-center gap-[10px]">
+          <View className="w-9 h-9 rounded-full bg-brand items-center justify-center">
             <Ionicons name="person" size={18} color="#FFFFFF" />
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 14, fontWeight: '700', color: '#1C2B1E' }}>{member.name}</Text>
-            <Text style={{ fontSize: 11, color: '#5A7A5E', marginTop: 1 }}>{member.role} · ID: {member.id_number}</Text>
+          <View className="flex-1">
+            <Text className="text-[14px] font-bold text-[#1C2B1E]">{member.name}</Text>
+            <Text className="text-[11px] text-[#5A7A5E] mt-[1px]">{member.role} · ID: {member.id_number}</Text>
           </View>
         </View>
       )}
 
       <TouchableOpacity
-        style={{ backgroundColor: LEAF, borderRadius: 14, paddingVertical: 14, alignItems: 'center', opacity: member ? 1 : 0.4 }}
+        className="bg-leaf rounded-[14px] py-[14px] items-center"
+        style={{ opacity: member ? 1 : 0.4 }}
         onPress={onConfirm}
         disabled={!member || isPending}
       >
         {isPending
           ? <ActivityIndicator color="#FFFFFF" />
-          : <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 15 }}>Confirm Checkout</Text>}
+          : <Text className="text-white font-bold text-[15px]">Confirm Checkout</Text>}
       </TouchableOpacity>
     </View>
   );
@@ -413,24 +410,24 @@ function ReturnAction({
   onBack: () => void;
 }) {
   return (
-    <View style={{ gap: 10 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+    <View className="gap-[10px]">
+      <View className="flex-row items-center gap-2">
         <TouchableOpacity onPress={onBack}>
           <Ionicons name="chevron-back" size={20} color={INACTIVE} />
         </TouchableOpacity>
-        <Text style={{ fontSize: 14, fontWeight: '700', color: '#1C2B1E' }}>Active Borrows</Text>
+        <Text className="text-[14px] font-bold text-[#1C2B1E]">Active Borrows</Text>
       </View>
 
       {loading && (
-        <View style={{ alignItems: 'center', paddingVertical: 16 }}>
+        <View className="items-center py-4">
           <ActivityIndicator color={LEAF} />
         </View>
       )}
 
       {!loading && activeBorrows.length === 0 && (
-        <View style={{ alignItems: 'center', paddingVertical: 16, gap: 6 }}>
+        <View className="items-center py-4 gap-[6px]">
           <Ionicons name="checkmark-circle-outline" size={32} color="#C8DFC5" />
-          <Text style={{ fontSize: 13, color: INACTIVE }}>No active borrows for this resource</Text>
+          <Text className="text-[13px] text-[#94A3B8]">No active borrows for this resource</Text>
         </View>
       )}
 
@@ -438,20 +435,20 @@ function ReturnAction({
         {activeBorrows.map((b) => {
           const overdue = new Date(b.due_date) < new Date();
           return (
-            <View key={b.id} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8FAFC', borderRadius: 12, padding: 12, marginBottom: 8, gap: 10 }}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 13, fontWeight: '700', color: '#1C2B1E' }}>{b.member_name}</Text>
-                <Text style={{ fontSize: 11, color: '#7A9A7E', marginTop: 2 }}>
+            <View key={b.id} className="flex-row items-center bg-[#F8FAFC] rounded-xl p-3 mb-2 gap-[10px]">
+              <View className="flex-1">
+                <Text className="text-[13px] font-bold text-[#1C2B1E]">{b.member_name}</Text>
+                <Text className="text-[11px] text-[#7A9A7E] mt-[2px]">
                   Due: {new Date(b.due_date).toLocaleDateString()}
                   {overdue ? '  ⚠ OVERDUE' : ''}
                 </Text>
               </View>
               <TouchableOpacity
-                style={{ backgroundColor: BRAND, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 }}
+                className="bg-brand rounded-[10px] px-[14px] py-2"
                 onPress={() => onReturn(b.id)}
                 disabled={isPending}
               >
-                <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 13 }}>Return</Text>
+                <Text className="text-white font-bold text-[13px]">Return</Text>
               </TouchableOpacity>
             </View>
           );

@@ -54,7 +54,7 @@ export default function InventoryReportScreen() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#F4F9F4', alignItems: 'center', justifyContent: 'center' }}>
+      <View className="flex-1 bg-[#F4F9F4] items-center justify-center">
         <ActivityIndicator size="large" color={LEAF} />
       </View>
     );
@@ -62,10 +62,10 @@ export default function InventoryReportScreen() {
 
   if (!report) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#F4F9F4', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
-        <Text style={{ fontSize: 16, color: '#7A9A7E' }}>Report not found.</Text>
-        <TouchableOpacity style={{ marginTop: 16 }} onPress={() => router.back()}>
-          <Text style={{ color: LEAF, fontWeight: '700' }}>Go Back</Text>
+      <View className="flex-1 bg-[#F4F9F4] items-center justify-center px-8">
+        <Text className="text-base text-[#7A9A7E]">Report not found.</Text>
+        <TouchableOpacity className="mt-4" onPress={() => router.back()}>
+          <Text className="text-[#5CB85C] font-bold">Go Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -78,29 +78,29 @@ export default function InventoryReportScreen() {
     report.extra_copies.length;
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#F4F9F4' }}>
+    <View className="flex-1 bg-[#F4F9F4]">
       <StatusBar barStyle="light-content" backgroundColor={BRAND} />
 
       {/* Header */}
-      <View style={{ backgroundColor: BRAND, paddingTop: insets.top + 12, paddingHorizontal: 20, paddingBottom: 20 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+      <View
+        className="bg-brand px-5 pb-5"
+        style={{ paddingTop: insets.top + 12 }}
+      >
+        <View className="flex-row items-center gap-3 mb-3">
           <TouchableOpacity onPress={() => router.back()} hitSlop={8}>
             <Ionicons name="arrow-back" size={22} color="#A8D5A2" />
           </TouchableOpacity>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: '#A8D5A2', fontSize: 10, fontWeight: '600', letterSpacing: 1.2, textTransform: 'uppercase' }}>
+          <View className="flex-1">
+            <Text className="text-[#A8D5A2] text-[10px] font-semibold tracking-[1.2px] uppercase">
               Inventory Report
             </Text>
-            <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '800' }}>
+            <Text className="text-white text-base font-extrabold">
               {new Date(report.started_at).toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' })}
             </Text>
           </View>
           <TouchableOpacity
-            style={{
-              backgroundColor: exporting ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.15)',
-              borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8,
-              flexDirection: 'row', alignItems: 'center', gap: 6,
-            }}
+            className="rounded-[10px] px-[14px] py-2 flex-row items-center gap-[6px]"
+            style={{ backgroundColor: exporting ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.15)' }}
             onPress={handleExportPDF}
             disabled={exporting}
           >
@@ -108,13 +108,13 @@ export default function InventoryReportScreen() {
               ? <ActivityIndicator size="small" color="#FFFFFF" />
               : <>
                 <Ionicons name="download-outline" size={16} color="#FFFFFF" />
-                <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 13 }}>PDF</Text>
+                <Text className="text-white font-bold text-[13px]">PDF</Text>
               </>}
           </TouchableOpacity>
         </View>
 
         {/* Summary chips */}
-        <View style={{ flexDirection: 'row', gap: 8 }}>
+        <View className="flex-row gap-2">
           <SummaryChip value={report.total_scanned} label="Scanned" color="#A8D5A2" />
           <SummaryChip value={report.unique_isbns_scanned} label="Unique ISBNs" color="#A8D5A2" />
           <SummaryChip value={totalDiscrepancies} label="Issues" color={totalDiscrepancies > 0 ? '#FCA5A5' : '#A8D5A2'} />
@@ -123,10 +123,10 @@ export default function InventoryReportScreen() {
 
       <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: insets.bottom + 24 }}>
         {totalDiscrepancies === 0 && (
-          <View style={{ backgroundColor: '#DCFCE7', borderRadius: 16, padding: 20, alignItems: 'center', gap: 8 }}>
+          <View className="bg-[#DCFCE7] rounded-2xl p-5 items-center gap-2">
             <Ionicons name="checkmark-circle" size={40} color={LEAF} />
-            <Text style={{ fontSize: 16, fontWeight: '800', color: BRAND }}>All Clear!</Text>
-            <Text style={{ fontSize: 13, color: '#5A7A5E', textAlign: 'center' }}>
+            <Text className="text-base font-extrabold text-brand">All Clear!</Text>
+            <Text className="text-[13px] text-[#5A7A5E] text-center">
               No discrepancies found. The physical inventory matches the catalog.
             </Text>
           </View>
@@ -200,9 +200,9 @@ export default function InventoryReportScreen() {
 
 function SummaryChip({ value, label, color }: { value: number; label: string; color: string }) {
   return (
-    <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 10, padding: 8, alignItems: 'center' }}>
-      <Text style={{ color, fontSize: 18, fontWeight: '800' }}>{value}</Text>
-      <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 9, fontWeight: '600', textAlign: 'center' }}>{label}</Text>
+    <View className="flex-1 bg-white/10 rounded-[10px] p-2 items-center">
+      <Text className="text-[18px] font-extrabold" style={{ color }}>{value}</Text>
+      <Text className="text-[9px] font-semibold text-center text-white/65">{label}</Text>
     </View>
   );
 }
@@ -214,31 +214,44 @@ function Section({
   description: string; emptyLabel: string; children: React.ReactNode;
 }) {
   return (
-    <View style={{
-      backgroundColor: '#FFFFFF', borderRadius: 16,
-      elevation: 1, shadowColor: '#2A5C33', shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.06, shadowRadius: 3,
-      overflow: 'hidden',
-    }}>
+    <View
+      className="bg-white rounded-2xl overflow-hidden"
+      style={{
+        elevation: 1,
+        shadowColor: '#2A5C33',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.06,
+        shadowRadius: 3,
+      }}
+    >
       {/* Section header */}
-      <View style={{ padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10, borderBottomWidth: count > 0 ? 1 : 0, borderBottomColor: '#F1F5F9' }}>
-        <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
+      <View
+        className="p-[14px] flex-row items-center gap-[10px]"
+        style={{ borderBottomWidth: count > 0 ? 1 : 0, borderBottomColor: '#F1F5F9' }}
+      >
+        <View
+          className="w-9 h-9 rounded-[18px] items-center justify-center"
+          style={{ backgroundColor: bg }}
+        >
           <Ionicons name={icon as any} size={18} color={color} />
         </View>
-        <View style={{ flex: 1 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Text style={{ fontSize: 14, fontWeight: '800', color: '#1C2B1E' }}>{title}</Text>
-            <View style={{ backgroundColor: count > 0 ? bg : '#F1F5F9', borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 }}>
-              <Text style={{ fontSize: 11, fontWeight: '700', color: count > 0 ? color : '#94A3B8' }}>{count}</Text>
+        <View className="flex-1">
+          <View className="flex-row items-center gap-2">
+            <Text className="text-[14px] font-extrabold text-[#1C2B1E]">{title}</Text>
+            <View
+              className="rounded-[10px] px-[7px] py-[2px]"
+              style={{ backgroundColor: count > 0 ? bg : '#F1F5F9' }}
+            >
+              <Text className="text-[11px] font-bold" style={{ color: count > 0 ? color : '#94A3B8' }}>{count}</Text>
             </View>
           </View>
-          <Text style={{ fontSize: 11, color: '#7A9A7E', marginTop: 1 }}>{description}</Text>
+          <Text className="text-[11px] text-[#7A9A7E] mt-[1px]">{description}</Text>
         </View>
       </View>
 
       {count === 0 ? (
-        <View style={{ paddingVertical: 16, alignItems: 'center' }}>
-          <Text style={{ fontSize: 12, color: '#94A3B8' }}>{emptyLabel}</Text>
+        <View className="py-4 items-center">
+          <Text className="text-[12px] text-[#94A3B8]">{emptyLabel}</Text>
         </View>
       ) : (
         <View>{children}</View>
@@ -249,27 +262,27 @@ function Section({
 
 function GhostRow({ item }: { item: GhostCopy }) {
   return (
-    <View style={{ paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F8FAFC' }}>
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 13, fontWeight: '700', color: '#1C2B1E' }} numberOfLines={2}>
+    <View className="px-[14px] py-3 border-b border-[#F8FAFC]">
+      <View className="flex-row items-start gap-2">
+        <View className="flex-1">
+          <Text className="text-[13px] font-bold text-[#1C2B1E]" numberOfLines={2}>
             {item.title}
           </Text>
-          <Text style={{ fontSize: 11, color: '#7A9A7E', marginTop: 2 }}>{item.author}</Text>
-          <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+          <Text className="text-[11px] text-[#7A9A7E] mt-[2px]">{item.author}</Text>
+          <View className="flex-row gap-2 mt-1">
             {item.call_number && (
-              <Text style={{ fontSize: 10, color: '#94A3B8' }}>#{item.call_number}</Text>
+              <Text className="text-[10px] text-[#94A3B8]">#{item.call_number}</Text>
             )}
-            <Text style={{ fontSize: 10, color: '#94A3B8' }}>ISBN {item.isbn}</Text>
+            <Text className="text-[10px] text-[#94A3B8]">ISBN {item.isbn}</Text>
           </View>
         </View>
-        <View style={{ alignItems: 'flex-end', gap: 4 }}>
-          <View style={{ backgroundColor: '#FEE2E2', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 }}>
-            <Text style={{ fontSize: 12, fontWeight: '800', color: '#DC2626' }}>
+        <View className="items-end gap-1">
+          <View className="bg-[#FEE2E2] rounded-lg px-2 py-1">
+            <Text className="text-[12px] font-extrabold text-[#DC2626]">
               -{item.missing_count} missing
             </Text>
           </View>
-          <Text style={{ fontSize: 10, color: '#94A3B8' }}>{item.scan_count}/{item.db_available} found</Text>
+          <Text className="text-[10px] text-[#94A3B8]">{item.scan_count}/{item.db_available} found</Text>
         </View>
       </View>
     </View>
@@ -278,27 +291,27 @@ function GhostRow({ item }: { item: GhostCopy }) {
 
 function PhantomRow({ item }: { item: PhantomReturn }) {
   return (
-    <View style={{ paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F8FAFC' }}>
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 13, fontWeight: '700', color: '#1C2B1E' }} numberOfLines={2}>
+    <View className="px-[14px] py-3 border-b border-[#F8FAFC]">
+      <View className="flex-row items-start gap-2">
+        <View className="flex-1">
+          <Text className="text-[13px] font-bold text-[#1C2B1E]" numberOfLines={2}>
             {item.title}
           </Text>
-          <Text style={{ fontSize: 11, color: '#7A9A7E', marginTop: 2 }}>{item.author}</Text>
-          <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+          <Text className="text-[11px] text-[#7A9A7E] mt-[2px]">{item.author}</Text>
+          <View className="flex-row gap-2 mt-1">
             {item.call_number && (
-              <Text style={{ fontSize: 10, color: '#94A3B8' }}>#{item.call_number}</Text>
+              <Text className="text-[10px] text-[#94A3B8]">#{item.call_number}</Text>
             )}
-            <Text style={{ fontSize: 10, color: '#94A3B8' }}>ISBN {item.isbn}</Text>
+            <Text className="text-[10px] text-[#94A3B8]">ISBN {item.isbn}</Text>
           </View>
         </View>
-        <View style={{ alignItems: 'flex-end', gap: 4 }}>
-          <View style={{ backgroundColor: '#FEF3C7', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 }}>
-            <Text style={{ fontSize: 12, fontWeight: '800', color: '#D97706' }}>
+        <View className="items-end gap-1">
+          <View className="bg-[#FEF3C7] rounded-lg px-2 py-1">
+            <Text className="text-[12px] font-extrabold text-[#D97706]">
               {item.phantom_count} unreturned
             </Text>
           </View>
-          <Text style={{ fontSize: 10, color: '#94A3B8' }}>{item.scan_count} found, {item.db_available} expected</Text>
+          <Text className="text-[10px] text-[#94A3B8]">{item.scan_count} found, {item.db_available} expected</Text>
         </View>
       </View>
     </View>
@@ -307,13 +320,13 @@ function PhantomRow({ item }: { item: PhantomReturn }) {
 
 function UnknownRow({ item }: { item: UnknownScan }) {
   return (
-    <View style={{ paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F8FAFC', flexDirection: 'row', alignItems: 'center' }}>
-      <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 13, fontWeight: '700', color: '#1C2B1E' }}>ISBN {item.isbn}</Text>
-        <Text style={{ fontSize: 11, color: '#7A9A7E', marginTop: 1 }}>Not in catalog</Text>
+    <View className="px-[14px] py-3 border-b border-[#F8FAFC] flex-row items-center">
+      <View className="flex-1">
+        <Text className="text-[13px] font-bold text-[#1C2B1E]">ISBN {item.isbn}</Text>
+        <Text className="text-[11px] text-[#7A9A7E] mt-[1px]">Not in catalog</Text>
       </View>
-      <View style={{ backgroundColor: '#EDE9FE', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 }}>
-        <Text style={{ fontSize: 12, fontWeight: '800', color: '#7C3AED' }}>{item.scan_count}×</Text>
+      <View className="bg-[#EDE9FE] rounded-lg px-2 py-1">
+        <Text className="text-[12px] font-extrabold text-[#7C3AED]">{item.scan_count}×</Text>
       </View>
     </View>
   );
@@ -321,27 +334,27 @@ function UnknownRow({ item }: { item: UnknownScan }) {
 
 function ExtraRow({ item }: { item: ExtraCopy }) {
   return (
-    <View style={{ paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F8FAFC' }}>
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 13, fontWeight: '700', color: '#1C2B1E' }} numberOfLines={2}>
+    <View className="px-[14px] py-3 border-b border-[#F8FAFC]">
+      <View className="flex-row items-start gap-2">
+        <View className="flex-1">
+          <Text className="text-[13px] font-bold text-[#1C2B1E]" numberOfLines={2}>
             {item.title}
           </Text>
-          <Text style={{ fontSize: 11, color: '#7A9A7E', marginTop: 2 }}>{item.author}</Text>
-          <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+          <Text className="text-[11px] text-[#7A9A7E] mt-[2px]">{item.author}</Text>
+          <View className="flex-row gap-2 mt-1">
             {item.call_number && (
-              <Text style={{ fontSize: 10, color: '#94A3B8' }}>#{item.call_number}</Text>
+              <Text className="text-[10px] text-[#94A3B8]">#{item.call_number}</Text>
             )}
-            <Text style={{ fontSize: 10, color: '#94A3B8' }}>ISBN {item.isbn}</Text>
+            <Text className="text-[10px] text-[#94A3B8]">ISBN {item.isbn}</Text>
           </View>
         </View>
-        <View style={{ alignItems: 'flex-end', gap: 4 }}>
-          <View style={{ backgroundColor: '#E0F2FE', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 }}>
-            <Text style={{ fontSize: 12, fontWeight: '800', color: '#0369A1' }}>
+        <View className="items-end gap-1">
+          <View className="bg-[#E0F2FE] rounded-lg px-2 py-1">
+            <Text className="text-[12px] font-extrabold text-[#0369A1]">
               +{item.extra_count} extra
             </Text>
           </View>
-          <Text style={{ fontSize: 10, color: '#94A3B8' }}>{item.scan_count} scanned, {item.total_copies} in catalog</Text>
+          <Text className="text-[10px] text-[#94A3B8]">{item.scan_count} scanned, {item.total_copies} in catalog</Text>
         </View>
       </View>
     </View>

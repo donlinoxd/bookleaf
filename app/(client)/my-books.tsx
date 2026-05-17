@@ -44,7 +44,7 @@ export default function MyBooksScreen() {
     <View className="flex-1 bg-bio">
       <StatusBar barStyle="light-content" backgroundColor="#2A5C33" />
 
-      <View className="bg-brand px-5 pb-5 rounded-b-[28px]" style={{ paddingTop: 52 }}>
+      <View className="bg-brand px-5 pb-5 pt-[52px] rounded-b-[28px]">
         <Text className="text-2xl font-extrabold text-white mb-1">My Books</Text>
         <Text className="text-xs text-[#A8D5A2] mb-4">Enter your ID to view borrowed books</Text>
         <View className="flex-row bg-white rounded-2xl overflow-hidden"

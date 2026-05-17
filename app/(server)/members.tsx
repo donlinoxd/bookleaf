@@ -64,7 +64,7 @@ export default function MembersScreen() {
     <View className="flex-1 bg-bio">
       <StatusBar barStyle="light-content" backgroundColor="#2A5C33" />
 
-      <View className="bg-brand px-5 pb-5 rounded-b-[28px]" style={{ paddingTop: 52 }}>
+      <View className="bg-brand px-5 pb-5 pt-[52px] rounded-b-[28px]">
         <View className="flex-row items-center justify-between mb-4">
           <Text className="text-2xl font-extrabold text-white">Members</Text>
           <TouchableOpacity

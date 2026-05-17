@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, NativeModules } from 'react-native';
+import { View, Text, TouchableOpacity, Platform, NativeModules } from 'react-native';
 import { ServerBridge } from '../../services/ServerBridge';
 import { useAppStore } from '../../store/appStore';
 
@@ -54,10 +54,21 @@ export function ServerStatusCard({ institutionId }: Props) {
   const isRunning = status === 'running';
 
   return (
-    <View style={styles.card}>
-      <View style={styles.row}>
-        <View style={[styles.dot, { backgroundColor: statusColor[status] }]} />
-        <Text style={styles.statusText}>
+    <View
+      className="bg-white rounded-xl p-4 mx-4 mt-3"
+      style={{
+        elevation: 1,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+      }}
+    >
+      <View className="flex-row items-center gap-2">
+        <View
+          className="w-[10px] h-[10px] rounded-full"
+          style={{ backgroundColor: statusColor[status] }}
+        />
+        <Text className="flex-1 text-sm text-[#374151] font-medium">
           Server{' '}
           {status === 'idle' ? 'not started'
             : status === 'starting' ? 'starting...'
@@ -66,45 +77,20 @@ export function ServerStatusCard({ institutionId }: Props) {
             : 'stopped'}
         </Text>
         <TouchableOpacity
-          style={[styles.btn, isRunning ? styles.btnStop : styles.btnStart]}
+          className={`rounded-lg px-[14px] py-[7px] ${isRunning ? 'bg-[#DC2626]' : 'bg-[#2563EB]'}`}
           onPress={isRunning ? handleStop : handleStart}
         >
-          <Text style={styles.btnText}>{isRunning ? 'Stop' : 'Start'}</Text>
+          <Text className="text-white font-semibold text-[13px]">{isRunning ? 'Stop' : 'Start'}</Text>
         </TouchableOpacity>
       </View>
 
       {isRunning && ip !== 'unknown' && (
-        <View style={styles.ipBox}>
-          <Text style={styles.ipLabel}>Clients connect to:</Text>
-          <Text style={styles.ipAddress}>{ip}:{port}</Text>
-          <Text style={styles.ipHint}>Share this with students/teachers on the same Wi-Fi</Text>
+        <View className="mt-3 bg-[#F0FDF4] rounded-lg p-3">
+          <Text className="text-xs text-[#16A34A] font-semibold">Clients connect to:</Text>
+          <Text className="text-xl font-bold text-[#15803D] tracking-widest mt-0.5">{ip}:{port}</Text>
+          <Text className="text-[11px] text-[#4ADE80] mt-1">Share this with students/teachers on the same Wi-Fi</Text>
         </View>
       )}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginHorizontal: 16,
-    marginTop: 12,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-  },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  dot: { width: 10, height: 10, borderRadius: 5 },
-  statusText: { flex: 1, fontSize: 14, color: '#374151', fontWeight: '500' },
-  btn: { borderRadius: 8, paddingHorizontal: 14, paddingVertical: 7 },
-  btnStart: { backgroundColor: '#2563EB' },
-  btnStop: { backgroundColor: '#DC2626' },
-  btnText: { color: '#FFFFFF', fontWeight: '600', fontSize: 13 },
-  ipBox: { marginTop: 12, backgroundColor: '#F0FDF4', borderRadius: 8, padding: 12 },
-  ipLabel: { fontSize: 12, color: '#16A34A', fontWeight: '600' },
-  ipAddress: { fontSize: 20, fontWeight: '700', color: '#15803D', letterSpacing: 1, marginTop: 2 },
-  ipHint: { fontSize: 11, color: '#4ADE80', marginTop: 4 },
-});

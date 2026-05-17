@@ -4,7 +4,6 @@ import { ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-nativ
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 const BRAND = '#2A5C33'
-const LEAF = '#5CB85C'
 
 interface ReportCard {
     title: string
@@ -68,82 +67,55 @@ export default function ReportsHubScreen() {
     const router = useRouter()
 
     return (
-        <View style={{ flex: 1, backgroundColor: '#F4F9F4' }}>
+        <View className='flex-1 bg-[#F4F9F4]'>
             <StatusBar barStyle='light-content' backgroundColor={BRAND} />
 
             <View
-                style={{ backgroundColor: BRAND, paddingTop: insets.top + 16, paddingHorizontal: 20, paddingBottom: 24 }}
-                className='rounded-b-[28px]'
+                style={{ paddingTop: insets.top + 16 }}
+                className='bg-brand px-5 pb-6 rounded-b-[28px]'
             >
-                <Text style={{ color: '#A8D5A2', fontSize: 11, fontWeight: '600', letterSpacing: 1.2, textTransform: 'uppercase' }}>
+                <Text className='text-[#A8D5A2] text-[11px] font-semibold tracking-[1.2px] uppercase'>
                     Library Reports
                 </Text>
-                <Text style={{ color: '#FFFFFF', fontSize: 24, fontWeight: '800', marginTop: 4 }}>Reports</Text>
-                <Text style={{ color: '#A8D5A2', fontSize: 13, marginTop: 4 }}>Generate and share accreditation-ready reports.</Text>
+                <Text className='text-white text-[24px] font-extrabold mt-1'>Reports</Text>
+                <Text className='text-[#A8D5A2] text-[13px] mt-1'>Generate and share accreditation-ready reports.</Text>
             </View>
 
             <ScrollView contentContainerStyle={{ padding: 20, gap: 12, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
-                <Text style={{ fontSize: 11, fontWeight: '700', color: '#7A9A7E', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 4 }}>
+                <Text className='text-[11px] font-bold text-[#7A9A7E] tracking-[0.8px] uppercase mb-1'>
                     Available
                 </Text>
 
                 {REPORTS.map((report) => (
                     <TouchableOpacity
                         key={report.title}
-                        style={{
-                            backgroundColor: '#FFFFFF',
-                            borderRadius: 16,
-                            padding: 16,
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            gap: 14,
-                            elevation: 2,
-                            shadowColor: BRAND,
-                            shadowOffset: { width: 0, height: 1 },
-                            shadowOpacity: 0.08,
-                            shadowRadius: 4,
-                        }}
+                        className='bg-white rounded-2xl p-4 flex-row items-center gap-[14px]'
+                        style={{ elevation: 2, shadowColor: BRAND, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4 }}
                         onPress={() => router.push(report.route as any)}
                     >
                         <View
-                            style={{
-                                width: 48,
-                                height: 48,
-                                borderRadius: 14,
-                                backgroundColor: report.bg,
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                            }}
+                            style={{ backgroundColor: report.bg }}
+                            className='w-12 h-12 rounded-[14px] items-center justify-center'
                         >
                             <Ionicons name={report.icon as any} size={24} color={report.color} />
                         </View>
-                        <View style={{ flex: 1 }}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                                <Text style={{ fontSize: 14, fontWeight: '800', color: '#1C2B1E' }}>{report.title}</Text>
+                        <View className='flex-1'>
+                            <View className='flex-row items-center gap-2'>
+                                <Text className='text-[14px] font-extrabold text-[#1C2B1E]'>{report.title}</Text>
                                 {report.badge && (
-                                    <View style={{ backgroundColor: '#DCFCE7', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 }}>
-                                        <Text style={{ fontSize: 9, fontWeight: '700', color: BRAND, letterSpacing: 0.5 }}>{report.badge}</Text>
+                                    <View className='bg-[#DCFCE7] rounded px-[6px] py-[2px]'>
+                                        <Text className='text-[9px] font-bold text-brand tracking-[0.5px]'>{report.badge}</Text>
                                     </View>
                                 )}
                             </View>
-                            <Text style={{ fontSize: 12, color: '#7A9A7E', marginTop: 3, lineHeight: 17 }}>{report.description}</Text>
+                            <Text className='text-[12px] text-[#7A9A7E] mt-[3px] leading-[17px]'>{report.description}</Text>
                         </View>
                         <Ionicons name='chevron-forward' size={18} color='#CBD5E1' />
                     </TouchableOpacity>
                 ))}
 
                 {COMING_SOON.length > 0 && (
-                    <Text
-                        style={{
-                            fontSize: 11,
-                            fontWeight: '700',
-                            color: '#7A9A7E',
-                            letterSpacing: 0.8,
-                            textTransform: 'uppercase',
-                            marginTop: 8,
-                            marginBottom: 4,
-                        }}
-                    >
+                    <Text className='text-[11px] font-bold text-[#7A9A7E] tracking-[0.8px] uppercase mt-2 mb-1'>
                         Coming Soon
                     </Text>
                 )}
@@ -151,39 +123,18 @@ export default function ReportsHubScreen() {
                 {COMING_SOON.map((r) => (
                     <View
                         key={r.title}
-                        style={{
-                            backgroundColor: '#FFFFFF',
-                            borderRadius: 16,
-                            padding: 16,
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            gap: 14,
-                            opacity: 0.5,
-                            elevation: 1,
-                            shadowColor: '#000',
-                            shadowOffset: { width: 0, height: 1 },
-                            shadowOpacity: 0.04,
-                            shadowRadius: 2,
-                        }}
+                        className='bg-white rounded-2xl p-4 flex-row items-center gap-[14px] opacity-50'
+                        style={{ elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 2 }}
                     >
-                        <View
-                            style={{
-                                width: 48,
-                                height: 48,
-                                borderRadius: 14,
-                                backgroundColor: '#F1F5F9',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                            }}
-                        >
+                        <View className='w-12 h-12 rounded-[14px] bg-[#F1F5F9] items-center justify-center'>
                             <Ionicons name={r.icon as any} size={24} color='#94A3B8' />
                         </View>
-                        <View style={{ flex: 1 }}>
-                            <Text style={{ fontSize: 14, fontWeight: '800', color: '#1C2B1E' }}>{r.title}</Text>
-                            <Text style={{ fontSize: 12, color: '#7A9A7E', marginTop: 3, lineHeight: 17 }}>{r.description}</Text>
+                        <View className='flex-1'>
+                            <Text className='text-[14px] font-extrabold text-[#1C2B1E]'>{r.title}</Text>
+                            <Text className='text-[12px] text-[#7A9A7E] mt-[3px] leading-[17px]'>{r.description}</Text>
                         </View>
-                        <View style={{ backgroundColor: '#F1F5F9', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 }}>
-                            <Text style={{ fontSize: 9, fontWeight: '700', color: '#94A3B8', letterSpacing: 0.5 }}>SOON</Text>
+                        <View className='bg-[#F1F5F9] rounded-md px-2 py-[3px]'>
+                            <Text className='text-[9px] font-bold text-[#94A3B8] tracking-[0.5px]'>SOON</Text>
                         </View>
                     </View>
                 ))}

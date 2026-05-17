@@ -84,107 +84,85 @@ export default function FinesReportScreen() {
     }
 
     return (
-        <View style={{ flex: 1, backgroundColor: '#F4F9F4' }}>
+        <View className='flex-1 bg-[#F4F9F4]'>
             <StatusBar barStyle='light-content' backgroundColor={BRAND} />
 
-            {/* Header */}
-            <View style={{ backgroundColor: BRAND, paddingTop: insets.top + 16, paddingHorizontal: 20, paddingBottom: 24 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+            <View style={{ paddingTop: insets.top + 16 }} className='bg-brand px-5 pb-6'>
+                <View className='flex-row items-center gap-3 mb-2'>
                     <TouchableOpacity onPress={() => router.back()} hitSlop={8}>
                         <Ionicons name='arrow-back' size={22} color='#A8D5A2' />
                     </TouchableOpacity>
-                    <Text style={{ color: '#A8D5A2', fontSize: 11, fontWeight: '600', letterSpacing: 1.2, textTransform: 'uppercase' }}>Reports</Text>
+                    <Text className='text-[#A8D5A2] text-[11px] font-semibold tracking-[1.2px] uppercase'>Reports</Text>
                 </View>
-                <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-                    <View style={{ flex: 1 }}>
-                        <Text style={{ color: '#FFFFFF', fontSize: 22, fontWeight: '800' }}>Fines Report</Text>
-                        <Text style={{ color: '#A8D5A2', fontSize: 12, marginTop: 3 }}>
+                <View className='flex-row items-end justify-between'>
+                    <View className='flex-1'>
+                        <Text className='text-white text-[22px] font-extrabold'>Fines Report</Text>
+                        <Text className='text-[#A8D5A2] text-[12px] mt-[3px]'>
                             {new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}
                         </Text>
                     </View>
                     <TouchableOpacity
-                        style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            gap: 6,
-                            backgroundColor: 'rgba(255,255,255,0.2)',
-                            borderRadius: 12,
-                            paddingHorizontal: 14,
-                            paddingVertical: 9,
-                            opacity: sharing || !allReady ? 0.6 : 1,
-                        }}
+                        className='flex-row items-center gap-[6px] bg-[rgba(255,255,255,0.2)] rounded-xl px-[14px] py-[9px]'
+                        style={{ opacity: sharing || !allReady ? 0.6 : 1 }}
                         onPress={handleSharePdf}
                         disabled={sharing || !allReady}
                     >
                         {sharing ? <ActivityIndicator size='small' color='#FFFFFF' /> : <Ionicons name='share-outline' size={17} color='#FFFFFF' />}
-                        <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 13 }}>{sharing ? 'Preparing…' : 'Share PDF'}</Text>
+                        <Text className='text-white font-bold text-[13px]'>{sharing ? 'Preparing…' : 'Share PDF'}</Text>
                     </TouchableOpacity>
                 </View>
             </View>
 
             {isLoading ? (
-                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                <View className='flex-1 items-center justify-center'>
                     <ActivityIndicator size='large' color={LEAF} />
-                    <Text style={{ marginTop: 12, fontSize: 13, color: '#7A9A7E', fontWeight: '600' }}>Loading report…</Text>
+                    <Text className='mt-3 text-[13px] text-[#7A9A7E] font-semibold'>Loading report…</Text>
                 </View>
             ) : (
                 <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 150 }} showsVerticalScrollIndicator={false}>
-                    {/* Summary */}
                     <Section title='Summary'>
-                        <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
-                            <View style={{ flex: 1, backgroundColor: '#E2EFE0', borderRadius: 12, padding: 14, alignItems: 'center' }}>
-                                <Text style={{ fontSize: 18, fontWeight: '800', color: BRAND }}>₱{fmt(summary?.total_fines ?? 0)}</Text>
-                                <Text style={{ fontSize: 10, fontWeight: '600', color: BRAND + 'BB', marginTop: 3 }}>Total Issued</Text>
+                        <View className='flex-row gap-[10px] mb-[10px]'>
+                            <View className='flex-1 bg-mint rounded-xl p-[14px] items-center'>
+                                <Text className='text-[18px] font-extrabold text-brand'>₱{fmt(summary?.total_fines ?? 0)}</Text>
+                                <Text style={{ color: BRAND + 'BB' }} className='text-[10px] font-semibold mt-[3px]'>Total Issued</Text>
                             </View>
                         </View>
-                        <View style={{ flexDirection: 'row', gap: 10 }}>
-                            <View style={{ flex: 1, backgroundColor: '#DCFCE7', borderRadius: 12, padding: 14, alignItems: 'center' }}>
-                                <Text style={{ fontSize: 17, fontWeight: '800', color: '#16A34A' }}>₱{fmt(summary?.total_collected ?? 0)}</Text>
-                                <Text style={{ fontSize: 10, fontWeight: '600', color: '#16A34A' + 'BB', marginTop: 3 }}>Collected</Text>
-                                <Text style={{ fontSize: 10, color: '#4ADE80', marginTop: 2 }}>{summary?.paid_count ?? 0} records</Text>
+                        <View className='flex-row gap-[10px]'>
+                            <View className='flex-1 bg-[#DCFCE7] rounded-xl p-[14px] items-center'>
+                                <Text className='text-[17px] font-extrabold text-[#16A34A]'>₱{fmt(summary?.total_collected ?? 0)}</Text>
+                                <Text style={{ color: '#16A34A' + 'BB' }} className='text-[10px] font-semibold mt-[3px]'>Collected</Text>
+                                <Text className='text-[10px] text-[#4ADE80] mt-[2px]'>{summary?.paid_count ?? 0} records</Text>
                             </View>
-                            <View style={{ flex: 1, backgroundColor: '#FEE2E2', borderRadius: 12, padding: 14, alignItems: 'center' }}>
-                                <Text style={{ fontSize: 17, fontWeight: '800', color: '#DC2626' }}>₱{fmt(summary?.total_pending ?? 0)}</Text>
-                                <Text style={{ fontSize: 10, fontWeight: '600', color: '#DC2626' + 'BB', marginTop: 3 }}>Pending</Text>
-                                <Text style={{ fontSize: 10, color: '#FCA5A5', marginTop: 2 }}>{summary?.unpaid_count ?? 0} records</Text>
+                            <View className='flex-1 bg-[#FEE2E2] rounded-xl p-[14px] items-center'>
+                                <Text className='text-[17px] font-extrabold text-[#DC2626]'>₱{fmt(summary?.total_pending ?? 0)}</Text>
+                                <Text style={{ color: '#DC2626' + 'BB' }} className='text-[10px] font-semibold mt-[3px]'>Pending</Text>
+                                <Text className='text-[10px] text-[#FCA5A5] mt-[2px]'>{summary?.unpaid_count ?? 0} records</Text>
                             </View>
                         </View>
                     </Section>
 
-                    {/* Monthly Collection */}
                     <Section title='Monthly Collection — Last 6 Months'>
                         {monthly.length === 0 ? (
-                            <View style={{ paddingVertical: 20, alignItems: 'center', gap: 6 }}>
+                            <View className='py-5 items-center gap-[6px]'>
                                 <Ionicons name='cash-outline' size={32} color='#CBD5E1' />
-                                <Text style={{ fontSize: 13, color: '#94A3B8', fontWeight: '500' }}>No collection data yet</Text>
+                                <Text className='text-[13px] text-[#94A3B8] font-medium'>No collection data yet</Text>
                             </View>
                         ) : (
-                            <View style={{ gap: 8 }}>
+                            <View className='gap-2'>
                                 {monthly.map((row, i) => (
                                     <View
                                         key={row.month}
-                                        style={{
-                                            backgroundColor: i % 2 === 1 ? '#F8FAFC' : 'transparent',
-                                            borderRadius: 8,
-                                            paddingHorizontal: 4,
-                                            paddingVertical: 6,
-                                            flexDirection: 'row',
-                                            alignItems: 'center',
-                                            gap: 8,
-                                        }}
+                                        style={{ backgroundColor: i % 2 === 1 ? '#F8FAFC' : 'transparent' }}
+                                        className='rounded-lg px-1 py-[6px] flex-row items-center gap-2'
                                     >
-                                        <Text style={{ width: 64, fontSize: 11, color: '#64748B', fontWeight: '600' }}>{row.label}</Text>
-                                        <View style={{ flex: 1, height: 12, backgroundColor: '#E2EFE0', borderRadius: 4, overflow: 'hidden' }}>
+                                        <Text className='w-16 text-[11px] text-[#64748B] font-semibold'>{row.label}</Text>
+                                        <View className='flex-1 h-3 bg-mint rounded overflow-hidden'>
                                             <View
-                                                style={{
-                                                    width: `${Math.round((row.collected / maxCollected) * 100)}%`,
-                                                    height: '100%',
-                                                    backgroundColor: '#16A34A',
-                                                    borderRadius: 4,
-                                                }}
+                                                style={{ width: `${Math.round((row.collected / maxCollected) * 100)}%` }}
+                                                className='h-full bg-[#16A34A] rounded'
                                             />
                                         </View>
-                                        <Text style={{ width: 72, fontSize: 11, fontWeight: '700', color: '#16A34A', textAlign: 'right' }}>
+                                        <Text className='w-[72px] text-[11px] font-bold text-[#16A34A] text-right'>
                                             ₱{fmt(row.collected)}
                                         </Text>
                                     </View>
@@ -193,12 +171,11 @@ export default function FinesReportScreen() {
                         )}
                     </Section>
 
-                    {/* Top Debtors */}
                     <Section title='Top Debtors (Pending)'>
                         {debtors.length === 0 ? (
-                            <View style={{ paddingVertical: 20, alignItems: 'center', gap: 6 }}>
+                            <View className='py-5 items-center gap-[6px]'>
                                 <Ionicons name='checkmark-circle-outline' size={36} color={LEAF} />
-                                <Text style={{ fontSize: 13, color: '#5A7A5E', fontWeight: '600' }}>No pending fines</Text>
+                                <Text className='text-[13px] text-[#5A7A5E] font-semibold'>No pending fines</Text>
                             </View>
                         ) : (
                             <>
@@ -206,35 +183,28 @@ export default function FinesReportScreen() {
                                 {debtors.map((row, i) => (
                                     <View
                                         key={row.user_id}
-                                        style={{
-                                            flexDirection: 'row',
-                                            paddingHorizontal: 10,
-                                            paddingVertical: 9,
-                                            alignItems: 'center',
-                                            backgroundColor: i % 2 === 1 ? '#F8FAFC' : 'transparent',
-                                            borderRadius: 6,
-                                        }}
+                                        style={{ backgroundColor: i % 2 === 1 ? '#F8FAFC' : 'transparent' }}
+                                        className='flex-row px-[10px] py-[9px] items-center rounded-md'
                                     >
-                                        <Text style={{ width: 28, fontSize: 11, color: '#94A3B8', fontWeight: '700' }}>{i + 1}</Text>
-                                        <View style={{ flex: 1 }}>
-                                            <Text style={{ fontSize: 12, fontWeight: '700', color: '#1C2B1E' }} numberOfLines={1}>
+                                        <Text className='w-7 text-[11px] text-[#94A3B8] font-bold'>{i + 1}</Text>
+                                        <View className='flex-1'>
+                                            <Text className='text-[12px] font-bold text-[#1C2B1E]' numberOfLines={1}>
                                                 {row.user_name}
                                             </Text>
-                                            <Text style={{ fontSize: 10, color: '#7A9A7E', marginTop: 1 }}>{row.user_id_number}</Text>
+                                            <Text className='text-[10px] text-[#7A9A7E] mt-[1px]'>{row.user_id_number}</Text>
                                         </View>
-                                        <View style={{ width: 80, alignItems: 'flex-end' }}>
-                                            <View style={{ backgroundColor: '#FEE2E2', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 }}>
-                                                <Text style={{ fontSize: 12, fontWeight: '800', color: '#DC2626' }}>₱{fmt(row.pending)}</Text>
+                                        <View className='w-20 items-end'>
+                                            <View className='bg-[#FEE2E2] rounded-md px-2 py-[3px]'>
+                                                <Text className='text-[12px] font-extrabold text-[#DC2626]'>₱{fmt(row.pending)}</Text>
                                             </View>
                                         </View>
-                                        <Text style={{ width: 80, fontSize: 11, color: '#94A3B8', textAlign: 'right' }}>₱{fmt(row.total_fines)}</Text>
+                                        <Text className='w-20 text-[11px] text-[#94A3B8] text-right'>₱{fmt(row.total_fines)}</Text>
                                     </View>
                                 ))}
                             </>
                         )}
                     </Section>
 
-                    {/* Fine Records */}
                     <Section title={`Fine Records${details.length > 0 ? ` (${details.length})` : ''}`}>
                         {details.length === 0 ? (
                             <EmptyRow />
@@ -244,40 +214,30 @@ export default function FinesReportScreen() {
                                 {details.map((row, i) => (
                                     <View
                                         key={row.fine_id}
-                                        style={{
-                                            flexDirection: 'row',
-                                            paddingHorizontal: 10,
-                                            paddingVertical: 8,
-                                            alignItems: 'center',
-                                            backgroundColor: i % 2 === 1 ? '#F8FAFC' : 'transparent',
-                                            borderRadius: 6,
-                                        }}
+                                        style={{ backgroundColor: i % 2 === 1 ? '#F8FAFC' : 'transparent' }}
+                                        className='flex-row px-[10px] py-2 items-center rounded-md'
                                     >
-                                        <View style={{ flex: 1, paddingRight: 4 }}>
-                                            <Text style={{ fontSize: 11, fontWeight: '700', color: '#1C2B1E' }} numberOfLines={1}>
+                                        <View className='flex-1 pr-1'>
+                                            <Text className='text-[11px] font-bold text-[#1C2B1E]' numberOfLines={1}>
                                                 {row.member_name}
                                             </Text>
-                                            <Text style={{ fontSize: 9, color: '#7A9A7E', marginTop: 1 }}>{row.member_id_number}</Text>
+                                            <Text className='text-[9px] text-[#7A9A7E] mt-[1px]'>{row.member_id_number}</Text>
                                         </View>
-                                        <Text style={{ flex: 1, fontSize: 11, color: '#1C2B1E', paddingRight: 4 }} numberOfLines={2}>
+                                        <Text className='flex-1 text-[11px] text-[#1C2B1E] pr-1' numberOfLines={2}>
                                             {row.book_title}
                                         </Text>
-                                        <Text style={{ width: 68, fontSize: 10, color: '#D97706' }}>
+                                        <Text className='w-[68px] text-[10px] text-[#D97706]'>
                                             {fmtDate(row.due_date)}
                                         </Text>
-                                        <Text style={{ width: 64, fontSize: 11, fontWeight: '700', color: '#1C2B1E', textAlign: 'right' }}>
+                                        <Text className='w-16 text-[11px] font-bold text-[#1C2B1E] text-right'>
                                             ₱{fmt(row.amount)}
                                         </Text>
-                                        <View style={{ width: 56, alignItems: 'center' }}>
+                                        <View className='w-14 items-center'>
                                             <View
-                                                style={{
-                                                    backgroundColor: row.paid ? '#DCFCE7' : '#FEE2E2',
-                                                    borderRadius: 6,
-                                                    paddingHorizontal: 6,
-                                                    paddingVertical: 3,
-                                                }}
+                                                style={{ backgroundColor: row.paid ? '#DCFCE7' : '#FEE2E2' }}
+                                                className='rounded-md px-[6px] py-[3px]'
                                             >
-                                                <Text style={{ fontSize: 9, fontWeight: '700', color: row.paid ? '#16A34A' : '#DC2626' }}>
+                                                <Text style={{ color: row.paid ? '#16A34A' : '#DC2626' }} className='text-[9px] font-bold'>
                                                     {row.paid ? 'Paid' : 'Pending'}
                                                 </Text>
                                             </View>
@@ -296,30 +256,20 @@ export default function FinesReportScreen() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
     return (
         <View
-            style={{
-                backgroundColor: '#FFFFFF',
-                borderRadius: 16,
-                overflow: 'hidden',
-                elevation: 2,
-                shadowColor: BRAND,
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.07,
-                shadowRadius: 4,
-            }}
+            className='bg-white rounded-2xl overflow-hidden'
+            style={{ elevation: 2, shadowColor: BRAND, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.07, shadowRadius: 4 }}
         >
-            <View style={{ paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' }}>
-                <Text style={{ fontSize: 13, fontWeight: '800', color: '#1C2B1E' }}>{title}</Text>
+            <View className='px-4 py-[13px] border-b border-[#F1F5F9]'>
+                <Text className='text-[13px] font-extrabold text-[#1C2B1E]'>{title}</Text>
             </View>
-            <View style={{ padding: 14 }}>{children}</View>
+            <View className='p-[14px]'>{children}</View>
         </View>
     )
 }
 
 function TableHeader({ cols, widths }: { cols: string[]; widths: (number | 'flex')[] }) {
     return (
-        <View
-            style={{ flexDirection: 'row', backgroundColor: '#F8FAFC', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 7, marginBottom: 2 }}
-        >
+        <View className='flex-row bg-[#F8FAFC] rounded-lg px-[10px] py-[7px] mb-[2px]'>
             {cols.map((col, i) => (
                 <Text
                     key={col}
@@ -343,8 +293,8 @@ function TableHeader({ cols, widths }: { cols: string[]; widths: (number | 'flex
 
 function EmptyRow() {
     return (
-        <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-            <Text style={{ fontSize: 13, color: '#94A3B8', fontWeight: '500' }}>No data available</Text>
+        <View className='py-5 items-center'>
+            <Text className='text-[13px] text-[#94A3B8] font-medium'>No data available</Text>
         </View>
     )
 }

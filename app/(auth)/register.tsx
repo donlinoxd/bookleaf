@@ -39,7 +39,7 @@ export default function RegisterScreen() {
     <ScrollView className="flex-1 bg-bio" contentContainerStyle={{ paddingBottom: 40 }}>
       <StatusBar barStyle="light-content" backgroundColor="#2A5C33" />
 
-      <View className="bg-brand px-6 pb-8 rounded-b-[32px]" style={{ paddingTop: 60 }}>
+      <View className="bg-brand px-6 pb-8 rounded-b-[32px] pt-[60px]">
         <Text className="text-3xl font-extrabold text-white">Bookleaf Setup</Text>
         <Text className="text-sm text-[#A8D5A2] mt-1">Set up your institution and admin account</Text>
       </View>

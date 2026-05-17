@@ -11,7 +11,6 @@ import { queryKeys } from '../../src/lib/queryKeys';
 import { getLocalIpAddress } from '../../src/utils/networkInfo';
 import { GateLog } from '../../src/types';
 
-const BRAND = '#2A5C33';
 const LEAF = '#5CB85C';
 const PORT = 3000;
 
@@ -34,7 +33,6 @@ export default function GateQrScreen() {
     refetchInterval: 30_000,
   });
 
-  // Compute unique visitors and currently inside count
   const byUser = new Map<number, string>();
   for (const log of logs) {
     if (!byUser.has(log.user_id)) byUser.set(log.user_id, log.direction);
@@ -43,21 +41,24 @@ export default function GateQrScreen() {
   const insideNow = [...byUser.values()].filter((d) => d === 'in').length;
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#F4F9F4' }}>
-      <StatusBar barStyle="light-content" backgroundColor={BRAND} />
+    <View className="flex-1 bg-[#F4F9F4]">
+      <StatusBar barStyle="light-content" backgroundColor='#2A5C33' />
 
       {/* Header */}
-      <View style={{ backgroundColor: BRAND, paddingTop: insets.top + 16, paddingHorizontal: 20, paddingBottom: 24 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+      <View
+        className="bg-brand px-5 pb-6"
+        style={{ paddingTop: insets.top + 16 }}
+      >
+        <View className="flex-row items-center gap-3 mb-1">
           <TouchableOpacity onPress={() => router.back()} hitSlop={8}>
             <Ionicons name="arrow-back" size={22} color="#A8D5A2" />
           </TouchableOpacity>
-          <Text style={{ color: '#A8D5A2', fontSize: 11, fontWeight: '600', letterSpacing: 1.2, textTransform: 'uppercase' }}>
+          <Text className="text-[#A8D5A2] text-[11px] font-semibold tracking-[1.2px] uppercase">
             Gate Attendance
           </Text>
         </View>
-        <Text style={{ color: '#FFFFFF', fontSize: 24, fontWeight: '800' }}>Entrance QR</Text>
-        <Text style={{ color: '#A8D5A2', fontSize: 13, marginTop: 4 }}>
+        <Text className="text-white text-[24px] font-extrabold">Entrance QR</Text>
+        <Text className="text-[#A8D5A2] text-[13px] mt-1">
           Display this QR at the entrance so patrons can check in or out.
         </Text>
       </View>
@@ -67,57 +68,68 @@ export default function GateQrScreen() {
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={LEAF} />}
       >
         {/* QR Card */}
-        <View style={{
-          backgroundColor: '#FFFFFF', borderRadius: 20, padding: 24,
-          alignItems: 'center', gap: 16,
-          elevation: 3, shadowColor: BRAND, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8,
-        }}>
+        <View
+          className="bg-white rounded-[20px] p-6 items-center gap-4"
+          style={{
+            elevation: 3,
+            shadowColor: '#2A5C33',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
+          }}
+        >
           {gateUrl ? (
             <>
               <QRCode value={gateUrl} size={200} color="#1E293B" backgroundColor="#FFFFFF" />
-              <View style={{ alignItems: 'center', gap: 4 }}>
-                <Text style={{ fontSize: 12, color: '#94A3B8', letterSpacing: 0.5 }}>GATE URL</Text>
-                <Text style={{ fontSize: 13, fontWeight: '700', color: '#1C2B1E', letterSpacing: 0.3 }}>{gateUrl}</Text>
+              <View className="items-center gap-1">
+                <Text className="text-[12px] text-[#94A3B8] tracking-[0.5px]">GATE URL</Text>
+                <Text className="text-[13px] font-bold text-[#1C2B1E] tracking-[0.3px]">{gateUrl}</Text>
               </View>
               <TouchableOpacity
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#F1F5F9', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 }}
+                className="flex-row items-center gap-[6px] bg-[#F1F5F9] rounded-[10px] px-[14px] py-2"
                 onPress={() => getLocalIpAddress().then((ip) => setGateUrl(`http://${ip}:${PORT}/gate`))}
               >
                 <Ionicons name="refresh-outline" size={15} color="#64748B" />
-                <Text style={{ fontSize: 12, fontWeight: '600', color: '#64748B' }}>Refresh IP</Text>
+                <Text className="text-[12px] font-semibold text-[#64748B]">Refresh IP</Text>
               </TouchableOpacity>
             </>
           ) : (
-            <View style={{ height: 200, alignItems: 'center', justifyContent: 'center' }}>
+            <View className="h-[200px] items-center justify-center">
               <ActivityIndicator color={LEAF} />
             </View>
           )}
         </View>
 
         {/* Today's stats */}
-        <View style={{ flexDirection: 'row', gap: 12 }}>
-          <StatCard label="Unique Visitors" value={uniqueVisitors} accent={BRAND} bg="#E2EFE0" />
+        <View className="flex-row gap-3">
+          <StatCard label="Unique Visitors" value={uniqueVisitors} accent='#2A5C33' bg="#E2EFE0" />
           <StatCard label="Inside Now" value={insideNow} accent={LEAF} bg="#DCFCE7" />
           <StatCard label="Log Entries" value={logs.length} accent="#3A7A45" bg="#F0FDF4" />
         </View>
 
         {/* Today's log */}
-        <View style={{
-          backgroundColor: '#FFFFFF', borderRadius: 16, overflow: 'hidden',
-          elevation: 2, shadowColor: BRAND, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.07, shadowRadius: 4,
-        }}>
-          <View style={{ paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' }}>
-            <Text style={{ fontSize: 14, fontWeight: '800', color: '#1C2B1E' }}>Today's Log</Text>
+        <View
+          className="bg-white rounded-2xl overflow-hidden"
+          style={{
+            elevation: 2,
+            shadowColor: '#2A5C33',
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.07,
+            shadowRadius: 4,
+          }}
+        >
+          <View className="px-4 py-[14px] border-b border-[#F1F5F9]">
+            <Text className="text-[14px] font-extrabold text-[#1C2B1E]">Today's Log</Text>
           </View>
 
           {isLoading ? (
-            <View style={{ padding: 32, alignItems: 'center' }}>
+            <View className="p-8 items-center">
               <ActivityIndicator color={LEAF} />
             </View>
           ) : logs.length === 0 ? (
-            <View style={{ padding: 32, alignItems: 'center', gap: 8 }}>
+            <View className="p-8 items-center gap-2">
               <Ionicons name="people-outline" size={40} color="#C8DFC5" />
-              <Text style={{ fontSize: 13, color: '#7A9A7E', fontWeight: '600' }}>No entries today yet</Text>
+              <Text className="text-[13px] text-[#7A9A7E] font-semibold">No entries today yet</Text>
             </View>
           ) : (
             logs.map((log, index) => (
@@ -136,33 +148,36 @@ function LogRow({ log, isLast }: { log: GateLog; isLast: boolean }) {
   const methodIcon: Record<string, string> = { app: 'phone-portrait-outline', browser: 'globe-outline', manual: 'scan-outline' };
 
   return (
-    <View style={{
-      flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12,
-      borderBottomWidth: isLast ? 0 : 1, borderBottomColor: '#F1F5F9',
-    }}>
-      <View style={{
-        width: 36, height: 36, borderRadius: 18,
-        backgroundColor: isIn ? '#DCFCE7' : '#FEF3C7',
-        alignItems: 'center', justifyContent: 'center', marginRight: 12,
-      }}>
-        <Ionicons name={isIn ? 'log-in-outline' : 'log-out-outline'} size={18} color={isIn ? '#16A34A' : '#D97706'} />
+    <View
+      className="flex-row items-center px-4 py-3"
+      style={{ borderBottomWidth: isLast ? 0 : 1, borderBottomColor: '#F1F5F9' }}
+    >
+      <View
+        className="w-9 h-9 rounded-full items-center justify-center mr-3"
+        style={{ backgroundColor: isIn ? '#DCFCE7' : '#FEF3C7' }}
+      >
+        <Ionicons
+          name={isIn ? 'log-in-outline' : 'log-out-outline'}
+          size={18}
+          color={isIn ? '#16A34A' : '#D97706'}
+        />
       </View>
-      <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 13, fontWeight: '700', color: '#1C2B1E' }}>{log.user_name}</Text>
-        <Text style={{ fontSize: 11, color: '#7A9A7E', marginTop: 1 }}>{log.user_id_number}</Text>
+      <View className="flex-1">
+        <Text className="text-[13px] font-bold text-[#1C2B1E]">{log.user_name}</Text>
+        <Text className="text-[11px] text-[#7A9A7E] mt-[1px]">{log.user_id_number}</Text>
       </View>
-      <View style={{ alignItems: 'flex-end', gap: 4 }}>
-        <View style={{
-          backgroundColor: isIn ? '#DCFCE7' : '#FEF3C7',
-          borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2,
-        }}>
-          <Text style={{ fontSize: 10, fontWeight: '700', color: isIn ? '#16A34A' : '#D97706' }}>
+      <View className="items-end gap-1">
+        <View
+          className="rounded-[6px] px-2 py-[2px]"
+          style={{ backgroundColor: isIn ? '#DCFCE7' : '#FEF3C7' }}
+        >
+          <Text className="text-[10px] font-bold" style={{ color: isIn ? '#16A34A' : '#D97706' }}>
             {isIn ? 'IN' : 'OUT'}
           </Text>
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+        <View className="flex-row items-center gap-1">
           <Ionicons name={methodIcon[log.method] as any} size={11} color="#94A3B8" />
-          <Text style={{ fontSize: 11, color: '#94A3B8' }}>{time}</Text>
+          <Text className="text-[11px] text-[#94A3B8]">{time}</Text>
         </View>
       </View>
     </View>
@@ -171,13 +186,19 @@ function LogRow({ log, isLast }: { log: GateLog; isLast: boolean }) {
 
 function StatCard({ label, value, accent, bg }: { label: string; value: number; accent: string; bg: string }) {
   return (
-    <View style={{
-      flex: 1, borderRadius: 16, padding: 14, alignItems: 'center',
-      backgroundColor: bg, elevation: 1,
-      shadowColor: accent, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2,
-    }}>
-      <Text style={{ fontSize: 22, fontWeight: '800', color: accent }}>{value}</Text>
-      <Text style={{ fontSize: 10, fontWeight: '600', textAlign: 'center', marginTop: 2, color: accent + 'CC' }}>{label}</Text>
+    <View
+      className="flex-1 rounded-2xl p-[14px] items-center"
+      style={{
+        backgroundColor: bg,
+        elevation: 1,
+        shadowColor: accent,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+      }}
+    >
+      <Text className="text-[22px] font-extrabold" style={{ color: accent }}>{value}</Text>
+      <Text className="text-[10px] font-semibold text-center mt-[2px]" style={{ color: accent + 'CC' }}>{label}</Text>
     </View>
   );
 }

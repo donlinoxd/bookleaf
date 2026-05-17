@@ -227,7 +227,7 @@ export default function AddResourceScreen() {
         <>
             <View className='flex-1 bg-bio'>
                 {/* Header */}
-                <View className='bg-brand flex-row items-center justify-between px-5 pb-4 rounded-b-[24px]' style={{ paddingTop: 52 }}>
+                <View className='bg-brand flex-row items-center justify-between px-5 pb-4 pt-[52px] rounded-b-[24px]'>
                     <TouchableOpacity onPress={() => router.back()} className='flex-row items-center gap-1'>
                         <Ionicons name='chevron-back' size={20} color='#A8D5A2' />
                         <Text className='text-[#A8D5A2] text-sm font-medium'>Cancel</Text>
@@ -384,8 +384,8 @@ export default function AddResourceScreen() {
                             />
                         </View>
                         <TextInput
-                            className='bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]'
-                            style={{ height: 88, textAlignVertical: 'top' }}
+                            className='bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E] h-[88px]'
+                            style={{ textAlignVertical: 'top' }}
                             value={description}
                             onChangeText={setDescription}
                             placeholder='Description (optional)'
@@ -572,31 +572,21 @@ export default function AddResourceScreen() {
 
             {/* Barcode Scanner Modal */}
             <Modal visible={scannerVisible} animationType='slide'>
-                <View style={{ flex: 1, backgroundColor: '#000' }}>
-                    <View
-                        style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            gap: 16,
-                            paddingHorizontal: 20,
-                            paddingTop: 52,
-                            paddingBottom: 16,
-                            backgroundColor: '#000',
-                        }}
-                    >
+                <View className='flex-1 bg-black'>
+                    <View className='flex-row items-center gap-4 px-5 pt-[52px] pb-4 bg-black'>
                         <TouchableOpacity onPress={() => setScannerVisible(false)}>
-                            <Text style={{ color: '#5CB85C', fontSize: 16, fontWeight: '600' }}>✕ Close</Text>
+                            <Text className='text-leaf text-base font-semibold'>✕ Close</Text>
                         </TouchableOpacity>
-                        <Text style={{ color: '#FFFFFF', fontSize: 17, fontWeight: '700' }}>Scan Barcode</Text>
+                        <Text className='text-white text-[17px] font-bold'>Scan Barcode</Text>
                     </View>
                     <CameraView
                         style={{ flex: 1 }}
                         barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128'] }}
                         onBarcodeScanned={({ data }) => handleBarcodeScanned(data)}
                     >
-                        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: 24 }}>
-                            <View style={{ width: 260, height: 120, borderWidth: 2, borderColor: '#5CB85C', borderRadius: 10 }} />
-                            <Text style={{ color: '#FFFFFF', fontSize: 14, textAlign: 'center', paddingHorizontal: 40 }}>
+                        <View className='flex-1 justify-center items-center gap-6'>
+                            <View className='w-[260px] h-[120px] border-2 border-leaf rounded-[10px]' />
+                            <Text className='text-white text-sm text-center px-10'>
                                 Point at the barcode on the resource
                             </Text>
                         </View>

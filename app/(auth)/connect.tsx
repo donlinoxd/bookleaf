@@ -52,7 +52,7 @@ export default function ConnectScreen() {
     <ScrollView className="flex-1 bg-bio" contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
       <StatusBar barStyle="light-content" backgroundColor="#2A5C33" />
 
-      <View className="bg-brand px-6 pb-8 rounded-b-[32px]" style={{ paddingTop: 60 }}>
+      <View className="bg-brand px-6 pb-8 rounded-b-[32px] pt-[60px]">
         <Text className="text-3xl font-extrabold text-white">Connect to Library</Text>
         <Text className="text-sm text-[#A8D5A2] mt-1">Searching for Bookleaf servers on your Wi-Fi</Text>
       </View>

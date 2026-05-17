@@ -73,7 +73,7 @@ export default function ClientHomeScreen() {
       <StatusBar barStyle="light-content" backgroundColor="#2A5C33" />
 
       {/* Header */}
-      <View className="bg-brand px-5 pb-6 rounded-b-[28px]" style={{ paddingTop: 52 }}>
+      <View className="bg-brand px-5 pb-6 pt-[52px] rounded-b-[28px]">
         <View className="flex-row items-end mb-5">
           <View className="flex-1">
             <Text className="text-xs font-semibold text-[#A8D5A2] tracking-widest uppercase mb-1">

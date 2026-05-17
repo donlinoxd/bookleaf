@@ -97,92 +97,86 @@ export default function PatronReportScreen() {
     }
 
     return (
-        <View style={{ flex: 1, backgroundColor: '#F4F9F4' }}>
+        <View className='flex-1 bg-[#F4F9F4]'>
             <StatusBar barStyle='light-content' backgroundColor={BRAND} />
 
-            <View style={{ backgroundColor: BRAND, paddingTop: insets.top + 16, paddingHorizontal: 20, paddingBottom: 24 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+            <View style={{ paddingTop: insets.top + 16 }} className='bg-brand px-5 pb-6'>
+                <View className='flex-row items-center gap-3 mb-2'>
                     <TouchableOpacity onPress={() => router.back()} hitSlop={8}>
                         <Ionicons name='arrow-back' size={22} color='#A8D5A2' />
                     </TouchableOpacity>
-                    <Text style={{ color: '#A8D5A2', fontSize: 11, fontWeight: '600', letterSpacing: 1.2, textTransform: 'uppercase' }}>Reports</Text>
+                    <Text className='text-[#A8D5A2] text-[11px] font-semibold tracking-[1.2px] uppercase'>Reports</Text>
                 </View>
-                <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-                    <View style={{ flex: 1 }}>
-                        <Text style={{ color: '#FFFFFF', fontSize: 22, fontWeight: '800' }}>Patron Report</Text>
-                        <Text style={{ color: '#A8D5A2', fontSize: 12, marginTop: 3 }}>
+                <View className='flex-row items-end justify-between'>
+                    <View className='flex-1'>
+                        <Text className='text-white text-[22px] font-extrabold'>Patron Report</Text>
+                        <Text className='text-[#A8D5A2] text-[12px] mt-[3px]'>
                             {new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}
                         </Text>
                     </View>
                     <TouchableOpacity
-                        style={{
-                            flexDirection: 'row', alignItems: 'center', gap: 6,
-                            backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 12,
-                            paddingHorizontal: 14, paddingVertical: 9,
-                            opacity: sharing || !allReady ? 0.6 : 1,
-                        }}
+                        className='flex-row items-center gap-[6px] bg-[rgba(255,255,255,0.2)] rounded-xl px-[14px] py-[9px]'
+                        style={{ opacity: sharing || !allReady ? 0.6 : 1 }}
                         onPress={handleSharePdf}
                         disabled={sharing || !allReady}
                     >
                         {sharing ? <ActivityIndicator size='small' color='#FFFFFF' /> : <Ionicons name='share-outline' size={17} color='#FFFFFF' />}
-                        <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 13 }}>{sharing ? 'Preparing…' : 'Share PDF'}</Text>
+                        <Text className='text-white font-bold text-[13px]'>{sharing ? 'Preparing…' : 'Share PDF'}</Text>
                     </TouchableOpacity>
                 </View>
             </View>
 
             {isLoading ? (
-                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                <View className='flex-1 items-center justify-center'>
                     <ActivityIndicator size='large' color={LEAF} />
-                    <Text style={{ marginTop: 12, fontSize: 13, color: '#7A9A7E', fontWeight: '600' }}>Loading report…</Text>
+                    <Text className='mt-3 text-[13px] text-[#7A9A7E] font-semibold'>Loading report…</Text>
                 </View>
             ) : (
                 <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 150 }} showsVerticalScrollIndicator={false}>
 
-                    {/* Overview */}
                     <Section title='Overview' badge='CHED'>
-                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 10 }}>
+                        <View className='flex-row flex-wrap gap-[10px] mb-[10px]'>
                             <MiniStat label='Total Members' value={overview?.total_members ?? 0} accent={BRAND} bg='#E2EFE0' />
                             <MiniStat label='Active' value={overview?.active_members ?? 0} accent='#16A34A' bg='#DCFCE7' />
                             <MiniStat label='Inactive' value={overview?.inactive_members ?? 0} accent='#D97706' bg='#FEF3C7' />
                         </View>
-                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+                        <View className='flex-row flex-wrap gap-[10px]'>
                             <MiniStat label='Borrowing Now' value={overview?.active_borrowers ?? 0} accent='#0F766E' bg='#CCFBF1' />
                             <MiniStat label='Never Borrowed' value={overview?.never_borrowed ?? 0} accent='#64748B' bg='#F1F5F9' />
                             <MiniStat label='Library Staff' value={overview?.total_staff ?? 0} accent='#7C3AED' bg='#EDE9FE' />
                         </View>
                     </Section>
 
-                    {/* By Patron Type */}
                     <Section title='By Patron Type'>
                         {byType.length === 0 ? (
-                            <View style={{ paddingVertical: 16, alignItems: 'center', gap: 6 }}>
+                            <View className='py-4 items-center gap-[6px]'>
                                 <Ionicons name='information-circle-outline' size={28} color='#CBD5E1' />
-                                <Text style={{ fontSize: 12, color: '#94A3B8', textAlign: 'center' }}>
+                                <Text className='text-[12px] text-[#94A3B8] text-center'>
                                     No patron types assigned yet.{'\n'}Add type when registering members.
                                 </Text>
                             </View>
                         ) : (
-                            <View style={{ gap: 8 }}>
+                            <View className='gap-2'>
                                 {byType.map((row) => {
                                     const c = USER_TYPE_COLOR[row.user_type] ?? { text: '#64748B', bg: '#F1F5F9' }
                                     const pct = overview ? Math.round((row.count / overview.total_members) * 100) : 0
                                     return (
-                                        <View key={row.user_type} style={{ gap: 4 }}>
-                                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                                                    <View style={{ backgroundColor: c.bg, borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4 }}>
-                                                        <Text style={{ fontSize: 12, fontWeight: '700', color: c.text }}>
+                                        <View key={row.user_type} className='gap-1'>
+                                            <View className='flex-row items-center justify-between'>
+                                                <View className='flex-row items-center gap-2'>
+                                                    <View style={{ backgroundColor: c.bg }} className='rounded-md px-[10px] py-1'>
+                                                        <Text style={{ color: c.text }} className='text-[12px] font-bold'>
                                                             {USER_TYPE_LABEL[row.user_type] ?? row.user_type}
                                                         </Text>
                                                     </View>
-                                                    <Text style={{ fontSize: 11, color: '#64748B' }}>
+                                                    <Text className='text-[11px] text-[#64748B]'>
                                                         {row.active} active · {row.count - row.active} inactive
                                                     </Text>
                                                 </View>
-                                                <Text style={{ fontSize: 14, fontWeight: '800', color: c.text }}>{row.count}</Text>
+                                                <Text style={{ color: c.text }} className='text-[14px] font-extrabold'>{row.count}</Text>
                                             </View>
-                                            <View style={{ height: 6, backgroundColor: '#F1F5F9', borderRadius: 3, overflow: 'hidden' }}>
-                                                <View style={{ width: `${pct}%`, height: '100%', backgroundColor: c.text + 'CC', borderRadius: 3 }} />
+                                            <View className='h-[6px] bg-[#F1F5F9] rounded-[3px] overflow-hidden'>
+                                                <View style={{ width: `${pct}%`, backgroundColor: c.text + 'CC' }} className='h-full rounded-[3px]' />
                                             </View>
                                         </View>
                                     )
@@ -191,12 +185,11 @@ export default function PatronReportScreen() {
                         )}
                     </Section>
 
-                    {/* By Department */}
                     <Section title='By Department / Program'>
                         {byDepartment.length === 0 ? (
-                            <View style={{ paddingVertical: 16, alignItems: 'center', gap: 6 }}>
+                            <View className='py-4 items-center gap-[6px]'>
                                 <Ionicons name='information-circle-outline' size={28} color='#CBD5E1' />
-                                <Text style={{ fontSize: 12, color: '#94A3B8', textAlign: 'center' }}>
+                                <Text className='text-[12px] text-[#94A3B8] text-center'>
                                     No departments on record yet.{'\n'}Add department when registering members.
                                 </Text>
                             </View>
@@ -206,26 +199,22 @@ export default function PatronReportScreen() {
                                 {byDepartment.map((row, i) => (
                                     <View
                                         key={row.department}
-                                        style={{
-                                            flexDirection: 'row', paddingHorizontal: 10, paddingVertical: 9,
-                                            alignItems: 'center',
-                                            backgroundColor: i % 2 === 1 ? '#F8FAFC' : 'transparent',
-                                            borderRadius: 6,
-                                        }}
+                                        style={{ backgroundColor: i % 2 === 1 ? '#F8FAFC' : 'transparent' }}
+                                        className='flex-row px-[10px] py-[9px] items-center rounded-md'
                                     >
-                                        <Text style={{ flex: 1, fontSize: 12, fontWeight: '600', color: '#1C2B1E' }} numberOfLines={1}>
+                                        <Text className='flex-1 text-[12px] font-semibold text-[#1C2B1E]' numberOfLines={1}>
                                             {row.department}
                                         </Text>
-                                        <Text style={{ width: 64, fontSize: 12, fontWeight: '700', color: BRAND, textAlign: 'center' }}>
+                                        <Text className='w-16 text-[12px] font-bold text-brand text-center'>
                                             {row.count}
                                         </Text>
-                                        <View style={{ width: 72, alignItems: 'center' }}>
+                                        <View className='w-[72px] items-center'>
                                             {row.active_borrowers > 0 ? (
-                                                <View style={{ backgroundColor: '#CCFBF1', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 }}>
-                                                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#0F766E' }}>{row.active_borrowers}</Text>
+                                                <View className='bg-[#CCFBF1] rounded-md px-2 py-[3px]'>
+                                                    <Text className='text-[11px] font-bold text-[#0F766E]'>{row.active_borrowers}</Text>
                                                 </View>
                                             ) : (
-                                                <Text style={{ fontSize: 11, color: '#CBD5E1' }}>—</Text>
+                                                <Text className='text-[11px] text-[#CBD5E1]'>—</Text>
                                             )}
                                         </View>
                                     </View>
@@ -234,57 +223,49 @@ export default function PatronReportScreen() {
                         )}
                     </Section>
 
-                    {/* Monthly Registrations */}
                     <Section title='New Registrations — Last 6 Months'>
                         {registrations.length === 0 ? (
                             <EmptyRow />
                         ) : (
-                            <View style={{ gap: 8 }}>
+                            <View className='gap-2'>
                                 {registrations.map((row, i) => (
                                     <View
                                         key={row.month}
-                                        style={{
-                                            flexDirection: 'row', alignItems: 'center', gap: 8,
-                                            backgroundColor: i % 2 === 1 ? '#F8FAFC' : 'transparent',
-                                            borderRadius: 8, paddingHorizontal: 4, paddingVertical: 6,
-                                        }}
+                                        style={{ backgroundColor: i % 2 === 1 ? '#F8FAFC' : 'transparent' }}
+                                        className='flex-row items-center gap-2 rounded-lg px-1 py-[6px]'
                                     >
-                                        <Text style={{ width: 64, fontSize: 11, color: '#64748B', fontWeight: '600' }}>{row.label}</Text>
-                                        <View style={{ flex: 1, height: 12, backgroundColor: '#E2EFE0', borderRadius: 4, overflow: 'hidden' }}>
-                                            <View style={{ width: `${Math.round((row.count / maxReg) * 100)}%`, height: '100%', backgroundColor: BRAND, borderRadius: 4 }} />
+                                        <Text className='w-16 text-[11px] text-[#64748B] font-semibold'>{row.label}</Text>
+                                        <View className='flex-1 h-3 bg-mint rounded overflow-hidden'>
+                                            <View style={{ width: `${Math.round((row.count / maxReg) * 100)}%` }} className='h-full bg-brand rounded' />
                                         </View>
-                                        <Text style={{ width: 32, fontSize: 12, fontWeight: '800', color: BRAND, textAlign: 'right' }}>{row.count}</Text>
+                                        <Text className='w-8 text-[12px] font-extrabold text-brand text-right'>{row.count}</Text>
                                     </View>
                                 ))}
                             </View>
                         )}
                     </Section>
 
-                    {/* Monthly Attendance */}
                     <Section title='Library Attendance — Last 6 Months'>
                         {attendance.length === 0 ? (
-                            <View style={{ paddingVertical: 20, alignItems: 'center', gap: 6 }}>
+                            <View className='py-5 items-center gap-[6px]'>
                                 <Ionicons name='enter-outline' size={32} color='#CBD5E1' />
-                                <Text style={{ fontSize: 13, color: '#94A3B8', fontWeight: '500' }}>No gate attendance data yet</Text>
+                                <Text className='text-[13px] text-[#94A3B8] font-medium'>No gate attendance data yet</Text>
                             </View>
                         ) : (
-                            <View style={{ gap: 8 }}>
+                            <View className='gap-2'>
                                 {attendance.map((row, i) => (
                                     <View
                                         key={row.month}
-                                        style={{
-                                            flexDirection: 'row', alignItems: 'center', gap: 8,
-                                            backgroundColor: i % 2 === 1 ? '#F8FAFC' : 'transparent',
-                                            borderRadius: 8, paddingHorizontal: 4, paddingVertical: 6,
-                                        }}
+                                        style={{ backgroundColor: i % 2 === 1 ? '#F8FAFC' : 'transparent' }}
+                                        className='flex-row items-center gap-2 rounded-lg px-1 py-[6px]'
                                     >
-                                        <Text style={{ width: 64, fontSize: 11, color: '#64748B', fontWeight: '600' }}>{row.label}</Text>
-                                        <View style={{ flex: 1, height: 12, backgroundColor: '#CCFBF1', borderRadius: 4, overflow: 'hidden' }}>
-                                            <View style={{ width: `${Math.round((row.unique_visitors / maxVisit) * 100)}%`, height: '100%', backgroundColor: '#0F766E', borderRadius: 4 }} />
+                                        <Text className='w-16 text-[11px] text-[#64748B] font-semibold'>{row.label}</Text>
+                                        <View className='flex-1 h-3 bg-[#CCFBF1] rounded overflow-hidden'>
+                                            <View style={{ width: `${Math.round((row.unique_visitors / maxVisit) * 100)}%` }} className='h-full bg-[#0F766E] rounded' />
                                         </View>
-                                        <View style={{ alignItems: 'flex-end', width: 72 }}>
-                                            <Text style={{ fontSize: 12, fontWeight: '800', color: '#0F766E' }}>{row.unique_visitors}</Text>
-                                            <Text style={{ fontSize: 9, color: '#94A3B8' }}>{row.total_visits} visits</Text>
+                                        <View className='items-end w-[72px]'>
+                                            <Text className='text-[12px] font-extrabold text-[#0F766E]'>{row.unique_visitors}</Text>
+                                            <Text className='text-[9px] text-[#94A3B8]'>{row.total_visits} visits</Text>
                                         </View>
                                     </View>
                                 ))}
@@ -299,23 +280,26 @@ export default function PatronReportScreen() {
 
 function Section({ title, badge, children }: { title: string; badge?: string; children: React.ReactNode }) {
     return (
-        <View style={{ backgroundColor: '#FFFFFF', borderRadius: 16, overflow: 'hidden', elevation: 2, shadowColor: BRAND, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.07, shadowRadius: 4 }}>
-            <View style={{ paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: '#F1F5F9', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Text style={{ fontSize: 13, fontWeight: '800', color: '#1C2B1E' }}>{title}</Text>
+        <View
+            className='bg-white rounded-2xl overflow-hidden'
+            style={{ elevation: 2, shadowColor: BRAND, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.07, shadowRadius: 4 }}
+        >
+            <View className='px-4 py-[13px] border-b border-[#F1F5F9] flex-row items-center gap-2'>
+                <Text className='text-[13px] font-extrabold text-[#1C2B1E]'>{title}</Text>
                 {badge && (
-                    <View style={{ backgroundColor: '#DCFCE7', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 }}>
-                        <Text style={{ fontSize: 9, fontWeight: '700', color: BRAND, letterSpacing: 0.5 }}>{badge}</Text>
+                    <View className='bg-[#DCFCE7] rounded px-[6px] py-[2px]'>
+                        <Text className='text-[9px] font-bold text-brand tracking-[0.5px]'>{badge}</Text>
                     </View>
                 )}
             </View>
-            <View style={{ padding: 14 }}>{children}</View>
+            <View className='p-[14px]'>{children}</View>
         </View>
     )
 }
 
 function TableHeader({ cols, widths }: { cols: string[]; widths: (number | 'flex')[] }) {
     return (
-        <View style={{ flexDirection: 'row', backgroundColor: '#F8FAFC', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 7, marginBottom: 2 }}>
+        <View className='flex-row bg-[#F8FAFC] rounded-lg px-[10px] py-[7px] mb-[2px]'>
             {cols.map((col, i) => (
                 <Text key={col} style={{ flex: widths[i] === 'flex' ? 1 : undefined, width: widths[i] !== 'flex' ? (widths[i] as number) : undefined, fontSize: 9, fontWeight: '700', color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.4, textAlign: typeof widths[i] === 'number' ? 'center' : 'left' }}>
                     {col}
@@ -327,17 +311,17 @@ function TableHeader({ cols, widths }: { cols: string[]; widths: (number | 'flex
 
 function MiniStat({ label, value, accent, bg }: { label: string; value: number; accent: string; bg: string }) {
     return (
-        <View style={{ borderRadius: 12, padding: 12, alignItems: 'center', minWidth: 80, backgroundColor: bg, flexGrow: 1 }}>
-            <Text style={{ fontSize: 22, fontWeight: '800', color: accent }}>{value}</Text>
-            <Text style={{ fontSize: 10, fontWeight: '600', color: accent + 'CC', textAlign: 'center', marginTop: 2 }}>{label}</Text>
+        <View style={{ backgroundColor: bg }} className='rounded-xl p-3 items-center min-w-[80px] grow'>
+            <Text style={{ color: accent }} className='text-[22px] font-extrabold'>{value}</Text>
+            <Text style={{ color: accent + 'CC' }} className='text-[10px] font-semibold text-center mt-[2px]'>{label}</Text>
         </View>
     )
 }
 
 function EmptyRow() {
     return (
-        <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-            <Text style={{ fontSize: 13, color: '#94A3B8', fontWeight: '500' }}>No data available</Text>
+        <View className='py-5 items-center'>
+            <Text className='text-[13px] text-[#94A3B8] font-medium'>No data available</Text>
         </View>
     )
 }

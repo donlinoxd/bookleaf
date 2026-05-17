@@ -41,13 +41,8 @@ export function CustomTabBar({ state, descriptors, navigation, accentRoute }: Pr
             }}
         >
             <View
+                className="flex-row bg-white rounded-[28px] py-[10px] px-[6px] items-center"
                 style={{
-                    flexDirection: 'row',
-                    backgroundColor: '#FFFFFF',
-                    borderRadius: 28,
-                    paddingVertical: 10,
-                    paddingHorizontal: 6,
-                    alignItems: 'center',
                     elevation: 10,
                     shadowColor: '#2A5C33',
                     shadowOffset: { width: 0, height: 6 },
@@ -73,36 +68,21 @@ export function CustomTabBar({ state, descriptors, navigation, accentRoute }: Pr
                     // Center accent — scanner button
                     if (isAccent) {
                         return (
-                            <TouchableOpacity key={route.key} onPress={press} activeOpacity={0.85} style={{ flex: 1, alignItems: 'center' }}>
+                            <TouchableOpacity key={route.key} onPress={press} activeOpacity={0.85} className="flex-1 items-center">
                                 <View
+                                    className="w-[58px] h-[58px] rounded-full bg-leaf items-center justify-center border-[3px] border-white"
                                     style={{
-                                        width: 58,
-                                        height: 58,
-                                        borderRadius: 29,
-                                        backgroundColor: LEAF,
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
                                         marginTop: -28,
                                         elevation: 8,
                                         shadowColor: LEAF,
                                         shadowOffset: { width: 0, height: 4 },
                                         shadowOpacity: 0.4,
                                         shadowRadius: 8,
-                                        borderWidth: 3,
-                                        borderColor: '#FFFFFF',
                                     }}
                                 >
                                     <Ionicons name='scan-outline' size={26} color='#FFFFFF' />
                                 </View>
-                                <Text
-                                    style={{
-                                        fontSize: 10,
-                                        color: INACTIVE,
-                                        fontWeight: '500',
-                                        marginTop: 3,
-                                    }}
-                                    numberOfLines={1}
-                                >
+                                <Text className="text-[10px] text-[#94A3B8] font-medium mt-[3px]" numberOfLines={1}>
                                     {label}
                                 </Text>
                             </TouchableOpacity>
@@ -115,7 +95,7 @@ export function CustomTabBar({ state, descriptors, navigation, accentRoute }: Pr
                             key={route.key}
                             onPress={press}
                             activeOpacity={0.7}
-                            style={{ flex: 1, alignItems: 'center', paddingVertical: 4 }}
+                            className="flex-1 items-center py-1"
                         >
                             {opts.tabBarIcon?.({
                                 focused: isActive,
@@ -123,12 +103,7 @@ export function CustomTabBar({ state, descriptors, navigation, accentRoute }: Pr
                                 size: 22,
                             })}
                             <Text
-                                style={{
-                                    fontSize: 10,
-                                    color: isActive ? BRAND : INACTIVE,
-                                    fontWeight: isActive ? '700' : '500',
-                                    marginTop: 3,
-                                }}
+                                className={`text-[10px] mt-[3px] ${isActive ? 'text-brand font-bold' : 'text-[#94A3B8] font-medium'}`}
                                 numberOfLines={1}
                             >
                                 {label}

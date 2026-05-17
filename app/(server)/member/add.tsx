@@ -62,8 +62,7 @@ export default function AddMemberScreen() {
   return (
     <View className="flex-1 bg-bio">
       {/* Top bar */}
-      <View className="bg-brand flex-row items-center justify-between px-5 pb-4 rounded-b-[24px]"
-        style={{ paddingTop: 52 }}>
+      <View className="bg-brand flex-row items-center justify-between px-5 pb-4 pt-[52px] rounded-b-[24px]">
         <TouchableOpacity onPress={() => router.back()} className="flex-row items-center gap-1">
           <Ionicons name="chevron-back" size={20} color="#A8D5A2" />
           <Text className="text-[#A8D5A2] text-sm font-medium">Cancel</Text>

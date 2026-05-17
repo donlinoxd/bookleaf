@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, TouchableOpacity,
+  View, Text, ScrollView, TouchableOpacity,
   Alert, Modal, TextInput, ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -120,77 +120,92 @@ export default function MemberDetailScreen() {
   const isOverdue = (dueDate: string) => new Date(dueDate) < new Date();
 
   if (isLoading) {
-    return <View style={styles.centered}><ActivityIndicator size="large" color="#2563EB" /></View>;
+    return (
+      <View className="flex-1 justify-center items-center">
+        <ActivityIndicator size="large" color="#2563EB" />
+      </View>
+    );
   }
 
   if (!member) {
-    return <View style={styles.centered}><Text style={styles.errorText}>Member not found</Text></View>;
+    return (
+      <View className="flex-1 justify-center items-center">
+        <Text className="text-[#DC2626] text-base">Member not found</Text>
+      </View>
+    );
   }
 
   return (
     <>
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        <View style={styles.topBar}>
+      <ScrollView className="flex-1 bg-[#F8FAFC]" contentContainerStyle={{ paddingBottom: 40 }}>
+        <View className="flex-row justify-between items-center px-4 bg-white border-b border-[#F1F5F9]" style={{ paddingTop: 52, paddingBottom: 12 }}>
           <TouchableOpacity onPress={() => router.back()}>
-            <Text style={styles.backText}>← Back</Text>
+            <Text className="text-[15px] text-[#2563EB] font-semibold">← Back</Text>
           </TouchableOpacity>
-          <View style={styles.topActions}>
+          <View className="flex-row gap-2">
             {isAdmin && (
-              <TouchableOpacity style={styles.topBtn} onPress={() => setPinVisible(true)}>
-                <Text style={styles.topBtnText}>Reset PIN</Text>
+              <TouchableOpacity className="bg-[#F1F5F9] rounded-lg px-3 py-[6px]" onPress={() => setPinVisible(true)}>
+                <Text className="text-[13px] font-semibold text-[#374151]">Reset PIN</Text>
               </TouchableOpacity>
             )}
-            <TouchableOpacity style={styles.topBtn} onPress={() => setEditVisible(true)}>
-              <Text style={styles.topBtnText}>Edit</Text>
+            <TouchableOpacity className="bg-[#F1F5F9] rounded-lg px-3 py-[6px]" onPress={() => setEditVisible(true)}>
+              <Text className="text-[13px] font-semibold text-[#374151]">Edit</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        <View style={styles.profileCard}>
-          <View style={[styles.avatar, { backgroundColor: ROLE_COLOR[member.role] + '20' }]}>
-            <Text style={[styles.avatarText, { color: ROLE_COLOR[member.role] }]}>
+        <View className="flex-row items-center p-5 bg-white gap-[14px]">
+          <View
+            className="w-[60px] h-[60px] rounded-[30px] items-center justify-center"
+            style={{ backgroundColor: ROLE_COLOR[member.role] + '20' }}
+          >
+            <Text className="text-[26px] font-bold" style={{ color: ROLE_COLOR[member.role] }}>
               {member.name.charAt(0).toUpperCase()}
             </Text>
           </View>
-          <View style={styles.profileInfo}>
-            <Text style={styles.memberName}>{member.name}</Text>
-            <Text style={styles.memberId}>ID: {member.id_number}</Text>
-            <View style={styles.badgeRow}>
-              <View style={[styles.roleBadge, { backgroundColor: ROLE_COLOR[member.role] + '20' }]}>
-                <Text style={[styles.roleText, { color: ROLE_COLOR[member.role] }]}>{member.role}</Text>
+          <View className="flex-1 gap-1">
+            <Text className="text-[18px] font-bold text-[#1E293B]">{member.name}</Text>
+            <Text className="text-[14px] text-[#64748B]">ID: {member.id_number}</Text>
+            <View className="flex-row gap-[6px] mt-1">
+              <View
+                className="rounded px-2 py-[3px]"
+                style={{ backgroundColor: ROLE_COLOR[member.role] + '20' }}
+              >
+                <Text className="text-[12px] font-bold uppercase" style={{ color: ROLE_COLOR[member.role] }}>{member.role}</Text>
               </View>
               {member.user_type && (
-                <View style={[styles.roleBadge, { backgroundColor: '#E2EFE0' }]}>
-                  <Text style={[styles.roleText, { color: '#2A5C33' }]}>{member.user_type}</Text>
+                <View className="rounded px-2 py-[3px] bg-mint">
+                  <Text className="text-[12px] font-bold uppercase text-brand">{member.user_type}</Text>
                 </View>
               )}
-              <View style={[styles.statusBadge, member.is_active ? styles.activeStyle : styles.inactiveStyle]}>
-                <Text style={styles.statusText}>{member.is_active ? 'Active' : 'Inactive'}</Text>
+              <View className={`rounded px-2 py-[3px] ${member.is_active ? 'bg-[#DCFCE7]' : 'bg-[#FEE2E2]'}`}>
+                <Text className="text-[12px] font-semibold text-[#374151]">{member.is_active ? 'Active' : 'Inactive'}</Text>
               </View>
             </View>
             {member.department ? (
-              <Text style={{ fontSize: 12, color: '#7A9A7E', marginTop: 2 }}>{member.department}</Text>
+              <Text className="text-[12px] text-[#7A9A7E] mt-[2px]">{member.department}</Text>
             ) : null}
           </View>
           {isAdmin && (
             <TouchableOpacity
-              style={[styles.toggleBtn, member.is_active ? styles.toggleDeactivate : styles.toggleActivate]}
+              className={`rounded-lg px-3 py-2 ${member.is_active ? 'bg-[#FEE2E2]' : 'bg-[#DCFCE7]'}`}
               onPress={handleToggleStatus}
             >
-              <Text style={styles.toggleBtnText}>{member.is_active ? 'Deactivate' : 'Reactivate'}</Text>
+              <Text className="text-[12px] font-bold text-[#374151]">{member.is_active ? 'Deactivate' : 'Reactivate'}</Text>
             </TouchableOpacity>
           )}
         </View>
 
-        <View style={styles.cardSection}>
-          <View style={styles.cardSectionHeader}>
-            <Text style={styles.sectionTitle}>Member Card</Text>
+        <View className="mx-4 mb-3">
+          <View className="flex-row justify-between items-center mb-[10px]">
+            <Text className="text-[15px] font-bold text-[#1E293B] mb-3">Member Card</Text>
             <TouchableOpacity
-              style={[styles.topBtn, printing && { opacity: 0.5 }]}
+              className="bg-[#F1F5F9] rounded-lg px-3 py-[6px]"
+              style={printing ? { opacity: 0.5 } : undefined}
               onPress={handlePrintCard}
               disabled={printing}
             >
-              <Text style={styles.topBtnText}>{printing ? 'Preparing…' : 'Print / Share'}</Text>
+              <Text className="text-[13px] font-semibold text-[#374151]">{printing ? 'Preparing…' : 'Print / Share'}</Text>
             </TouchableOpacity>
           </View>
           <MemberCard
@@ -202,42 +217,42 @@ export default function MemberDetailScreen() {
           />
         </View>
 
-        <View style={styles.statsRow}>
+        <View className="flex-row mx-4 my-3 gap-[10px]">
           <StatCard label="Currently Borrowed" value={activeBorrows.length} color="#2563EB" />
           <StatCard label="Total Borrows" value={history.length} color="#7C3AED" />
           <StatCard label="Unpaid Fines" value={fines.length} color={fines.length > 0 ? '#DC2626' : '#16A34A'} />
         </View>
 
         {fines.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Outstanding Fines</Text>
-              <Text style={styles.finesTotal}>Total: ₱{totalFines.toFixed(2)}</Text>
+          <View className="bg-white mx-4 mb-3 rounded-xl p-4" style={{ elevation: 1 }}>
+            <View className="flex-row justify-between items-center mb-3">
+              <Text className="text-[15px] font-bold text-[#1E293B] mb-3">Outstanding Fines</Text>
+              <Text className="text-[14px] font-bold text-[#DC2626]">Total: ₱{totalFines.toFixed(2)}</Text>
             </View>
             {fines.map((fine) => (
-              <View key={fine.id} style={styles.fineRow}>
-                <Text style={styles.fineAmount}>₱{fine.amount.toFixed(2)}</Text>
-                <TouchableOpacity style={styles.payBtn} onPress={() => handlePayFine(fine)}>
-                  <Text style={styles.payBtnText}>Mark Paid</Text>
+              <View key={fine.id} className="flex-row items-center justify-between py-2 border-t border-[#F1F5F9]">
+                <Text className="text-base font-bold text-[#DC2626]">₱{fine.amount.toFixed(2)}</Text>
+                <TouchableOpacity className="bg-[#DCFCE7] rounded-lg px-3 py-[6px]" onPress={() => handlePayFine(fine)}>
+                  <Text className="text-[13px] font-semibold text-[#16A34A]">Mark Paid</Text>
                 </TouchableOpacity>
               </View>
             ))}
           </View>
         )}
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Currently Borrowed ({activeBorrows.length})</Text>
+        <View className="bg-white mx-4 mb-3 rounded-xl p-4" style={{ elevation: 1 }}>
+          <Text className="text-[15px] font-bold text-[#1E293B] mb-3">Currently Borrowed ({activeBorrows.length})</Text>
           {activeBorrows.length === 0 ? (
-            <Text style={styles.emptyText}>No books currently borrowed</Text>
+            <Text className="text-[14px] text-[#94A3B8] text-center py-2">No books currently borrowed</Text>
           ) : (
             activeBorrows.map((b) => (
-              <View key={b.id} style={styles.borrowRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.borrowTitle}>{b.book_title}</Text>
-                  <Text style={styles.borrowAuthor}>{b.book_author}</Text>
+              <View key={b.id} className="flex-row items-center py-[10px] border-t border-[#F1F5F9]">
+                <View className="flex-1">
+                  <Text className="text-[14px] font-semibold text-[#1E293B]">{b.book_title}</Text>
+                  <Text className="text-[12px] text-[#94A3B8] mt-[2px]">{b.book_author}</Text>
                 </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={[styles.dueDate, isOverdue(b.due_date) && styles.overdueText]}>
+                <View className="items-end">
+                  <Text className={`text-[12px] font-semibold ${isOverdue(b.due_date) ? 'text-[#DC2626]' : 'text-[#64748B]'}`}>
                     {isOverdue(b.due_date) ? 'OVERDUE' : `Due ${new Date(b.due_date).toLocaleDateString()}`}
                   </Text>
                 </View>
@@ -246,20 +261,20 @@ export default function MemberDetailScreen() {
           )}
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Borrow History ({history.length})</Text>
+        <View className="bg-white mx-4 mb-3 rounded-xl p-4" style={{ elevation: 1 }}>
+          <Text className="text-[15px] font-bold text-[#1E293B] mb-3">Borrow History ({history.length})</Text>
           {history.length === 0 ? (
-            <Text style={styles.emptyText}>No borrow history</Text>
+            <Text className="text-[14px] text-[#94A3B8] text-center py-2">No borrow history</Text>
           ) : (
             history.map((b) => (
-              <View key={b.id} style={styles.historyRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.borrowTitle}>{b.book_title}</Text>
-                  <Text style={styles.historyDate}>{new Date(b.borrowed_at).toLocaleDateString()}</Text>
+              <View key={b.id} className="flex-row items-center py-2 border-t border-[#F1F5F9]">
+                <View className="flex-1">
+                  <Text className="text-[14px] font-semibold text-[#1E293B]">{b.book_title}</Text>
+                  <Text className="text-[12px] text-[#94A3B8] mt-[2px]">{new Date(b.borrowed_at).toLocaleDateString()}</Text>
                 </View>
                 {b.returned_at
-                  ? <Text style={styles.returnedText}>Returned</Text>
-                  : <Text style={[styles.activeText, isOverdue(b.due_date) && styles.overdueText]}>
+                  ? <Text className="text-[12px] font-semibold text-[#16A34A]">Returned</Text>
+                  : <Text className={`text-[12px] font-semibold ${isOverdue(b.due_date) ? 'text-[#DC2626]' : 'text-[#2563EB]'}`}>
                       {isOverdue(b.due_date) ? 'Overdue' : 'Active'}
                     </Text>
                 }
@@ -289,9 +304,12 @@ export default function MemberDetailScreen() {
 
 function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
   return (
-    <View style={[styles.statCard, { borderTopColor: color }]}>
-      <Text style={[styles.statValue, { color }]}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+    <View
+      className="flex-1 bg-white rounded-[10px] p-3 items-center border-t-[3px]"
+      style={{ borderTopColor: color, elevation: 1 }}
+    >
+      <Text className="text-[22px] font-bold" style={{ color }}>{value}</Text>
+      <Text className="text-[11px] text-[#64748B] mt-[2px] text-center">{label}</Text>
     </View>
   );
 }
@@ -348,54 +366,71 @@ function EditMemberModal({ visible, member, onClose, onSaved, userId }: EditModa
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-      <View style={modal.container}>
-        <View style={modal.header}>
+      <View className="flex-1 bg-[#F8FAFC]">
+        <View className="flex-row justify-between items-center p-4 pt-5 bg-white border-b border-[#F1F5F9]">
           <TouchableOpacity onPress={onClose}>
-            <Text style={modal.cancel}>Cancel</Text>
+            <Text className="text-[15px] text-[#64748B]">Cancel</Text>
           </TouchableOpacity>
-          <Text style={modal.title}>Edit Member</Text>
+          <Text className="text-base font-bold text-[#1E293B]">Edit Member</Text>
           <TouchableOpacity onPress={handleSave} disabled={updateMutation.isPending}>
-            <Text style={modal.save}>{updateMutation.isPending ? 'Saving…' : 'Save'}</Text>
+            <Text className="text-[15px] font-bold text-[#2563EB]">{updateMutation.isPending ? 'Saving…' : 'Save'}</Text>
           </TouchableOpacity>
         </View>
-        <ScrollView style={modal.body}>
-          <Text style={modal.label}>Full Name *</Text>
-          <TextInput style={modal.input} value={name} onChangeText={setName} placeholder="Full name" />
+        <ScrollView className="p-4">
+          <Text className="text-[13px] font-semibold text-[#374151] mb-[6px] mt-[14px]">Full Name *</Text>
+          <TextInput
+            className="bg-white border border-[#E2E8F0] rounded-[10px] px-[14px] py-3 text-[15px]"
+            value={name} onChangeText={setName} placeholder="Full name"
+          />
 
-          <Text style={modal.label}>ID Number *</Text>
-          <TextInput style={modal.input} value={idNumber} onChangeText={setIdNumber} placeholder="ID number" autoCapitalize="none" />
+          <Text className="text-[13px] font-semibold text-[#374151] mb-[6px] mt-[14px]">ID Number *</Text>
+          <TextInput
+            className="bg-white border border-[#E2E8F0] rounded-[10px] px-[14px] py-3 text-[15px]"
+            value={idNumber} onChangeText={setIdNumber} placeholder="ID number" autoCapitalize="none"
+          />
 
-          <Text style={modal.label}>Role</Text>
-          <View style={modal.roleRow}>
+          <Text className="text-[13px] font-semibold text-[#374151] mb-[6px] mt-[14px]">Role</Text>
+          <View className="flex-row gap-2 mt-1">
             {ROLES.map((r) => (
               <TouchableOpacity
                 key={r}
-                style={[modal.roleBtn, role === r && { backgroundColor: ROLE_COLOR[r] }]}
+                className="flex-1 rounded-lg py-[10px] items-center bg-[#F1F5F9]"
+                style={role === r ? { backgroundColor: ROLE_COLOR[r] } : undefined}
                 onPress={() => setRole(r)}
               >
-                <Text style={[modal.roleBtnText, role === r && { color: '#FFFFFF' }]}>{r}</Text>
+                <Text
+                  className="text-[13px] font-semibold capitalize text-[#374151]"
+                  style={role === r ? { color: '#FFFFFF' } : undefined}
+                >{r}</Text>
               </TouchableOpacity>
             ))}
           </View>
 
-          <Text style={modal.label}>Patron Type</Text>
-          <View style={modal.roleRow}>
+          <Text className="text-[13px] font-semibold text-[#374151] mb-[6px] mt-[14px]">Patron Type</Text>
+          <View className="flex-row gap-2 mt-1">
             {USER_TYPES.map((t) => {
               const active = userType === t.value;
               return (
                 <TouchableOpacity
                   key={t.value}
-                  style={[modal.roleBtn, active && { backgroundColor: '#2A5C33' }]}
+                  className="flex-1 rounded-lg py-[10px] items-center bg-[#F1F5F9]"
+                  style={active ? { backgroundColor: '#2A5C33' } : undefined}
                   onPress={() => setUserType(active ? null : t.value)}
                 >
-                  <Text style={[modal.roleBtnText, active && { color: '#FFFFFF' }]}>{t.label}</Text>
+                  <Text
+                    className="text-[13px] font-semibold capitalize text-[#374151]"
+                    style={active ? { color: '#FFFFFF' } : undefined}
+                  >{t.label}</Text>
                 </TouchableOpacity>
               );
             })}
           </View>
 
-          <Text style={modal.label}>Department / Program</Text>
-          <TextInput style={modal.input} value={department} onChangeText={setDepartment} placeholder="e.g. College of Engineering" />
+          <Text className="text-[13px] font-semibold text-[#374151] mb-[6px] mt-[14px]">Department / Program</Text>
+          <TextInput
+            className="bg-white border border-[#E2E8F0] rounded-[10px] px-[14px] py-3 text-[15px]"
+            value={department} onChangeText={setDepartment} placeholder="e.g. College of Engineering"
+          />
         </ScrollView>
       </View>
     </Modal>
@@ -433,26 +468,28 @@ function ResetPinModal({ visible, member, onClose, onSaved }: PinModalProps) {
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-      <View style={modal.container}>
-        <View style={modal.header}>
+      <View className="flex-1 bg-[#F8FAFC]">
+        <View className="flex-row justify-between items-center p-4 pt-5 bg-white border-b border-[#F1F5F9]">
           <TouchableOpacity onPress={onClose}>
-            <Text style={modal.cancel}>Cancel</Text>
+            <Text className="text-[15px] text-[#64748B]">Cancel</Text>
           </TouchableOpacity>
-          <Text style={modal.title}>Reset PIN</Text>
+          <Text className="text-base font-bold text-[#1E293B]">Reset PIN</Text>
           <TouchableOpacity onPress={handleReset} disabled={saving}>
-            <Text style={modal.save}>{saving ? 'Saving…' : 'Reset'}</Text>
+            <Text className="text-[15px] font-bold text-[#2563EB]">{saving ? 'Saving…' : 'Reset'}</Text>
           </TouchableOpacity>
         </View>
-        <View style={modal.body}>
-          <Text style={pin.subtitle}>Resetting PIN for {member.name}</Text>
-          <Text style={modal.label}>New PIN *</Text>
+        <View className="p-4">
+          <Text className="text-[14px] text-[#64748B] mb-4">Resetting PIN for {member.name}</Text>
+          <Text className="text-[13px] font-semibold text-[#374151] mb-[6px] mt-[14px]">New PIN *</Text>
           <TextInput
-            style={modal.input} value={newPin} onChangeText={setNewPin}
+            className="bg-white border border-[#E2E8F0] rounded-[10px] px-[14px] py-3 text-[15px]"
+            value={newPin} onChangeText={setNewPin}
             placeholder="Min 4 digits" secureTextEntry keyboardType="numeric"
           />
-          <Text style={modal.label}>Confirm PIN *</Text>
+          <Text className="text-[13px] font-semibold text-[#374151] mb-[6px] mt-[14px]">Confirm PIN *</Text>
           <TextInput
-            style={modal.input} value={confirmPin} onChangeText={setConfirmPin}
+            className="bg-white border border-[#E2E8F0] rounded-[10px] px-[14px] py-3 text-[15px]"
+            value={confirmPin} onChangeText={setConfirmPin}
             placeholder="Repeat PIN" secureTextEntry keyboardType="numeric"
           />
         </View>
@@ -460,85 +497,3 @@ function ResetPinModal({ visible, member, onClose, onSaved }: PinModalProps) {
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  content: { paddingBottom: 40 },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  errorText: { color: '#DC2626', fontSize: 16 },
-  topBar: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 16, paddingTop: 52, paddingBottom: 12,
-    backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#F1F5F9',
-  },
-  backText: { fontSize: 15, color: '#2563EB', fontWeight: '600' },
-  topActions: { flexDirection: 'row', gap: 8 },
-  topBtn: { backgroundColor: '#F1F5F9', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
-  topBtnText: { fontSize: 13, fontWeight: '600', color: '#374151' },
-  profileCard: { flexDirection: 'row', alignItems: 'center', padding: 20, backgroundColor: '#FFFFFF', gap: 14 },
-  avatar: { width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontSize: 26, fontWeight: '700' },
-  profileInfo: { flex: 1, gap: 4 },
-  memberName: { fontSize: 18, fontWeight: '700', color: '#1E293B' },
-  memberId: { fontSize: 14, color: '#64748B' },
-  badgeRow: { flexDirection: 'row', gap: 6, marginTop: 4 },
-  roleBadge: { borderRadius: 4, paddingHorizontal: 8, paddingVertical: 3 },
-  roleText: { fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
-  statusBadge: { borderRadius: 4, paddingHorizontal: 8, paddingVertical: 3 },
-  activeStyle: { backgroundColor: '#DCFCE7' },
-  inactiveStyle: { backgroundColor: '#FEE2E2' },
-  statusText: { fontSize: 12, fontWeight: '600', color: '#374151' },
-  toggleBtn: { borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
-  toggleDeactivate: { backgroundColor: '#FEE2E2' },
-  toggleActivate: { backgroundColor: '#DCFCE7' },
-  toggleBtnText: { fontSize: 12, fontWeight: '700', color: '#374151' },
-  statsRow: { flexDirection: 'row', marginHorizontal: 16, marginVertical: 12, gap: 10 },
-  statCard: { flex: 1, backgroundColor: '#FFFFFF', borderRadius: 10, padding: 12, alignItems: 'center', borderTopWidth: 3, elevation: 1 },
-  statValue: { fontSize: 22, fontWeight: '700' },
-  statLabel: { fontSize: 11, color: '#64748B', marginTop: 2, textAlign: 'center' },
-  section: { backgroundColor: '#FFFFFF', marginHorizontal: 16, marginBottom: 12, borderRadius: 12, padding: 16, elevation: 1 },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#1E293B', marginBottom: 12 },
-  finesTotal: { fontSize: 14, fontWeight: '700', color: '#DC2626' },
-  fineRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
-  fineAmount: { fontSize: 16, fontWeight: '700', color: '#DC2626' },
-  payBtn: { backgroundColor: '#DCFCE7', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
-  payBtnText: { fontSize: 13, fontWeight: '600', color: '#16A34A' },
-  borrowRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
-  borrowTitle: { fontSize: 14, fontWeight: '600', color: '#1E293B' },
-  borrowAuthor: { fontSize: 12, color: '#94A3B8', marginTop: 2 },
-  dueDate: { fontSize: 12, fontWeight: '600', color: '#64748B' },
-  overdueText: { color: '#DC2626' },
-  historyRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
-  historyDate: { fontSize: 12, color: '#94A3B8', marginTop: 2 },
-  returnedText: { fontSize: 12, fontWeight: '600', color: '#16A34A' },
-  activeText: { fontSize: 12, fontWeight: '600', color: '#2563EB' },
-  emptyText: { fontSize: 14, color: '#94A3B8', textAlign: 'center', paddingVertical: 8 },
-  cardSection: { marginHorizontal: 16, marginBottom: 12 },
-  cardSectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-});
-
-const modal = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  header: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    padding: 16, paddingTop: 20, backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1, borderBottomColor: '#F1F5F9',
-  },
-  title: { fontSize: 16, fontWeight: '700', color: '#1E293B' },
-  cancel: { fontSize: 15, color: '#64748B' },
-  save: { fontSize: 15, fontWeight: '700', color: '#2563EB' },
-  body: { padding: 16 },
-  label: { fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 6, marginTop: 14 },
-  input: {
-    backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0',
-    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15,
-  },
-  roleRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
-  roleBtn: { flex: 1, borderRadius: 8, paddingVertical: 10, alignItems: 'center', backgroundColor: '#F1F5F9' },
-  roleBtnText: { fontSize: 13, fontWeight: '600', color: '#374151', textTransform: 'capitalize' },
-});
-
-const pin = StyleSheet.create({
-  subtitle: { fontSize: 14, color: '#64748B', marginBottom: 16 },
-});

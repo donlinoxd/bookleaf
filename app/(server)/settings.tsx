@@ -64,7 +64,7 @@ export default function SettingsScreen() {
     <ScrollView className="flex-1 bg-bio" contentContainerStyle={{ paddingBottom: 110 }}>
       <StatusBar barStyle="light-content" backgroundColor="#2A5C33" />
 
-      <View className="bg-brand px-5 pb-6 rounded-b-[28px]" style={{ paddingTop: 52 }}>
+      <View className="bg-brand px-5 pb-6 pt-[52px] rounded-b-[28px]">
         <Text className="text-2xl font-extrabold text-white">Settings</Text>
         <Text className="text-xs text-[#A8D5A2] mt-1">Library configuration & backup</Text>
       </View>

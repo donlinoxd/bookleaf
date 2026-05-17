@@ -35,7 +35,7 @@ export default function MyCardScreen() {
     <ScrollView className="flex-1 bg-bio" contentContainerStyle={{ paddingBottom: 110 }}>
       <StatusBar barStyle="light-content" backgroundColor="#2A5C33" />
 
-      <View className="bg-brand px-5 pb-6 rounded-b-[28px]" style={{ paddingTop: 52 }}>
+      <View className="bg-brand px-5 pb-6 pt-[52px] rounded-b-[28px]">
         <View className="flex-row items-end justify-between mb-4">
           <View>
             <Text className="text-2xl font-extrabold text-white">My Library Card</Text>

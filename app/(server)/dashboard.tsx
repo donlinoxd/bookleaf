@@ -121,7 +121,7 @@ export default function DashboardScreen() {
             <StatusBar barStyle='light-content' backgroundColor='#2A5C33' />
 
             {/* Header */}
-            <View className='bg-brand px-5 pb-6 rounded-b-[28px]' style={{ paddingTop: 52 }}>
+            <View className='bg-brand px-5 pb-6 pt-[52px] rounded-b-[28px]'>
                 <View className='flex-row items-end justify-between'>
                     <View className='flex-1'>
                         <Text className='text-xs font-semibold text-[#A8D5A2] tracking-widest uppercase mb-1'>Good day,</Text>
@@ -130,7 +130,7 @@ export default function DashboardScreen() {
                     </View>
                     <View className='items-start flex-row gap-2'>
                         <Image source={MASCOT} className='w-24 h-24 -mb-2' resizeMode='contain' />
-                        <View style={{ gap: 8 }}>
+                        <View className='gap-2'>
                             <TouchableOpacity onPress={() => router.push('/(server)/ai-chat')} hitSlop={8}>
                                 <Ionicons name='sparkles' size={22} color='#A8D5A2' />
                             </TouchableOpacity>

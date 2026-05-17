@@ -83,54 +83,44 @@ export default function InventoryReportScreen() {
     }
 
     return (
-        <View style={{ flex: 1, backgroundColor: '#F4F9F4' }}>
+        <View className='flex-1 bg-[#F4F9F4]'>
             <StatusBar barStyle='light-content' backgroundColor={BRAND} />
 
-            {/* Header */}
-            <View style={{ backgroundColor: BRAND, paddingTop: insets.top + 16, paddingHorizontal: 20, paddingBottom: 24 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+            <View style={{ paddingTop: insets.top + 16 }} className='bg-brand px-5 pb-6'>
+                <View className='flex-row items-center gap-3 mb-2'>
                     <TouchableOpacity onPress={() => router.back()} hitSlop={8}>
                         <Ionicons name='arrow-back' size={22} color='#A8D5A2' />
                     </TouchableOpacity>
-                    <Text style={{ color: '#A8D5A2', fontSize: 11, fontWeight: '600', letterSpacing: 1.2, textTransform: 'uppercase' }}>Reports</Text>
+                    <Text className='text-[#A8D5A2] text-[11px] font-semibold tracking-[1.2px] uppercase'>Reports</Text>
                 </View>
-                <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-                    <View style={{ flex: 1 }}>
-                        <Text style={{ color: '#FFFFFF', fontSize: 22, fontWeight: '800' }}>Inventory & Audit</Text>
-                        <Text style={{ color: '#A8D5A2', fontSize: 12, marginTop: 3 }}>
+                <View className='flex-row items-end justify-between'>
+                    <View className='flex-1'>
+                        <Text className='text-white text-[22px] font-extrabold'>Inventory & Audit</Text>
+                        <Text className='text-[#A8D5A2] text-[12px] mt-[3px]'>
                             {new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}
                         </Text>
                     </View>
                     <TouchableOpacity
-                        style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            gap: 6,
-                            backgroundColor: 'rgba(255,255,255,0.2)',
-                            borderRadius: 12,
-                            paddingHorizontal: 14,
-                            paddingVertical: 9,
-                            opacity: sharing || !allReady ? 0.6 : 1,
-                        }}
+                        className='flex-row items-center gap-[6px] bg-[rgba(255,255,255,0.2)] rounded-xl px-[14px] py-[9px]'
+                        style={{ opacity: sharing || !allReady ? 0.6 : 1 }}
                         onPress={handleSharePdf}
                         disabled={sharing || !allReady}
                     >
                         {sharing ? <ActivityIndicator size='small' color='#FFFFFF' /> : <Ionicons name='share-outline' size={17} color='#FFFFFF' />}
-                        <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 13 }}>{sharing ? 'Preparing…' : 'Share PDF'}</Text>
+                        <Text className='text-white font-bold text-[13px]'>{sharing ? 'Preparing…' : 'Share PDF'}</Text>
                     </TouchableOpacity>
                 </View>
             </View>
 
             {isLoading ? (
-                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                <View className='flex-1 items-center justify-center'>
                     <ActivityIndicator size='large' color={LEAF} />
-                    <Text style={{ marginTop: 12, fontSize: 13, color: '#7A9A7E', fontWeight: '600' }}>Loading report…</Text>
+                    <Text className='mt-3 text-[13px] text-[#7A9A7E] font-semibold'>Loading report…</Text>
                 </View>
             ) : (
                 <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 150 }} showsVerticalScrollIndicator={false}>
-                    {/* Collection Summary */}
                     <Section title='Collection Summary'>
-                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+                        <View className='flex-row flex-wrap gap-[10px]'>
                             <MiniStat label='Total Titles' value={accessionRegister.length} accent={BRAND} bg='#E2EFE0' />
                             <MiniStat label='Total Copies' value={totalCopies} accent='#3A7A45' bg='#DCFCE7' />
                             <MiniStat label='Good' value={totalGood} accent={LEAF} bg='#F0FDF4' />
@@ -139,13 +129,12 @@ export default function InventoryReportScreen() {
                         </View>
                     </Section>
 
-                    {/* Last Physical Count */}
                     <Section title='Last Physical Inventory Count'>
                         {latestSession ? (
-                            <View style={{ gap: 10 }}>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <View className='gap-[10px]'>
+                                <View className='flex-row items-center gap-2'>
                                     <Ionicons name='calendar-outline' size={16} color={BRAND} />
-                                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#1C2B1E' }}>
+                                    <Text className='text-[13px] font-bold text-[#1C2B1E]'>
                                         {new Date(latestSession.session.started_at).toLocaleDateString('en-PH', {
                                             year: 'numeric',
                                             month: 'long',
@@ -153,7 +142,7 @@ export default function InventoryReportScreen() {
                                         })}
                                     </Text>
                                 </View>
-                                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                                <View className='flex-row flex-wrap gap-2'>
                                     <Chip label={`${latestSession.total_scanned} scanned`} color={BRAND} bg='#E2EFE0' />
                                     <Chip label={`${latestSession.unique_isbns} unique ISBNs`} color='#3A7A45' bg='#DCFCE7' />
                                     {latestSession.ghost_count > 0 && (
@@ -173,14 +162,13 @@ export default function InventoryReportScreen() {
                                 </View>
                             </View>
                         ) : (
-                            <View style={{ paddingVertical: 20, alignItems: 'center', gap: 6 }}>
+                            <View className='py-5 items-center gap-[6px]'>
                                 <Ionicons name='scan-outline' size={32} color='#CBD5E1' />
-                                <Text style={{ fontSize: 13, color: '#94A3B8', fontWeight: '500' }}>No completed inventory scan on record</Text>
+                                <Text className='text-[13px] text-[#94A3B8] font-medium'>No completed inventory scan on record</Text>
                             </View>
                         )}
                     </Section>
 
-                    {/* Condition by Material Type */}
                     <Section title='Condition by Material Type'>
                         {conditionByMaterial.length === 0 ? (
                             <EmptyRow />
@@ -190,44 +178,34 @@ export default function InventoryReportScreen() {
                                 {conditionByMaterial.map((row, i) => (
                                     <View
                                         key={row.material_type}
-                                        style={{
-                                            flexDirection: 'row',
-                                            paddingHorizontal: 10,
-                                            paddingVertical: 9,
-                                            alignItems: 'center',
-                                            backgroundColor: i % 2 === 1 ? '#F8FAFC' : 'transparent',
-                                            borderRadius: 6,
-                                        }}
+                                        style={{ backgroundColor: i % 2 === 1 ? '#F8FAFC' : 'transparent' }}
+                                        className='flex-row px-[10px] py-[9px] items-center rounded-md'
                                     >
-                                        <Text style={{ flex: 1, fontSize: 12, color: '#1C2B1E', fontWeight: '500' }}>
+                                        <Text className='flex-1 text-[12px] text-[#1C2B1E] font-medium'>
                                             {MATERIAL_LABEL[row.material_type] ?? row.material_type}
                                         </Text>
-                                        <Text style={{ width: 44, fontSize: 12, fontWeight: '700', color: '#16A34A', textAlign: 'center' }}>
+                                        <Text className='w-11 text-[12px] font-bold text-[#16A34A] text-center'>
                                             {row.good}
                                         </Text>
                                         <Text
                                             style={{
-                                                width: 44,
-                                                fontSize: 12,
                                                 fontWeight: row.damaged > 0 ? '700' : '400',
                                                 color: row.damaged > 0 ? '#D97706' : '#94A3B8',
-                                                textAlign: 'center',
                                             }}
+                                            className='w-11 text-[12px] text-center'
                                         >
                                             {row.damaged}
                                         </Text>
                                         <Text
                                             style={{
-                                                width: 44,
-                                                fontSize: 12,
                                                 fontWeight: row.lost > 0 ? '700' : '400',
                                                 color: row.lost > 0 ? '#DC2626' : '#94A3B8',
-                                                textAlign: 'center',
                                             }}
+                                            className='w-11 text-[12px] text-center'
                                         >
                                             {row.lost}
                                         </Text>
-                                        <Text style={{ width: 48, fontSize: 12, fontWeight: '700', color: BRAND, textAlign: 'center' }}>
+                                        <Text className='w-12 text-[12px] font-bold text-brand text-center'>
                                             {row.total}
                                         </Text>
                                     </View>
@@ -236,7 +214,6 @@ export default function InventoryReportScreen() {
                         )}
                     </Section>
 
-                    {/* Accession Register */}
                     <Section title={`Accession Register (${accessionRegister.length} titles)`}>
                         {accessionRegister.length === 0 ? (
                             <EmptyRow />
@@ -259,71 +236,61 @@ export default function InventoryReportScreen() {
                                     return (
                                         <View
                                             key={row.id}
-                                            style={{
-                                                flexDirection: 'row',
-                                                paddingHorizontal: 10,
-                                                paddingVertical: 8,
-                                                alignItems: 'center',
-                                                backgroundColor: rowBg,
-                                                borderRadius: 6,
-                                            }}
+                                            style={{ backgroundColor: rowBg }}
+                                            className='flex-row px-[10px] py-2 items-center rounded-md'
                                         >
-                                            <Text style={{ width: 28, fontSize: 10, color: '#94A3B8', fontWeight: '600', textAlign: 'center' }}>
+                                            <Text className='w-7 text-[10px] text-[#94A3B8] font-semibold text-center'>
                                                 {i + 1}
                                             </Text>
-                                            <View style={{ flex: 1, paddingRight: 6 }}>
-                                                <Text style={{ fontSize: 12, fontWeight: '700', color: '#1C2B1E' }} numberOfLines={1}>
+                                            <View className='flex-1 pr-[6px]'>
+                                                <Text className='text-[12px] font-bold text-[#1C2B1E]' numberOfLines={1}>
                                                     {row.title}
                                                 </Text>
-                                                <Text style={{ fontSize: 10, color: '#7A9A7E', marginTop: 1 }} numberOfLines={1}>
+                                                <Text className='text-[10px] text-[#7A9A7E] mt-[1px]' numberOfLines={1}>
                                                     {row.author}
                                                 </Text>
                                             </View>
-                                            <Text style={{ width: 72, fontSize: 10, color: '#64748B' }} numberOfLines={1}>
+                                            <Text className='w-[72px] text-[10px] text-[#64748B]' numberOfLines={1}>
                                                 {row.call_number ?? '—'}
                                             </Text>
-                                            <Text style={{ width: 64, fontSize: 10, color: '#64748B' }} numberOfLines={1}>
+                                            <Text className='w-16 text-[10px] text-[#64748B]' numberOfLines={1}>
                                                 {MATERIAL_LABEL[row.material_type] ?? row.material_type}
                                             </Text>
-                                            <Text style={{ width: 32, fontSize: 11, fontWeight: '700', color: BRAND, textAlign: 'center' }}>
+                                            <Text className='w-8 text-[11px] font-bold text-brand text-center'>
                                                 {row.total_copies}
                                             </Text>
-                                            <Text style={{ width: 28, fontSize: 11, fontWeight: '700', color: '#16A34A', textAlign: 'center' }}>
+                                            <Text className='w-7 text-[11px] font-bold text-[#16A34A] text-center'>
                                                 {row.good_copies}
                                             </Text>
                                             <Text
                                                 style={{
-                                                    width: 28,
-                                                    fontSize: 11,
                                                     fontWeight: hasDamaged ? '700' : '400',
                                                     color: hasDamaged ? '#D97706' : '#CBD5E1',
-                                                    textAlign: 'center',
                                                 }}
+                                                className='w-7 text-[11px] text-center'
                                             >
                                                 {row.damaged_copies}
                                             </Text>
                                             <Text
                                                 style={{
-                                                    width: 28,
-                                                    fontSize: 11,
                                                     fontWeight: hasLost ? '700' : '400',
                                                     color: hasLost ? '#DC2626' : '#CBD5E1',
-                                                    textAlign: 'center',
                                                 }}
+                                                className='w-7 text-[11px] text-center'
                                             >
                                                 {row.lost_copies}
                                             </Text>
                                         </View>
                                     )
                                 })}
-                                <View style={{ flexDirection: 'row', gap: 12, marginTop: 10, paddingHorizontal: 4 }}>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                        <View style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: '#FFFBEB', borderWidth: 1, borderColor: '#D97706' }} />
-                                        <Text style={{ fontSize: 10, color: '#94A3B8' }}>has damaged</Text>
+                                <View className='flex-row gap-3 mt-[10px] px-1'>
+                                    <View className='flex-row items-center gap-1'>
+                                        <View className='w-[10px] h-[10px] rounded-[2px] bg-[#FFFBEB] border border-[#D97706]' />
+                                        <Text className='text-[10px] text-[#94A3B8]'>has damaged</Text>
                                     </View>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                        <View style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: '#FFF5F5', borderWidth: 1, borderColor: '#DC2626' }} />
-                                        <Text style={{ fontSize: 10, color: '#94A3B8' }}>has lost</Text>
+                                    <View className='flex-row items-center gap-1'>
+                                        <View className='w-[10px] h-[10px] rounded-[2px] bg-[#FFF5F5] border border-[#DC2626]' />
+                                        <Text className='text-[10px] text-[#94A3B8]'>has lost</Text>
                                     </View>
                                 </View>
                             </>
@@ -338,30 +305,20 @@ export default function InventoryReportScreen() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
     return (
         <View
-            style={{
-                backgroundColor: '#FFFFFF',
-                borderRadius: 16,
-                overflow: 'hidden',
-                elevation: 2,
-                shadowColor: BRAND,
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.07,
-                shadowRadius: 4,
-            }}
+            className='bg-white rounded-2xl overflow-hidden'
+            style={{ elevation: 2, shadowColor: BRAND, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.07, shadowRadius: 4 }}
         >
-            <View style={{ paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' }}>
-                <Text style={{ fontSize: 13, fontWeight: '800', color: '#1C2B1E' }}>{title}</Text>
+            <View className='px-4 py-[13px] border-b border-[#F1F5F9]'>
+                <Text className='text-[13px] font-extrabold text-[#1C2B1E]'>{title}</Text>
             </View>
-            <View style={{ padding: 14 }}>{children}</View>
+            <View className='p-[14px]'>{children}</View>
         </View>
     )
 }
 
 function TableHeader({ cols, widths }: { cols: string[]; widths: (number | 'flex')[] }) {
     return (
-        <View
-            style={{ flexDirection: 'row', backgroundColor: '#F8FAFC', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 7, marginBottom: 2 }}
-        >
+        <View className='flex-row bg-[#F8FAFC] rounded-lg px-[10px] py-[7px] mb-[2px]'>
             {cols.map((col, i) => (
                 <Text
                     key={col}
@@ -385,25 +342,25 @@ function TableHeader({ cols, widths }: { cols: string[]; widths: (number | 'flex
 
 function MiniStat({ label, value, accent, bg }: { label: string; value: number; accent: string; bg: string }) {
     return (
-        <View style={{ borderRadius: 12, padding: 12, alignItems: 'center', minWidth: 80, backgroundColor: bg, flexGrow: 1 }}>
-            <Text style={{ fontSize: 22, fontWeight: '800', color: accent }}>{value}</Text>
-            <Text style={{ fontSize: 10, fontWeight: '600', color: accent + 'CC', textAlign: 'center', marginTop: 2 }}>{label}</Text>
+        <View style={{ backgroundColor: bg }} className='rounded-xl p-3 items-center min-w-[80px] grow'>
+            <Text style={{ color: accent }} className='text-[22px] font-extrabold'>{value}</Text>
+            <Text style={{ color: accent + 'CC' }} className='text-[10px] font-semibold text-center mt-[2px]'>{label}</Text>
         </View>
     )
 }
 
 function Chip({ label, color, bg }: { label: string; color: string; bg: string }) {
     return (
-        <View style={{ backgroundColor: bg, borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4 }}>
-            <Text style={{ fontSize: 11, fontWeight: '700', color }}>{label}</Text>
+        <View style={{ backgroundColor: bg }} className='rounded-md px-[10px] py-1'>
+            <Text style={{ color }} className='text-[11px] font-bold'>{label}</Text>
         </View>
     )
 }
 
 function EmptyRow() {
     return (
-        <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-            <Text style={{ fontSize: 13, color: '#94A3B8', fontWeight: '500' }}>No data available</Text>
+        <View className='py-5 items-center'>
+            <Text className='text-[13px] text-[#94A3B8] font-medium'>No data available</Text>
         </View>
     )
 }
