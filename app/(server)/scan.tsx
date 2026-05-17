@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator, Alert, Modal, ScrollView, StatusBar,
   Text, TextInput, TouchableOpacity, View,
@@ -6,6 +6,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ResourceService } from '../../src/services/ResourceService';
@@ -39,7 +40,7 @@ export default function ScanScreen() {
   const scannedRef = useRef(false);
   const memberScannedRef = useRef(false);
 
-  const reset = () => {
+  const reset = useCallback(() => {
     scannedRef.current = false;
     setPhase('scanning');
     setAction('view');
@@ -47,7 +48,11 @@ export default function ScanScreen() {
     setResource(null);
     setMember(null);
     setMemberQuery('');
-  };
+  }, []);
+
+  useFocusEffect(useCallback(() => {
+    return () => reset();
+  }, [reset]));
 
   const handleBarcodeScan = async ({ data }: { data: string }) => {
     if (scannedRef.current) return;
