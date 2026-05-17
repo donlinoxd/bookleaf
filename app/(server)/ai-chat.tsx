@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
-import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, Text, TextInput, TouchableOpacity, View, Keyboard } from 'react-native'
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View, Keyboard } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ChatMessage, LlmService, SYSTEM_PROMPT, TOOL_LABELS } from '../../src/services/LlmService'
 import { ToolName } from '../../src/services/LibraryTools'
@@ -31,7 +31,8 @@ export default function AiChatScreen() {
     const [toolStatus, setToolStatus] = useState('')
     const [error, setError] = useState('')
     const [keyboardHeight, setKeyboardHeight] = useState(0)
-    const flatListRef = useRef<FlatList>(null)
+    const scrollRef = useRef<ScrollView>(null)
+    const isNearBottomRef = useRef(true)
 
     useEffect(() => {
         const show = Keyboard.addListener('keyboardDidShow', (e) => setKeyboardHeight(e.endCoordinates.height))
@@ -99,6 +100,8 @@ export default function AiChatScreen() {
         setIsGenerating(true)
         setStreamingText('')
         setToolStatus('')
+        isNearBottomRef.current = true
+        setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50)
 
         try {
             const apiMessages: ChatMessage[] = [
@@ -306,27 +309,21 @@ export default function AiChatScreen() {
             </View>
 
             {/* Messages */}
-            <FlatList
-                ref={flatListRef}
-                data={displayMessages}
-                keyExtractor={(m) => m.id}
+            <ScrollView
+                ref={scrollRef}
                 style={{ flex: 1 }}
                 contentContainerStyle={{ padding: 16, paddingBottom: 16 }}
-                onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-                ListFooterComponent={
-                    showToolStatus ? (
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, paddingHorizontal: 4 }}>
-                            <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: LEAF, alignItems: 'center', justifyContent: 'center' }}>
-                                <Ionicons name='sparkles' size={10} color='#fff' />
-                            </View>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 8, gap: 8, elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 3 }}>
-                                <ActivityIndicator size='small' color={LEAF} />
-                                <Text style={{ fontSize: 13, color: '#64748B' }}>{toolStatus}</Text>
-                            </View>
-                        </View>
-                    ) : null
-                }
-                ListEmptyComponent={
+                onScroll={(e) => {
+                    const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent
+                    isNearBottomRef.current = contentSize.height - contentOffset.y - layoutMeasurement.height < 80
+                }}
+                scrollEventThrottle={100}
+                onContentSizeChange={() => {
+                    if (isNearBottomRef.current) scrollRef.current?.scrollToEnd({ animated: true })
+                }}
+                keyboardShouldPersistTaps='handled'
+            >
+                {displayMessages.length === 0 && (
                     <View style={{ alignItems: 'center', marginTop: 60, paddingHorizontal: 24 }}>
                         <Ionicons name='chatbubbles-outline' size={52} color='#CBD5E1' />
                         <Text style={{ color: '#94A3B8', marginTop: 14, fontSize: 15, textAlign: 'center', lineHeight: 22 }}>
@@ -334,21 +331,12 @@ export default function AiChatScreen() {
                         </Text>
                         <Text style={{ color: '#CBD5E1', marginTop: 6, fontSize: 13, textAlign: 'center' }}>Books, members, borrowing, reports…</Text>
                     </View>
-                }
-                renderItem={({ item }) => (
-                    <View style={{ alignSelf: item.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '80%', marginBottom: 10 }}>
+                )}
+                {displayMessages.map((item) => (
+                    <View key={item.id} style={{ alignSelf: item.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '80%', marginBottom: 10 }}>
                         {item.role === 'assistant' && (
                             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4, gap: 4 }}>
-                                <View
-                                    style={{
-                                        width: 18,
-                                        height: 18,
-                                        borderRadius: 9,
-                                        backgroundColor: LEAF,
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                    }}
-                                >
+                                <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: LEAF, alignItems: 'center', justifyContent: 'center' }}>
                                     <Ionicons name='sparkles' size={10} color='#fff' />
                                 </View>
                                 <Text style={{ fontSize: 11, color: '#94A3B8', fontWeight: '600' }}>Leaf</Text>
@@ -372,8 +360,19 @@ export default function AiChatScreen() {
                             <Text style={{ color: item.role === 'user' ? '#fff' : '#1E293B', fontSize: 14, lineHeight: 21 }}>{item.content}</Text>
                         </View>
                     </View>
+                ))}
+                {showToolStatus && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, paddingHorizontal: 4 }}>
+                        <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: LEAF, alignItems: 'center', justifyContent: 'center' }}>
+                            <Ionicons name='sparkles' size={10} color='#fff' />
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 8, gap: 8, elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 3 }}>
+                            <ActivityIndicator size='small' color={LEAF} />
+                            <Text style={{ fontSize: 13, color: '#64748B' }}>{toolStatus}</Text>
+                        </View>
+                    </View>
                 )}
-            />
+            </ScrollView>
 
             {/* Input bar */}
             <View

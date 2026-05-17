@@ -130,11 +130,16 @@ export default function DashboardScreen() {
                     </View>
                     <View className='items-start flex-row gap-2'>
                         <Image source={MASCOT} className='w-24 h-24 -mb-2' resizeMode='contain' />
-                        {isAdmin && (
-                            <TouchableOpacity onPress={() => router.push('/(server)/settings')} hitSlop={8}>
-                                <Ionicons name='settings-outline' size={22} color='#A8D5A2' />
+                        <View style={{ gap: 8 }}>
+                            <TouchableOpacity onPress={() => router.push('/(server)/ai-chat')} hitSlop={8}>
+                                <Ionicons name='sparkles' size={22} color='#A8D5A2' />
                             </TouchableOpacity>
-                        )}
+                            {isAdmin && (
+                                <TouchableOpacity onPress={() => router.push('/(server)/settings')} hitSlop={8}>
+                                    <Ionicons name='settings-outline' size={22} color='#A8D5A2' />
+                                </TouchableOpacity>
+                            )}
+                        </View>
                     </View>
                 </View>
             </View>

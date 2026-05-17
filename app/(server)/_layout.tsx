@@ -1,29 +1,14 @@
 import { Ionicons } from '@expo/vector-icons'
-import { Tabs, useRouter } from 'expo-router'
-import { Gesture, GestureDetector } from 'react-native-gesture-handler'
-import Animated from 'react-native-reanimated'
+import { Tabs } from 'expo-router'
 import { CustomTabBar } from '../../src/components/navigation/CustomTabBar'
 import { useAppStore } from '../../src/store/appStore'
 
 export default function ServerLayout() {
-    const router = useRouter()
     const currentUser = useAppStore((s) => s.currentUser)
     const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'librarian'
 
-    const swipe = Gesture.Pan()
-        .runOnJS(true)
-        .activeOffsetX([40, Infinity])
-        .failOffsetY([-15, 15])
-        .onEnd((e) => {
-            if (e.translationX > 80 && e.velocityX > 300) {
-                router.push('/(server)/ai-chat')
-            }
-        })
-
     return (
-        <GestureDetector gesture={swipe}>
-            <Animated.View style={{ flex: 1 }}>
-                <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <CustomTabBar {...props} accentRoute='scan' />}>
+        <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <CustomTabBar {...props} accentRoute='scan' />}>
                     <Tabs.Screen
                         name='dashboard'
                         options={{
@@ -77,8 +62,6 @@ export default function ServerLayout() {
                     <Tabs.Screen name='gate-scan' options={{ href: null }} />
                     <Tabs.Screen name='gate-qr' options={{ href: null }} />
                     <Tabs.Screen name='reports' options={{ href: null }} />
-                </Tabs>
-            </Animated.View>
-        </GestureDetector>
+        </Tabs>
     )
 }
