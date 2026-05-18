@@ -183,15 +183,13 @@ export const LlmService = {
 
         console.log('Tool results:', toolResultMessages)
 
-        // Build the extended message history with tool results
+        // Build Phase 3 history using only user/assistant roles — Gemma's chat
+        // template doesn't recognise 'tool' role and produces no output if passed one.
+        const toolResultSummary = toolResultMessages.map((m) => m.content).join('\n\n')
         const messagesWithTools: ChatMessage[] = [
             ...messages,
-            {
-                role: 'assistant',
-                content: phase1.content ?? '',
-                tool_calls: toolCalls,
-            },
-            ...toolResultMessages,
+            { role: 'assistant', content: phase1.content ?? '' },
+            { role: 'user', content: `Tool results:\n${toolResultSummary}` },
         ]
 
         // Phase 3: Stream the final response grounded in tool results
