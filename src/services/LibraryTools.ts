@@ -1,5 +1,8 @@
 import { BorrowService } from './BorrowService'
+import { CirculationReportService } from './CirculationReportService'
+import { CollectionReportService } from './CollectionReportService'
 import { GateService } from './GateService'
+import { ReservationService } from './ReservationService'
 import { ResourceService } from './ResourceService'
 import { UserService } from './UserService'
 
@@ -137,6 +140,76 @@ export const TOOL_DEFINITIONS = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'get_patron_borrow_history',
+      description: 'Get the full borrowing history for a patron — all books they have ever borrowed, including returned ones.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: {
+            type: 'string',
+            description: 'Patron name or ID number.',
+          },
+        },
+        required: ['query'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_reservations',
+      description: 'Get active book reservations/holds. Pass a patron name or ID to see that patron\'s reservations, or leave query empty to list all active reservations.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: {
+            type: 'string',
+            description: 'Patron name or ID number. Leave empty to list all active reservations.',
+          },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_top_borrowers',
+      description: 'Get the most active borrowers in the library — patrons with the highest total borrow count.',
+      parameters: {
+        type: 'object',
+        properties: {},
+        required: [],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_most_borrowed',
+      description: 'Get the most borrowed books/resources in the library by borrow count.',
+      parameters: {
+        type: 'object',
+        properties: {},
+        required: [],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_collection_overview',
+      description: 'Get a summary of the library collection: total titles, total copies, available vs borrowed vs damaged/lost counts.',
+      parameters: {
+        type: 'object',
+        properties: {},
+        required: [],
+      },
+    },
+  },
 ]
 
 // ── Tool execution ────────────────────────────────────────────────────────────
@@ -256,6 +329,100 @@ export async function executeTool(
                 .map((l: any) => `  - ${l.user_name} (${l.direction}) at ${l.logged_at}`)
                 .join('\n')
             : '  No gate logs yet today.')
+        )
+      }
+
+      case 'get_patron_borrow_history': {
+        const query = args.query ?? ''
+        if (!query.trim()) return 'Please specify a patron name or ID number.'
+        const matched = await UserService.search(institutionId, query)
+        if (!matched.length) return `No patron found matching "${query}".`
+        const u = matched[0]
+        const history = await BorrowService.getFullHistoryByUser(u.id)
+        if (!history.length) return `${u.name} has no borrowing history.`
+        const lines = history.slice(0, 15).map((b: any) =>
+          `- "${b.book_title}" | Borrowed: ${b.borrowed_at?.slice(0, 10)}` +
+          (b.returned_at ? ` | Returned: ${b.returned_at.slice(0, 10)}` : ' | Not yet returned') +
+          (b.due_date ? ` | Due: ${b.due_date.slice(0, 10)}` : ''),
+        )
+        return (
+          `Borrow history for ${u.name} (${history.length} record(s)):\n` +
+          lines.join('\n') +
+          (history.length > 15 ? `\n...and ${history.length - 15} more` : '')
+        )
+      }
+
+      case 'get_reservations': {
+        const query = (args.query ?? '').trim()
+        if (query) {
+          const matched = await UserService.search(institutionId, query)
+          if (!matched.length) return `No patron found matching "${query}".`
+          const u = matched[0]
+          const recs = await ReservationService.getByUser(u.id)
+          const active = recs.filter((r: any) => r.status === 'active')
+          if (!active.length) return `${u.name} has no active reservations.`
+          return (
+            `Active reservations for ${u.name} (${active.length}):\n` +
+            active
+              .map((r: any) =>
+                `- "${r.book_title}" by ${r.book_author}` +
+                ` | Available copies: ${r.available_copies ?? 'N/A'}` +
+                ` | Reserved: ${r.reserved_at?.slice(0, 10)}`,
+              )
+              .join('\n')
+          )
+        }
+        const all = await ReservationService.getAll(institutionId)
+        if (!all.length) return 'No active reservations at the moment.'
+        return (
+          `Active reservations (${all.length}):\n` +
+          all
+            .slice(0, 10)
+            .map((r: any) =>
+              `- "${r.book_title}" by ${r.book_author} — reserved by ${r.member_name}` +
+              ` | Since: ${r.reserved_at?.slice(0, 10)}`,
+            )
+            .join('\n') +
+          (all.length > 10 ? `\n...and ${all.length - 10} more` : '')
+        )
+      }
+
+      case 'get_top_borrowers': {
+        const rows = await CirculationReportService.getTopBorrowers(institutionId, 10)
+        if (!rows.length) return 'No borrowing activity recorded yet.'
+        return (
+          `Top borrowers:\n` +
+          rows
+            .map((r, i) =>
+              `${i + 1}. ${r.user_name} (${r.user_id_number}) — ${r.total_borrows} total, ${r.active_borrows} active`,
+            )
+            .join('\n')
+        )
+      }
+
+      case 'get_most_borrowed': {
+        const rows = await CirculationReportService.getMostBorrowed(institutionId, 10)
+        if (!rows.length) return 'No borrowing activity recorded yet.'
+        return (
+          `Most borrowed resources:\n` +
+          rows
+            .map((r, i) => `${i + 1}. "${r.title}" by ${r.author} — ${r.borrow_count} borrow(s)`)
+            .join('\n')
+        )
+      }
+
+      case 'get_collection_overview': {
+        const o = await CollectionReportService.getOverview(institutionId)
+        return (
+          `Collection overview:\n` +
+          `- Total titles: ${o.total_titles}\n` +
+          `- Total copies: ${o.total_copies}\n` +
+          `- Available: ${o.available_copies}\n` +
+          `- Borrowed: ${o.borrowed_copies}\n` +
+          `- Damaged: ${o.damaged_copies}\n` +
+          `- Lost: ${o.lost_copies}\n` +
+          `- Registered members: ${o.registered_members}\n` +
+          `- Copies per member: ${o.copies_per_member.toFixed(2)}`
         )
       }
 

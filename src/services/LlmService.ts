@@ -7,16 +7,13 @@ const MODEL_FILE = 'gemma-2-2b-it-Q4_K_M.gguf'
 const MODEL_PATH = MODEL_DIR + MODEL_FILE
 const MODEL_URL = 'https://huggingface.co/bartowski/gemma-2-2b-it-GGUF/resolve/main/gemma-2-2b-it-Q4_K_M.gguf'
 
+const TOOL_DEF_PROMPT = TOOL_DEFINITIONS.map((t) => `- ${t.function.name}: ${t.function.description}`).join('\n')
+
 export const SYSTEM_PROMPT = `You are Leaf, an AI assistant embedded in Bookleaf — a library management system.
 You help librarians and library patrons with library-related tasks.
 
 You have access to the following library database tools — use them whenever the user asks about real data:
-- search_resources: find books/resources by title, author, or ISBN
-- get_patron_info: look up a patron by name or ID — also shows their currently borrowed (unreturned) books
-- get_patron_fines: check outstanding unpaid fines for a patron or all patrons
-- get_overdue_books: list all currently overdue books
-- get_circulation_stats: get borrowing and lending statistics
-- get_today_gate_activity: get today's visitor and attendance data
+${TOOL_DEF_PROMPT}
 
 When you need real library data, output ONLY this on its own line — nothing before or after:
 [TOOL_CALL: {"name": "<tool_name>", "arguments": {<args>}}]
@@ -54,6 +51,11 @@ export const TOOL_LABELS: Record<string, string> = {
     get_overdue_books: 'Fetching overdue books…',
     get_circulation_stats: 'Loading circulation stats…',
     get_today_gate_activity: 'Checking gate activity…',
+    get_patron_borrow_history: 'Loading borrow history…',
+    get_reservations: 'Fetching reservations…',
+    get_top_borrowers: 'Loading top borrowers…',
+    get_most_borrowed: 'Fetching popular books…',
+    get_collection_overview: 'Loading collection stats…',
 }
 
 const COMPLETION_PARAMS = {
@@ -189,7 +191,10 @@ export const LlmService = {
         const messagesWithTools: ChatMessage[] = [
             ...messages,
             { role: 'assistant', content: phase1.content ?? '' },
-            { role: 'user', content: `[Tool data below. Report it directly and concisely — no pleasantries, no "thank you", just the answer.]\n${toolResultSummary}` },
+            {
+                role: 'user',
+                content: `[Tool data below. Report it directly and concisely — no pleasantries, no "thank you", just the answer.]\n${toolResultSummary}`,
+            },
         ]
 
         // Phase 3: Stream the final response grounded in tool results
