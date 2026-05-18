@@ -216,7 +216,7 @@ function ReturnForm() {
   });
 
   return (
-    <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 110 }}>
+    <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 150 }}>
       <StepCard step={1} label="Find Member">
         <View className="flex-row gap-2">
           <TextInput

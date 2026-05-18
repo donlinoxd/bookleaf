@@ -67,7 +67,7 @@ export default function ReservationsScreen() {
   }, {});
 
   return (
-    <ScrollView className="flex-1 bg-bio" contentContainerStyle={{ paddingBottom: 110 }}>
+    <ScrollView className="flex-1 bg-bio" contentContainerStyle={{ paddingBottom: 150 }}>
       <StatusBar barStyle="light-content" backgroundColor="#2A5C33" />
 
       <View className="bg-brand px-5 pb-5 pt-[52px] rounded-b-[28px]">
