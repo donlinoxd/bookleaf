@@ -99,7 +99,7 @@ export default function GateScanScreen() {
       <StatusBar barStyle="light-content" backgroundColor="#000" />
 
       <CameraView
-        className="flex-1"
+        style={{ flex: 1 }}
         pointerEvents="none"
         barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
         onBarcodeScanned={scanning ? undefined : handleBarcodeScan}

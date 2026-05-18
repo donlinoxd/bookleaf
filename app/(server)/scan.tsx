@@ -140,18 +140,18 @@ export default function ScanScreen() {
         style={{ flex: 1 }}
         barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'qr'] }}
         onBarcodeScanned={phase === 'scanning' ? handleBarcodeScan : undefined}
-      >
-        {/* Scanning frame overlay */}
-        {phase === 'scanning' && (
-          <View className="flex-1 items-center justify-center">
-            <View className="absolute inset-0 bg-black/[0.45]" />
-            <View className="w-[260px] h-[120px] border-2 border-leaf rounded-xl" />
-            <Text className="text-white text-[14px] font-medium mt-5">
-              Point at a barcode or QR code
-            </Text>
-          </View>
-        )}
-      </CameraView>
+      />
+
+      {/* Scanning frame overlay */}
+      {phase === 'scanning' && (
+        <View className="absolute inset-0 items-center justify-center" pointerEvents="none">
+          <View className="absolute inset-0 bg-black/[0.45]" />
+          <View className="w-[260px] h-[120px] border-2 border-leaf rounded-xl" />
+          <Text className="text-white text-[14px] font-medium mt-5">
+            Point at a barcode or QR code
+          </Text>
+        </View>
+      )}
 
       {/* Resolving spinner */}
       {phase === 'resolving' && (
@@ -257,7 +257,7 @@ export default function ScanScreen() {
             <Text className="text-white text-[17px] font-bold">Scan Member QR</Text>
           </View>
           <CameraView
-            className="flex-1"
+            style={{ flex: 1 }}
             barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
             onBarcodeScanned={({ data }) => {
               if (memberScannedRef.current) return;
@@ -266,14 +266,13 @@ export default function ScanScreen() {
               setMemberQuery(data);
               lookupMember(data);
             }}
-          >
-            <View className="flex-1 justify-center items-center gap-5">
-              <View className="w-[220px] h-[220px] border-2 border-leaf rounded-2xl" />
-              <Text className="text-white text-[14px] font-medium">
-                Point at a member's QR code
-              </Text>
-            </View>
-          </CameraView>
+          />
+          <View className="absolute inset-0 justify-center items-center gap-5" pointerEvents="none">
+            <View className="w-[220px] h-[220px] border-2 border-leaf rounded-2xl" />
+            <Text className="text-white text-[14px] font-medium">
+              Point at a member's QR code
+            </Text>
+          </View>
         </View>
       </Modal>
     </View>

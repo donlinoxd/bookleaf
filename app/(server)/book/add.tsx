@@ -618,14 +618,13 @@ export default function AddResourceScreen() {
                         style={{ flex: 1 }}
                         barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128'] }}
                         onBarcodeScanned={({ data }) => handleBarcodeScanned(data)}
-                    >
-                        <View className='flex-1 justify-center items-center gap-6'>
-                            <View className='w-[260px] h-[120px] border-2 border-leaf rounded-[10px]' />
-                            <Text className='text-white text-sm text-center px-10'>
-                                Point at the barcode on the resource
-                            </Text>
-                        </View>
-                    </CameraView>
+                    />
+                    <View className='absolute inset-0 justify-center items-center gap-6' pointerEvents='none'>
+                        <View className='w-[260px] h-[120px] border-2 border-leaf rounded-[10px]' />
+                        <Text className='text-white text-sm text-center px-10'>
+                            Point at the barcode on the resource
+                        </Text>
+                    </View>
                 </View>
             </Modal>
         </>
