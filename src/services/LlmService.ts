@@ -153,15 +153,10 @@ export const LlmService = {
             : parseToolCallsFromContent(phase1.content ?? '')
         console.log('Tool calls resolved:', JSON.stringify(toolCalls))
 
-        // No tool calls — stream a fresh completion so tokens arrive incrementally
+        // No tool calls — Phase 1 already has the full answer; emit it as a stream
         if (!toolCalls.length || !options?.institutionId) {
-            let full = ''
-            await ctx.completion({ messages, ...COMPLETION_PARAMS }, (data) => {
-                if (data.token) {
-                    full += data.token
-                    onToken(data.token)
-                }
-            })
+            const full = phase1.content ?? ''
+            for (const char of full) onToken(char)
 
             console.log('Final output (no tools):', full)
 

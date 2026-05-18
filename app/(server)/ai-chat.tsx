@@ -17,6 +17,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ChatMessage, LlmService, SYSTEM_PROMPT, TOOL_LABELS } from '../../src/services/LlmService'
 import { useAppStore } from '../../src/store/appStore'
 
+const LOADING_WORDS = ['Thinking', 'Reading', 'Searching', 'Leafing', 'Browsing', 'Scanning', 'Checking', 'Indexing', 'Sorting', 'Fetching']
+
 type Phase = 'checking' | 'not-downloaded' | 'downloading' | 'loading' | 'ready' | 'error'
 
 type UIMessage = {
@@ -38,6 +40,7 @@ export default function AiChatScreen() {
     const [toolStatus, setToolStatus] = useState('')
     const [error, setError] = useState('')
     const [keyboardHeight, setKeyboardHeight] = useState(0)
+    const [loadingWordIndex, setLoadingWordIndex] = useState(0)
     const scrollRef = useRef<ScrollView>(null)
     const isNearBottomRef = useRef(true)
 
@@ -49,6 +52,14 @@ export default function AiChatScreen() {
             hide.remove()
         }
     }, [])
+
+    useEffect(() => {
+        if (!isGenerating || streamingText || toolStatus) return
+        const interval = setInterval(() => {
+            setLoadingWordIndex((i) => (i + 1) % LOADING_WORDS.length)
+        }, 600)
+        return () => clearInterval(interval)
+    }, [isGenerating, streamingText, toolStatus])
 
     useEffect(() => {
         checkModel()
@@ -393,6 +404,20 @@ export default function AiChatScreen() {
                         </View>
                     </View>
                 ))}
+                {isGenerating && !streamingText && !toolStatus && (
+                    <View className='flex-row items-center gap-2 py-[6px] px-1 mb-1'>
+                        <View className='w-[18px] h-[18px] rounded-full bg-leaf items-center justify-center'>
+                            <Ionicons name='sparkles' size={10} color='#fff' />
+                        </View>
+                        <View
+                            className='flex-row items-center bg-white rounded-2xl px-3 py-2 gap-2'
+                            style={{ elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 3 }}
+                        >
+                            <ActivityIndicator size='small' color='#5CB85C' />
+                            <Text className='text-[13px] text-[#64748B]'>{LOADING_WORDS[loadingWordIndex]}…</Text>
+                        </View>
+                    </View>
+                )}
                 {showToolStatus && (
                     <View className='flex-row items-center gap-2 py-[6px] px-1 mb-1'>
                         <View className='w-[18px] h-[18px] rounded-full bg-leaf items-center justify-center'>
