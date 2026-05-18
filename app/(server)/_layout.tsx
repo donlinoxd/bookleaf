@@ -1,11 +1,20 @@
 import { Ionicons } from '@expo/vector-icons'
 import { Tabs } from 'expo-router'
+import { useEffect } from 'react'
 import { CustomTabBar } from '../../src/components/navigation/CustomTabBar'
+import { ServerBridge } from '../../src/services/ServerBridge'
 import { useAppStore } from '../../src/store/appStore'
 
 export default function ServerLayout() {
     const currentUser = useAppStore((s) => s.currentUser)
+    const institution = useAppStore((s) => s.institution)
     const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'librarian'
+
+    useEffect(() => {
+        if (institution?.id) {
+            ServerBridge.start(institution.id, () => {});
+        }
+    }, [institution?.id])
 
     return (
         <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <CustomTabBar {...props} accentRoute='scan' />}>

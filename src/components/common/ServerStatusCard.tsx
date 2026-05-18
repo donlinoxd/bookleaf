@@ -22,13 +22,20 @@ async function getLocalIp(): Promise<string> {
 }
 
 export function ServerStatusCard({ institutionId }: Props) {
-  const [status, setStatus] = useState<ServerStatus>('idle');
+  const [status, setStatus] = useState<ServerStatus>(() => ServerBridge.isRunning() ? 'running' : 'idle');
   const [detail, setDetail] = useState('');
   const [ip, setIp] = useState('');
   const port = 3000;
 
   useEffect(() => {
     getLocalIp().then(setIp);
+
+    ServerBridge.setStatusCallback((s, d) => {
+      setStatus(s);
+      if (d) setDetail(d);
+    });
+
+    return () => { ServerBridge.setStatusCallback(null); };
   }, []);
 
   const handleStart = () => {
@@ -55,7 +62,7 @@ export function ServerStatusCard({ institutionId }: Props) {
 
   return (
     <View
-      className="bg-white rounded-xl p-4 mx-4 mt-3"
+      className="bg-white rounded-xl p-4 mt-3"
       style={{
         elevation: 1,
         shadowColor: '#000',

@@ -148,4 +148,8 @@ export const ServerBridge = {
   isRunning() {
     return isStarted;
   },
+
+  setStatusCallback(cb: StatusCallback | null) {
+    statusCallback = cb;
+  },
 };

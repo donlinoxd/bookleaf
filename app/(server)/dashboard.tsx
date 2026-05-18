@@ -4,7 +4,6 @@ import { useRouter } from 'expo-router'
 import { Image, ScrollView, StatusBar, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native'
 import { BarChart, BarItem } from '../../src/components/charts/BarChart'
 import { DonutRing } from '../../src/components/charts/DonutRing'
-import { ServerStatusCard } from '../../src/components/common/ServerStatusCard'
 import { queryKeys } from '../../src/lib/queryKeys'
 import { BorrowService } from '../../src/services/BorrowService'
 import { CirculationReportService } from '../../src/services/CirculationReportService'
@@ -145,8 +144,6 @@ export default function DashboardScreen() {
             </View>
 
             <View className='px-4 mt-4 gap-4'>
-                {isAdmin && institution && <ServerStatusCard institutionId={institution.id} />}
-
                 {/* Collection stats */}
                 <View>
                     <SectionLabel>Collection</SectionLabel>
