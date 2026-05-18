@@ -57,7 +57,7 @@ export default function AiChatScreen() {
         if (!isGenerating || streamingText || toolStatus) return
         const interval = setInterval(() => {
             setLoadingWordIndex((i) => (i + 1) % LOADING_WORDS.length)
-        }, 600)
+        }, 1500)
         return () => clearInterval(interval)
     }, [isGenerating, streamingText, toolStatus])
 
