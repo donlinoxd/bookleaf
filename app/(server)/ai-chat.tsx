@@ -19,6 +19,7 @@ import { ChatMessage, LlmService, SYSTEM_PROMPT, TOOL_LABELS } from '../../src/s
 import { useAppStore } from '../../src/store/appStore'
 
 import MASCOT from '../../assets/images/leaf-listening.png'
+import MASCOT_PUSH_UP from '../../assets/images/leaf-pushing-up.png'
 
 const LOADING_WORDS = ['Thinking', 'Reading', 'Searching', 'Leafing', 'Browsing', 'Scanning', 'Checking', 'Indexing', 'Sorting', 'Fetching']
 
@@ -234,10 +235,8 @@ export default function AiChatScreen() {
         return (
             <View className='flex-1 bg-bio p-6 justify-center items-center'>
                 <StatusBar barStyle='light-content' backgroundColor='#2A5C33' />
-                <View className='w-20 h-20 rounded-full bg-mint items-center justify-center'>
-                    <Ionicons name='cloud-download-outline' size={40} color='#5CB85C' />
-                </View>
-                <Text className='text-[22px] font-extrabold text-brand mt-5'>Downloading Leaf - Your AI Library Assistant</Text>
+                <Image source={MASCOT_PUSH_UP} className="w-40 h-40 mb-4" resizeMode="contain" />
+                <Text className='text-[22px] font-extrabold text-brand mt-5'>Downloading Leaf AI</Text>
                 <Text className='text-[14px] text-[#64748B] mt-[6px]'>{downloaded} GB of ~1.5 GB</Text>
 
                 <View className='w-full h-2 bg-mint-dark rounded mt-7'>
