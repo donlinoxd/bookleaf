@@ -286,7 +286,7 @@ export default function ScanScreen() {
 
 function BottomSheet({ children }: { children: React.ReactNode }) {
   const insets = useSafeAreaInsets();
-  const tabBarClearance = Math.max(insets.bottom, 8) + 8 + 78 + 12;
+  const tabBarClearance = Math.max(insets.bottom, 8) + 8 + 24 + 12;
 
   return (
     <View
