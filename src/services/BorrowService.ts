@@ -43,7 +43,8 @@ export const BorrowService = {
     if (now > due) {
       const settings = await SettingsService.getAll();
       const daysLate = Math.ceil((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
-      fineAmount = daysLate * settings.fine_per_day;
+      const billableDays = Math.max(0, daysLate - (settings.grace_period_days ?? 0));
+      fineAmount = billableDays * settings.fine_per_day;
     }
 
     return db.transaction(async (tx) => {
@@ -83,6 +84,7 @@ export const BorrowService = {
       due_date: borrowingRecords.due_date,
       returned_at: borrowingRecords.returned_at,
       fine_amount: borrowingRecords.fine_amount,
+      renewal_count: borrowingRecords.renewal_count,
       book_title: resources.title,
       book_author: resources.author,
     }).from(borrowingRecords)
@@ -90,6 +92,24 @@ export const BorrowService = {
       .innerJoin(resources, eq(resourceCopies.resource_id, resources.id))
       .where(and(eq(borrowingRecords.user_id, userId), isNull(borrowingRecords.returned_at)))
       .orderBy(asc(borrowingRecords.due_date)) as Promise<BorrowingRecord[]>;
+  },
+
+  async renewBook(borrowingId: number): Promise<{ new_due_date: string }> {
+    const settings = await SettingsService.getAll();
+    const record = await db.select().from(borrowingRecords)
+      .where(eq(borrowingRecords.id, borrowingId)).limit(1).then(r => r[0] ?? null);
+    if (!record) throw new Error('Borrowing record not found');
+    if (record.returned_at) throw new Error('This item has already been returned');
+    if (record.renewal_count >= settings.max_renewals) {
+      throw new Error(`Maximum renewals (${settings.max_renewals}) reached`);
+    }
+    const newDue = new Date(record.due_date);
+    newDue.setDate(newDue.getDate() + settings.max_borrow_days);
+    await db.update(borrowingRecords).set({
+      due_date: newDue.toISOString(),
+      renewal_count: record.renewal_count + 1,
+    }).where(eq(borrowingRecords.id, borrowingId));
+    return { new_due_date: newDue.toISOString() };
   },
 
   async getOverdue(): Promise<BorrowingRecord[]> {

@@ -6,36 +6,44 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { UserService } from '../../src/services/UserService';
 import { ResourceService } from '../../src/services/ResourceService';
 import { BorrowService } from '../../src/services/BorrowService';
+import { ReservationService } from '../../src/services/ReservationService';
+import { NotificationService } from '../../src/services/NotificationService';
+import { useAppStore } from '../../src/store/appStore';
 import { User, Resource } from '../../src/types';
 import { queryKeys } from '../../src/lib/queryKeys';
 
-type Mode = 'checkout' | 'return';
+type Mode = 'checkout' | 'return' | 'holds';
+
+const MODE_LABELS: Record<Mode, string> = { checkout: 'Check Out', return: 'Return', holds: 'Holds' };
 
 export default function BorrowScreen() {
   const [mode, setMode] = useState<Mode>('checkout');
+  const institution = useAppStore((s) => s.institution);
 
   return (
     <View className="flex-1 bg-bio">
       <StatusBar barStyle="light-content" backgroundColor="#2A5C33" />
 
       <View className="bg-brand px-5 pb-5 pt-[52px] rounded-b-[28px]">
-        <Text className="text-2xl font-extrabold text-white mb-4">Borrow / Return</Text>
-        <View className="flex-row bg-[#1C3E23] rounded-2xl p-1">
-          {(['checkout', 'return'] as Mode[]).map((m) => (
+        <Text className="text-2xl font-extrabold text-white mb-4">Circulation</Text>
+        <View className="flex-row bg-[#1C3E23] rounded-2xl p-1 gap-0.5">
+          {(['checkout', 'return', 'holds'] as Mode[]).map((m) => (
             <TouchableOpacity
               key={m}
               className={`flex-1 py-2.5 rounded-xl items-center ${mode === m ? 'bg-white' : ''}`}
               onPress={() => setMode(m)}
             >
-              <Text className={`text-sm font-bold ${mode === m ? 'text-brand' : 'text-[#A8D5A2]'}`}>
-                {m === 'checkout' ? 'Check Out' : 'Return'}
+              <Text className={`text-xs font-bold ${mode === m ? 'text-brand' : 'text-[#A8D5A2]'}`}>
+                {MODE_LABELS[m]}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
       </View>
 
-      {mode === 'checkout' ? <CheckoutForm /> : <ReturnForm />}
+      {mode === 'checkout' && <CheckoutForm />}
+      {mode === 'return' && <ReturnForm />}
+      {mode === 'holds' && <HoldsTab institutionId={institution?.id ?? 0} />}
     </View>
   );
 }
@@ -63,7 +71,17 @@ function CheckoutForm() {
       if (!resource!.is_loanable) throw new Error('This resource is not available for borrowing');
       const copy = await ResourceService.getAvailableCopy(resource!.id);
       if (!copy) throw new Error('No available copies of this resource');
-      await BorrowService.borrowBook(copy.id, member!.id);
+      const borrowingId = await BorrowService.borrowBook(copy.id, member!.id);
+      // schedule due-date notifications
+      const settings = await import('../../src/services/SettingsService').then(m => m.SettingsService.getAll());
+      const dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + settings.max_borrow_days);
+      await NotificationService.scheduleDueReminder(borrowingId, resource!.title, dueDate).catch(() => {});
+      // auto-fulfill reservation if one exists
+      const nextHold = await ReservationService.getNextInQueue(resource!.id);
+      if (nextHold && nextHold.user_id === member!.id) {
+        await ReservationService.fulfill(nextHold.id);
+      }
     },
     onSuccess: () => {
       Alert.alert('Success', `"${resource!.title}" checked out to ${member!.name}`);
@@ -71,6 +89,7 @@ function CheckoutForm() {
       queryClient.invalidateQueries({ queryKey: ['resources'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['overdue'] });
+      queryClient.invalidateQueries({ queryKey: ['reservations'] });
     },
     onError: (e: any) => Alert.alert('Error', e.message),
   });
@@ -166,14 +185,32 @@ function ReturnForm() {
   };
 
   const returnMutation = useMutation({
-    mutationFn: ({ borrowId }: { borrowId: number; bookTitle: string }) => BorrowService.returnBook(borrowId),
-    onSuccess: (fine, { bookTitle }) => {
-      if (fine) Alert.alert('Returned', `"${bookTitle}" returned.\nFine: ₱${fine.amount.toFixed(2)}`);
-      else Alert.alert('Returned', `"${bookTitle}" returned successfully.`);
+    mutationFn: async ({ borrowId, resourceId }: { borrowId: number; bookTitle: string; resourceId: number }) => {
+      const fine = await BorrowService.returnBook(borrowId);
+      await NotificationService.cancelDueReminder(borrowId).catch(() => {});
+      const nextHold = await ReservationService.getNextInQueue(resourceId);
+      return { fine, nextHold };
+    },
+    onSuccess: ({ fine, nextHold }, { bookTitle }) => {
+      let msg = fine ? `"${bookTitle}" returned.\nFine: ₱${fine.amount.toFixed(2)}` : `"${bookTitle}" returned successfully.`;
+      if (nextHold) msg += `\n\n📋 Next in queue: ${nextHold.member_name} (${nextHold.member_id_number})`;
+      Alert.alert('Returned', msg);
       queryClient.invalidateQueries({ queryKey: queryKeys.activeBorrows(member!.id) });
       queryClient.invalidateQueries({ queryKey: ['resources'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['overdue'] });
+      queryClient.invalidateQueries({ queryKey: ['reservations'] });
+    },
+    onError: (e: any) => Alert.alert('Error', e.message),
+  });
+
+  const renewMutation = useMutation({
+    mutationFn: ({ borrowId }: { borrowId: number; bookTitle: string }) => BorrowService.renewBook(borrowId),
+    onSuccess: async ({ new_due_date }, { borrowId, bookTitle }) => {
+      await NotificationService.cancelDueReminder(borrowId).catch(() => {});
+      await NotificationService.scheduleDueReminder(borrowId, bookTitle, new Date(new_due_date)).catch(() => {});
+      Alert.alert('Renewed', `Due date extended to ${new Date(new_due_date).toLocaleDateString()}`);
+      queryClient.invalidateQueries({ queryKey: queryKeys.activeBorrows(member!.id) });
     },
     onError: (e: any) => Alert.alert('Error', e.message),
   });
@@ -208,30 +245,130 @@ function ReturnForm() {
       {activeBorrows.map((b) => {
         const overdue = new Date(b.due_date) < new Date();
         return (
-          <View key={b.id} className="bg-white rounded-2xl p-4 flex-row items-center"
+          <View key={b.id} className="bg-white rounded-2xl p-4 gap-2"
             style={{ elevation: 2, shadowColor: '#2A5C33', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4 }}>
             <View className="flex-1">
               <Text className="text-sm font-bold text-[#1C2B1E]">{b.book_title}</Text>
-              <Text className="text-xs text-[#5A7A5E] mt-0.5">Due: {new Date(b.due_date).toLocaleDateString()}</Text>
+              <Text className="text-xs text-[#5A7A5E] mt-0.5">
+                Due: {new Date(b.due_date).toLocaleDateString()}
+                {b.renewal_count > 0 ? `  ·  Renewed ${b.renewal_count}×` : ''}
+              </Text>
               {overdue && (
                 <View className="self-start bg-red-100 rounded px-1.5 py-0.5 mt-1">
                   <Text className="text-[10px] font-bold text-red-600">OVERDUE</Text>
                 </View>
               )}
             </View>
-            <TouchableOpacity
-              className="bg-leaf rounded-xl px-4 py-2"
-              onPress={() => returnMutation.mutate({ borrowId: b.id, bookTitle: b.book_title ?? '' })}
-              disabled={returnMutation.isPending}
-            >
-              <Text className="text-white font-bold text-sm">Return</Text>
-            </TouchableOpacity>
+            <View className="flex-row gap-2">
+              <TouchableOpacity
+                className="flex-1 bg-mint border border-[#C8DFC5] rounded-xl py-2 items-center"
+                onPress={() => renewMutation.mutate({ borrowId: b.id, bookTitle: b.book_title ?? '' })}
+                disabled={renewMutation.isPending || returnMutation.isPending}
+              >
+                <Text className="text-brand font-bold text-xs">Renew</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="flex-[2] bg-leaf rounded-xl py-2 items-center"
+                onPress={() => returnMutation.mutate({ borrowId: b.id, bookTitle: b.book_title ?? '', resourceId: b.copy_id })}
+                disabled={returnMutation.isPending || renewMutation.isPending}
+              >
+                <Text className="text-white font-bold text-sm">Return</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         );
       })}
     </ScrollView>
   );
 }
+
+// ─── Holds Tab ───────────────────────────────────────────────────────────────
+
+function HoldsTab({ institutionId }: { institutionId: number }) {
+  const queryClient = useQueryClient();
+
+  const { data: holds = [], isLoading } = useQuery({
+    queryKey: ['reservations', institutionId],
+    queryFn: () => ReservationService.getAll(institutionId),
+    enabled: !!institutionId,
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: (id: number) => ReservationService.cancel(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['reservations'] }),
+    onError: (e: any) => Alert.alert('Error', e.message),
+  });
+
+  if (isLoading) {
+    return <View className="flex-1 items-center justify-center"><Text className="text-[#94A3B8] text-sm">Loading…</Text></View>;
+  }
+
+  if (holds.length === 0) {
+    return (
+      <View className="flex-1 items-center justify-center px-8 gap-3">
+        <Ionicons name="bookmark-outline" size={48} color="#C8DFC5" />
+        <Text className="text-base font-bold text-brand">No active holds</Text>
+        <Text className="text-sm text-[#7A9A7E] text-center">Holds placed by members will appear here.</Text>
+      </View>
+    );
+  }
+
+  // group by resource
+  const grouped = holds.reduce<Record<string, typeof holds>>((acc, h) => {
+    const key = `${h.resource_id}`;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(h);
+    return acc;
+  }, {});
+
+  return (
+    <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 110 }}>
+      {Object.entries(grouped).map(([, queue]) => (
+        <View key={queue[0].resource_id} className="bg-white rounded-2xl p-4 gap-3"
+          style={{ elevation: 2, shadowColor: '#2A5C33', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4 }}>
+          <View className="flex-row items-start gap-2">
+            <Ionicons name="book-outline" size={16} color="#2A5C33" style={{ marginTop: 2 }} />
+            <View className="flex-1">
+              <Text className="text-sm font-bold text-[#1C2B1E]">{queue[0].book_title}</Text>
+              <Text className="text-xs text-[#7A9A7E]">{queue[0].book_author}</Text>
+              <View className={`self-start rounded-md px-2 py-0.5 mt-1 ${(queue[0].available_copies ?? 0) > 0 ? 'bg-[#DCFCE7]' : 'bg-[#FEE2E2]'}`}>
+                <Text className={`text-[10px] font-bold ${(queue[0].available_copies ?? 0) > 0 ? 'text-green-700' : 'text-red-600'}`}>
+                  {(queue[0].available_copies ?? 0) > 0 ? 'Available now' : 'All copies borrowed'}
+                </Text>
+              </View>
+            </View>
+            <View className="bg-mint rounded-full px-2.5 py-1">
+              <Text className="text-xs font-bold text-brand">{queue.length} hold{queue.length > 1 ? 's' : ''}</Text>
+            </View>
+          </View>
+
+          {queue.map((h, idx) => (
+            <View key={h.id} className="flex-row items-center gap-2 pt-2 border-t border-[#F1F5F9]">
+              <View className="w-6 h-6 rounded-full bg-mint items-center justify-center">
+                <Text className="text-[10px] font-extrabold text-brand">{idx + 1}</Text>
+              </View>
+              <View className="flex-1">
+                <Text className="text-sm font-semibold text-[#1C2B1E]">{h.member_name}</Text>
+                <Text className="text-xs text-[#94A3B8]">{h.member_id_number} · {new Date(h.reserved_at).toLocaleDateString()}</Text>
+              </View>
+              <TouchableOpacity
+                className="bg-red-50 border border-red-200 rounded-lg px-3 py-1.5"
+                onPress={() => Alert.alert('Cancel Hold', `Remove hold for ${h.member_name}?`, [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Remove', style: 'destructive', onPress: () => cancelMutation.mutate(h.id) },
+                ])}
+              >
+                <Text className="text-xs font-bold text-red-600">Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+      ))}
+    </ScrollView>
+  );
+}
+
+// ─── Shared helpers ──────────────────────────────────────────────────────────
 
 function StepCard({ step, label, children }: { step: number; label: string; children: React.ReactNode }) {
   return (

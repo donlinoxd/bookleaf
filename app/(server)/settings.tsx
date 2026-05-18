@@ -27,6 +27,8 @@ export default function SettingsScreen() {
         fine_per_day: Number(form.fine_per_day ?? 0),
         max_borrow_days: Number(form.max_borrow_days ?? 0),
         max_books_per_member: Number(form.max_books_per_member ?? 0),
+        grace_period_days: Number(form.grace_period_days ?? 0),
+        max_renewals: Number(form.max_renewals ?? 2),
       });
       await queryClient.invalidateQueries({ queryKey: queryKeys.settings() });
       Alert.alert('Saved', 'Settings updated successfully.');
@@ -111,6 +113,26 @@ export default function SettingsScreen() {
               onChangeText={(v) => set('max_books_per_member', v)}
               keyboardType="numeric"
               placeholder="3"
+              placeholderTextColor="#94A3B8"
+            />
+          </Field>
+          <Field label="Grace Period (days before fine starts)">
+            <TextInput
+              className="bg-bio border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]"
+              value={String(form.grace_period_days ?? '')}
+              onChangeText={(v) => set('grace_period_days', v)}
+              keyboardType="numeric"
+              placeholder="0"
+              placeholderTextColor="#94A3B8"
+            />
+          </Field>
+          <Field label="Max Renewals per Borrow">
+            <TextInput
+              className="bg-bio border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]"
+              value={String(form.max_renewals ?? '')}
+              onChangeText={(v) => set('max_renewals', v)}
+              keyboardType="numeric"
+              placeholder="2"
               placeholderTextColor="#94A3B8"
             />
           </Field>

@@ -93,6 +93,7 @@ export const borrowingRecords = sqliteTable('borrowing_records', {
   due_date: text('due_date').notNull(),
   returned_at: text('returned_at'),
   fine_amount: real('fine_amount').notNull().default(0),
+  renewal_count: integer('renewal_count').notNull().default(0),
 });
 
 export const reservations = sqliteTable('reservations', {
@@ -146,4 +147,6 @@ export const DEFAULT_SETTINGS = [
   { key: 'max_borrow_days', value: '7' },
   { key: 'max_books_per_member', value: '3' },
   { key: 'institution_name', value: 'My School Library' },
+  { key: 'grace_period_days', value: '0' },
+  { key: 'max_renewals', value: '2' },
 ] as const;

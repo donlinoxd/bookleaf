@@ -62,6 +62,7 @@ export default function ServerLayout() {
                     <Tabs.Screen name='gate-scan' options={{ href: null }} />
                     <Tabs.Screen name='gate-qr' options={{ href: null }} />
                     <Tabs.Screen name='reports' options={{ href: null }} />
+                    <Tabs.Screen name='reservations' options={{ href: null }} />
         </Tabs>
     )
 }

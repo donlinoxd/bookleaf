@@ -103,6 +103,7 @@ export interface BorrowingRecord {
   due_date: string;
   returned_at: string | null;
   fine_amount: number;
+  renewal_count: number;
   // joined fields
   book_title?: string;
   book_author?: string;
@@ -118,7 +119,10 @@ export interface Reservation {
   status: ReservationStatus;
   // joined fields
   book_title?: string;
+  book_author?: string;
   member_name?: string;
+  member_id_number?: string;
+  available_copies?: number;
 }
 
 export interface Fine {
@@ -134,6 +138,8 @@ export interface Settings {
   max_borrow_days: number;
   max_books_per_member: number;
   institution_name: string;
+  grace_period_days: number;
+  max_renewals: number;
 }
 
 export interface ServerInfo {

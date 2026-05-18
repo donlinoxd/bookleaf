@@ -8,6 +8,7 @@ import m0003 from './0003_gate_logs.sql';
 import m0004 from './0004_patron_fields.sql';
 import m0005 from './0005_copy_holdings.sql';
 import m0006 from './0006_authority_subjects.sql';
+import m0007 from './0007_renewals_grace.sql';
 
   export default {
     journal,
@@ -19,5 +20,6 @@ import m0006 from './0006_authority_subjects.sql';
       m0004,
       m0005,
       m0006,
+      m0007,
     }
   }

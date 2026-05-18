@@ -50,6 +50,13 @@
       "when": 1747929600000,
       "tag": "0006_authority_subjects",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1748016000000,
+      "tag": "0007_renewals_grace",
+      "breakpoints": true
     }
   ]
 }
