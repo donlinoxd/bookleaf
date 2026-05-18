@@ -6,14 +6,41 @@ import { UserService } from './UserService'
 // ── Off-topic guardrail ───────────────────────────────────────────────────────
 
 const OFF_TOPIC_PATTERNS = [
-  /\b(recipe|cooking|food|restaurant|cuisine)\b/i,
-  /\b(sports|football|basketball|soccer|cricket|baseball)\b/i,
-  /\b(music|song|playlist|album|artist|concert)\b/i,
-  /\b(movie|film|netflix|series|tv show|anime)\b/i,
-  /write me a (poem|story|essay|song|joke)/i,
-  /\b(weather|forecast|temperature|humidity)\b/i,
-  /\b(stock market|crypto|bitcoin|trading|investment)\b/i,
-  /\b(politics|election|government|president)\b/i,
+  // Food & lifestyle
+  /\b(recipe|cooking|food|restaurant|cuisine|diet|calorie|ingredient|meal prep)\b/i,
+  // Sports
+  /\b(sports|football|basketball|soccer|cricket|baseball|volleyball|tennis|golf|swimming|athletics|olympics)\b/i,
+  // Music
+  /\b(music|song|playlist|album|artist|concert|lyrics|spotify|soundcloud|mp3)\b/i,
+  // Entertainment
+  /\b(movie|film|netflix|hulu|disney\+|series|tv show|anime|episode|streaming|watch online)\b/i,
+  // Creative writing requests
+  /write (me )?(a |an )?(poem|story|essay|song|joke|rap|letter to|speech)/i,
+  // Weather
+  /\b(weather|forecast|temperature|humidity|rainfall|typhoon|storm|climate today)\b/i,
+  // Finance
+  /\b(stock market|crypto|bitcoin|ethereum|trading|investment|forex|nft|mutual fund)\b/i,
+  // Politics
+  /\b(politics|election|government|president|senator|congress|referendum|campaign)\b/i,
+  // Social media
+  /\b(instagram|twitter|facebook|tiktok|youtube|snapchat|reddit|pinterest|linkedin)\b/i,
+  // Gaming
+  /\b(video game|gaming|console|playstation|xbox|nintendo|steam|mobile game|esports|fps game)\b/i,
+  // Dating & relationships
+  /\b(dating|tinder|bumble|girlfriend|boyfriend|crush|breakup|marriage proposal|hookup)\b/i,
+  // Fashion & beauty
+  /\b(fashion|makeup|skincare|hairstyle|outfit|clothing brand|nail art|perfume)\b/i,
+  // Vehicles
+  /\b(car repair|mechanic|car model|best car|motorcycle|automobile|oil change|car price)\b/i,
+  // Real estate
+  /\b(real estate|house for sale|rent apartment|condo|property price|mortgage)\b/i,
+  // Travel booking
+  /\b(flight booking|hotel booking|airbnb|travel package|visa application|tour guide)\b/i,
+  // Medical / legal advice
+  /\b(diagnos(e|is)|symptom|prescription|drug dosage|legal advice|lawsuit|attorney)\b/i,
+  // Jokes / trivia unrelated to libraries
+  /tell me a joke/i,
+  /random fact about/i,
 ]
 
 export function isOffTopic(message: string): boolean {
