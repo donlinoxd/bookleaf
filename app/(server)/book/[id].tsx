@@ -1,19 +1,26 @@
-import { useEffect, useState } from 'react';
+import { Ionicons } from '@expo/vector-icons'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useLocalSearchParams, useRouter } from 'expo-router'
+import { useEffect, useState } from 'react'
 import {
-  View, Text, ScrollView, TouchableOpacity,
-  Alert, Image, TextInput, Modal, ActivityIndicator, Switch,
-} from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Ionicons } from '@expo/vector-icons';
-import { ResourceService } from '../../../src/services/ResourceService';
-import { BorrowService } from '../../../src/services/BorrowService';
-import { useAppStore } from '../../../src/store/appStore';
-import { Resource, MaterialType, CallNumberType } from '../../../src/types';
-import { queryKeys } from '../../../src/lib/queryKeys';
-import { MATERIAL_TYPE_META, MATERIAL_TYPES, IDENTIFIER_LABEL, CALL_NUMBER_TYPES } from '../../../src/lib/materialTypes';
-import { SubjectHeadingsInput } from '../../../src/components/cataloging/SubjectHeadingsInput';
-import { AuthorityPicker } from '../../../src/components/cataloging/AuthorityPicker';
+  ActivityIndicator,
+  Alert, Image,
+  Modal,
+  ScrollView,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native'
+import { AuthorityPicker } from '../../../src/components/cataloging/AuthorityPicker'
+import { SubjectHeadingsInput } from '../../../src/components/cataloging/SubjectHeadingsInput'
+import { CALL_NUMBER_TYPES, IDENTIFIER_LABEL, MATERIAL_TYPE_META, MATERIAL_TYPES } from '../../../src/lib/materialTypes'
+import { queryKeys } from '../../../src/lib/queryKeys'
+import { BorrowService } from '../../../src/services/BorrowService'
+import { ResourceService } from '../../../src/services/ResourceService'
+import { useAppStore } from '../../../src/store/appStore'
+import { CallNumberType, MaterialType, Resource } from '../../../src/types'
 
 const CONDITION_COLOR: Record<string, string> = {
   good: '#16A34A', damaged: '#D97706', lost: '#DC2626',
@@ -144,7 +151,7 @@ export default function ResourceDetailScreen() {
           </View>
         </View>
 
-        <View className="p-4 gap-3">
+        <View className="p-4 gap-3" style={{paddingBottom: 120}}>
           {/* Availability stats */}
           <View className="flex-row gap-3">
             <StatCard label="Available" value={resource.available_copies} highlight={resource.available_copies > 0 ? 'green' : 'red'} />
@@ -456,7 +463,7 @@ function EditResourceModal({ visible, resource, onClose, onSaved }: EditModalPro
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
       <View className="flex-1 bg-bio">
         {/* Modal header */}
-        <View className="bg-brand flex-row items-center justify-between px-5 pb-4 pt-5 rounded-b-[20px]">
+        <View className="bg-brand flex-row items-center justify-between px-5 pb-4 pt-16 rounded-b-[20px]">
           <TouchableOpacity onPress={onClose}>
             <Text className="text-[#A8D5A2] text-sm font-medium">Cancel</Text>
           </TouchableOpacity>
@@ -641,7 +648,7 @@ function EditCopyModal({ copy, onClose, onSaved }: { copy: import('../../../src/
   return (
     <Modal visible={!!copy} animationType="slide" presentationStyle="pageSheet">
       <View className="flex-1 bg-bio">
-        <View className="bg-brand flex-row items-center justify-between px-5 pb-4 pt-5 rounded-b-[20px]">
+        <View className="bg-brand flex-row items-center justify-between px-5 pb-4 pt-16 rounded-b-[20px]">
           <TouchableOpacity onPress={onClose}>
             <Text className="text-[#A8D5A2] text-sm font-medium">Cancel</Text>
           </TouchableOpacity>

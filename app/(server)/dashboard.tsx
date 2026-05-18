@@ -104,7 +104,7 @@ export default function DashboardScreen() {
 
     const attendanceData: BarItem[] = attendance.map((m) => ({
         label: m.label,
-        primary: m.unique_visitors,
+        primary: m.total_visits,
     }))
 
     const topBooks = mostBorrowed.filter((b) => b.borrow_count > 0).slice(0, 5)
@@ -259,7 +259,7 @@ export default function DashboardScreen() {
                         <Text className='text-base font-bold text-[#1C2B1E]'>Monthly Attendance</Text>
                         <LegendDot color='#0F766E' label='Visitors' />
                     </View>
-                    <Text className='text-xs text-[#7A9A7E] mb-3'>Unique gate entries per month</Text>
+                    <Text className='text-xs text-[#7A9A7E] mb-3'>Total gate entries per month</Text>
                     {attendanceData.length > 0 ? (
                         <BarChart data={attendanceData} width={chartWidth} height={120} primaryColor='#0F766E' />
                     ) : (
