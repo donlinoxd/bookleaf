@@ -414,7 +414,7 @@ export default function AiChatScreen() {
                             style={{ elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 3 }}
                         >
                             <ActivityIndicator size='small' color='#5CB85C' />
-                            <Text className='text-[13px] text-[#64748B]'>{LOADING_WORDS[loadingWordIndex]}…</Text>
+                            <Text className='text-[11px] text-[#64748B]'>{LOADING_WORDS[loadingWordIndex]}…</Text>
                         </View>
                     </View>
                 )}
