@@ -27,6 +27,7 @@ export default function ScanScreen() {
   const institution = useAppStore((s) => s.institution);
   const [permission, requestPermission] = useCameraPermissions();
 
+  const [cameraKey, setCameraKey] = useState(0);
   const [phase, setPhase] = useState<Phase>('scanning');
   const [action, setAction] = useState<ActionMode>('view');
   const [scannedIsbn, setScannedIsbn] = useState('');
@@ -50,6 +51,7 @@ export default function ScanScreen() {
   }, []);
 
   useFocusEffect(useCallback(() => {
+    setCameraKey(k => k + 1);
     return () => reset();
   }, [reset]));
 
@@ -137,21 +139,21 @@ export default function ScanScreen() {
       <StatusBar barStyle="light-content" backgroundColor="#000" />
 
       <CameraView
+        key={cameraKey}
         style={{ flex: 1 }}
         barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'qr'] }}
         onBarcodeScanned={phase === 'scanning' ? handleBarcodeScan : undefined}
-      >
-        {/* Scanning frame overlay */}
-        {phase === 'scanning' && (
-          <View className="flex-1 items-center justify-center">
-            <View className="absolute inset-0 bg-black/[0.45]" />
-            <View className="w-[260px] h-[120px] border-2 border-leaf rounded-xl" />
-            <Text className="text-white text-[14px] font-medium mt-5">
-              Point at a barcode or QR code
-            </Text>
-          </View>
-        )}
-      </CameraView>
+      />
+
+      {phase === 'scanning' && (
+        <View className="absolute inset-0 items-center justify-center" pointerEvents="none">
+          <View className="absolute inset-0 bg-black/[0.45]" />
+          <View className="w-[260px] h-[120px] border-2 border-leaf rounded-xl" />
+          <Text className="text-white text-[14px] font-medium mt-5">
+            Point at a barcode or QR code
+          </Text>
+        </View>
+      )}
 
       {/* Resolving spinner */}
       {phase === 'resolving' && (
