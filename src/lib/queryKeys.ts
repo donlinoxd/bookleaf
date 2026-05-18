@@ -41,4 +41,12 @@ export const queryKeys = {
   authoritySearch: (institutionId: number, query: string) => ['authority', institutionId, 'search', query] as const,
   reservations: (institutionId: number) => ['reservations', institutionId] as const,
   userReservations: (userId: number) => ['reservations', 'user', userId] as const,
+  recentlyAdded: () => ['books', 'recent'] as const,
+  popular: () => ['books', 'popular'] as const,
+  bookDetail: (id: number) => ['book', 'detail', id] as const,
+  similarBooks: (id: number) => ['book', 'similar', id] as const,
+  bookReviews: (id: number) => ['book', 'reviews', id] as const,
+  favoriteStatus: (resourceId: number, idNumber: string) => ['favorite', resourceId, idNumber] as const,
+  memberFavorites: (idNumber: string) => ['favorites', idNumber] as const,
+  memberReservations: (idNumber: string) => ['reservations', 'member', idNumber] as const,
 };

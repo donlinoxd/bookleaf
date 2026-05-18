@@ -125,6 +125,26 @@ export interface Reservation {
   available_copies?: number;
 }
 
+export interface Favorite {
+  id: number;
+  user_id: number;
+  resource_id: number;
+  created_at: string;
+  book_title?: string;
+  book_author?: string;
+  available_copies?: number;
+}
+
+export interface Review {
+  id: number;
+  user_id: number;
+  resource_id: number;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+  member_name?: string;
+}
+
 export interface Fine {
   id: number;
   borrowing_id: number;

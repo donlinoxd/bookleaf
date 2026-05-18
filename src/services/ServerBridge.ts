@@ -30,6 +30,54 @@ async function handleQuery(requestId: number, action: string, params: Record<str
       case 'getMemberBorrows':
         data = await ApiServer.getMemberBorrows(params.idNumber as string);
         break;
+      case 'getRecentlyAdded':
+        data = await ApiServer.getRecentlyAdded(institutionId, (params.limit as number) || 10);
+        break;
+      case 'getPopular':
+        data = await ApiServer.getPopular(institutionId, (params.limit as number) || 10);
+        break;
+      case 'renewBorrow':
+        data = await ApiServer.renewBorrow(params.borrowingId as number, params.idNumber as string);
+        break;
+      case 'reserveBook':
+        data = await ApiServer.reserveBook(params.resourceId as number, params.idNumber as string);
+        break;
+      case 'getMemberReservations':
+        data = await ApiServer.getMemberReservations(params.idNumber as string);
+        break;
+      case 'searchBooksFiltered':
+        data = await ApiServer.searchBooksFiltered(
+          institutionId,
+          (params.query as string) || '',
+          params.materialType as string | undefined,
+          params.yearFrom as number | undefined,
+          params.yearTo as number | undefined,
+          params.language as string | undefined,
+        );
+        break;
+      case 'getSimilarBooks':
+        data = await ApiServer.getSimilarBooks(params.resourceId as number);
+        break;
+      case 'toggleFavorite':
+        data = await ApiServer.toggleFavorite(params.resourceId as number, params.idNumber as string);
+        break;
+      case 'getFavoriteStatus':
+        data = await ApiServer.getFavoriteStatus(params.resourceId as number, params.idNumber as string);
+        break;
+      case 'getMemberFavorites':
+        data = await ApiServer.getMemberFavorites(params.idNumber as string);
+        break;
+      case 'getBookReviews':
+        data = await ApiServer.getBookReviews(params.resourceId as number);
+        break;
+      case 'submitReview':
+        data = await ApiServer.submitReview(
+          params.resourceId as number,
+          params.idNumber as string,
+          params.rating as number,
+          (params.comment as string) || null,
+        );
+        break;
       case 'gateLogByIdNumber':
         data = await ApiServer.gateLogByIdNumber(
           params.idNumber as string,

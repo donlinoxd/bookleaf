@@ -146,9 +146,32 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { ok: true, timestamp: new Date().toISOString() });
     }
 
-    // GET /api/books?q=<query>
+    // GET /api/books?q=&type=&yearFrom=&yearTo=&language=
     if (req.method === 'GET' && path === '/api/books') {
-      const data = await queryRN(query.q ? 'searchBooks' : 'getAllBooks', { q: query.q || '' });
+      const hasFilters = query.type || query.yearFrom || query.yearTo || query.language;
+      if (hasFilters || query.q) {
+        const data = await queryRN('searchBooksFiltered', {
+          query: query.q || '',
+          materialType: query.type || undefined,
+          yearFrom: query.yearFrom ? parseInt(query.yearFrom) : undefined,
+          yearTo: query.yearTo ? parseInt(query.yearTo) : undefined,
+          language: query.language || undefined,
+        });
+        return send(res, 200, data);
+      }
+      const data = await queryRN('getAllBooks', {});
+      return send(res, 200, data);
+    }
+
+    // GET /api/books/recent
+    if (req.method === 'GET' && path === '/api/books/recent') {
+      const data = await queryRN('getRecentlyAdded', { limit: parseInt(query.limit) || 10 });
+      return send(res, 200, data);
+    }
+
+    // GET /api/books/popular
+    if (req.method === 'GET' && path === '/api/books/popular') {
+      const data = await queryRN('getPopular', { limit: parseInt(query.limit) || 10 });
       return send(res, 200, data);
     }
 
@@ -160,11 +183,107 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, data);
     }
 
+    // GET /api/books/:id/similar
+    const similarMatch = path.match(/^\/api\/books\/(\d+)\/similar$/);
+    if (req.method === 'GET' && similarMatch) {
+      const data = await queryRN('getSimilarBooks', { resourceId: parseInt(similarMatch[1]) });
+      return send(res, 200, data);
+    }
+
+    // GET /api/books/:id/reviews
+    const reviewsGetMatch = path.match(/^\/api\/books\/(\d+)\/reviews$/);
+    if (req.method === 'GET' && reviewsGetMatch) {
+      const data = await queryRN('getBookReviews', { resourceId: parseInt(reviewsGetMatch[1]) });
+      return send(res, 200, data);
+    }
+
+    // POST /api/books/:id/reviews
+    const reviewsPostMatch = path.match(/^\/api\/books\/(\d+)\/reviews$/);
+    if (req.method === 'POST' && reviewsPostMatch) {
+      const body = await readBody(req);
+      let idNumber, rating, comment;
+      try { ({ idNumber, rating, comment } = JSON.parse(body)); } catch { return send(res, 400, { error: 'Invalid body' }); }
+      try {
+        const data = await queryRN('submitReview', { resourceId: parseInt(reviewsPostMatch[1]), idNumber, rating, comment: comment || null });
+        return send(res, 200, data);
+      } catch (e) {
+        return send(res, 400, { error: e.message });
+      }
+    }
+
+    // GET /api/books/:id/favorite?idNumber=
+    const favGetMatch = path.match(/^\/api\/books\/(\d+)\/favorite$/);
+    if (req.method === 'GET' && favGetMatch) {
+      if (!query.idNumber) return send(res, 400, { error: 'idNumber required' });
+      const data = await queryRN('getFavoriteStatus', { resourceId: parseInt(favGetMatch[1]), idNumber: query.idNumber });
+      return send(res, 200, data);
+    }
+
+    // POST /api/books/:id/favorite
+    const favPostMatch = path.match(/^\/api\/books\/(\d+)\/favorite$/);
+    if (req.method === 'POST' && favPostMatch) {
+      const body = await readBody(req);
+      let idNumber;
+      try { ({ idNumber } = JSON.parse(body)); } catch { return send(res, 400, { error: 'Invalid body' }); }
+      try {
+        const data = await queryRN('toggleFavorite', { resourceId: parseInt(favPostMatch[1]), idNumber });
+        return send(res, 200, data);
+      } catch (e) {
+        return send(res, 400, { error: e.message });
+      }
+    }
+
+    // POST /api/books/:id/reserve
+    const reserveMatch = path.match(/^\/api\/books\/(\d+)\/reserve$/);
+    if (req.method === 'POST' && reserveMatch) {
+      const body = await readBody(req);
+      let idNumber;
+      try { ({ idNumber } = JSON.parse(body)); } catch { return send(res, 400, { error: 'Invalid body' }); }
+      try {
+        const data = await queryRN('reserveBook', { resourceId: parseInt(reserveMatch[1]), idNumber });
+        return send(res, 200, data);
+      } catch (e) {
+        return send(res, 400, { error: e.message });
+      }
+    }
+
+    // POST /api/borrows/:id/renew
+    const renewMatch = path.match(/^\/api\/borrows\/(\d+)\/renew$/);
+    if (req.method === 'POST' && renewMatch) {
+      const body = await readBody(req);
+      let idNumber;
+      try { ({ idNumber } = JSON.parse(body)); } catch { return send(res, 400, { error: 'Invalid body' }); }
+      try {
+        const data = await queryRN('renewBorrow', { borrowingId: parseInt(renewMatch[1]), idNumber });
+        return send(res, 200, data);
+      } catch (e) {
+        return send(res, 400, { error: e.message });
+      }
+    }
+
     // GET /api/members/:idNumber/borrows
     const memberMatch = path.match(/^\/api\/members\/([^/]+)\/borrows$/);
     if (req.method === 'GET' && memberMatch) {
       const idNumber = decodeURIComponent(memberMatch[1]);
       const data = await queryRN('getMemberBorrows', { idNumber });
+      if (!data) return send(res, 404, { error: 'Member not found' });
+      return send(res, 200, data);
+    }
+
+    // GET /api/members/:idNumber/reservations
+    const reservationsMatch = path.match(/^\/api\/members\/([^/]+)\/reservations$/);
+    if (req.method === 'GET' && reservationsMatch) {
+      const idNumber = decodeURIComponent(reservationsMatch[1]);
+      const data = await queryRN('getMemberReservations', { idNumber });
+      if (!data) return send(res, 404, { error: 'Member not found' });
+      return send(res, 200, data);
+    }
+
+    // GET /api/members/:idNumber/favorites
+    const favoritesMatch = path.match(/^\/api\/members\/([^/]+)\/favorites$/);
+    if (req.method === 'GET' && favoritesMatch) {
+      const idNumber = decodeURIComponent(favoritesMatch[1]);
+      const data = await queryRN('getMemberFavorites', { idNumber });
       if (!data) return send(res, 404, { error: 'Member not found' });
       return send(res, 200, data);
     }

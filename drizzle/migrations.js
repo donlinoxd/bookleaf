@@ -9,6 +9,8 @@ import m0004 from './0004_patron_fields.sql';
 import m0005 from './0005_copy_holdings.sql';
 import m0006 from './0006_authority_subjects.sql';
 import m0007 from './0007_renewals_grace.sql';
+import m0008 from './0008_favorites.sql';
+import m0009 from './0009_reviews.sql';
 
   export default {
     journal,
@@ -21,5 +23,7 @@ import m0007 from './0007_renewals_grace.sql';
       m0005,
       m0006,
       m0007,
+      m0008,
+      m0009,
     }
   }

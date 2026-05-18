@@ -137,6 +137,22 @@ export const gateLogs = sqliteTable('gate_logs', {
   logged_at: text('logged_at').notNull().default(sql`(datetime('now'))`),
 });
 
+export const favorites = sqliteTable('favorites', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  user_id: integer('user_id').notNull().references(() => users.id),
+  resource_id: integer('resource_id').notNull().references(() => resources.id),
+  created_at: text('created_at').notNull().default(sql`(datetime('now'))`),
+});
+
+export const reviews = sqliteTable('reviews', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  user_id: integer('user_id').notNull().references(() => users.id),
+  resource_id: integer('resource_id').notNull().references(() => resources.id),
+  rating: integer('rating').notNull(),
+  comment: text('comment'),
+  created_at: text('created_at').notNull().default(sql`(datetime('now'))`),
+});
+
 export const settings = sqliteTable('settings', {
   key: text('key').primaryKey(),
   value: text('value').notNull(),

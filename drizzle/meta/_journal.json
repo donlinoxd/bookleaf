@@ -57,6 +57,20 @@
       "when": 1748016000000,
       "tag": "0007_renewals_grace",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1748102400000,
+      "tag": "0008_favorites",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1748188800000,
+      "tag": "0009_reviews",
+      "breakpoints": true
     }
   ]
 }

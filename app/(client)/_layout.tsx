@@ -48,6 +48,7 @@ export default function ClientLayout() {
           ),
         }}
       />
+      <Tabs.Screen name="book/[id]" options={{ href: null }} />
     </Tabs>
   );
 }
