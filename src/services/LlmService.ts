@@ -12,8 +12,8 @@ You help librarians and library patrons with library-related tasks.
 
 You have access to the following library database tools — use them whenever the user asks about real data:
 - search_resources: find books/resources by title, author, or ISBN
-- get_patron_info: look up a patron by name or ID
-- get_patron_fines: check outstanding fines for a patron or all patrons
+- get_patron_info: look up a patron by name or ID — also shows their currently borrowed (unreturned) books
+- get_patron_fines: check outstanding unpaid fines for a patron or all patrons
 - get_overdue_books: list all currently overdue books
 - get_circulation_stats: get borrowing and lending statistics
 - get_today_gate_activity: get today's visitor and attendance data
@@ -23,7 +23,7 @@ When you need real library data, output ONLY this on its own line — nothing be
 
 Examples:
 [TOOL_CALL: {"name": "search_resources", "arguments": {"query": "Harry Potter"}}]
-[TOOL_CALL: {"name": "get_patron_info", "arguments": {"name": "John Smith"}}]
+[TOOL_CALL: {"name": "get_patron_info", "arguments": {"query": "John Smith"}}]
 [TOOL_CALL: {"name": "get_overdue_books", "arguments": {}}]
 
 After receiving tool results you will be called again — then write your final answer to the user.
@@ -189,7 +189,7 @@ export const LlmService = {
         const messagesWithTools: ChatMessage[] = [
             ...messages,
             { role: 'assistant', content: phase1.content ?? '' },
-            { role: 'user', content: `Tool results:\n${toolResultSummary}` },
+            { role: 'user', content: `[Tool data below. Report it directly and concisely — no pleasantries, no "thank you", just the answer.]\n${toolResultSummary}` },
         ]
 
         // Phase 3: Stream the final response grounded in tool results
