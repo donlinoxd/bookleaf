@@ -1,6 +1,6 @@
 import * as FileSystem from 'expo-file-system/legacy'
 import { initLlama, LlamaContext } from 'llama.rn'
-import { executeTool, isOffTopic, TOOL_DEFINITIONS } from './LibraryTools'
+import { executeTool, isOffTopic, routeTools, TOOL_DEFINITIONS } from './LibraryTools'
 
 const MODEL_DIR = `${FileSystem.documentDirectory}models/`
 const MODEL_FILE = 'gemma-2-2b-it-Q4_K_M.gguf'
@@ -56,6 +56,23 @@ export const TOOL_LABELS: Record<string, string> = {
     get_top_borrowers: 'Loading top borrowers…',
     get_most_borrowed: 'Fetching popular books…',
     get_collection_overview: 'Loading collection stats…',
+    get_resource_borrowers: 'Finding current borrowers…',
+    check_patron_eligibility: 'Checking eligibility…',
+    get_patron_stats: 'Loading patron statistics…',
+    get_monthly_trends: 'Loading monthly trends…',
+    get_collection_by_type: 'Loading collection by type…',
+    get_gate_logs_by_date: 'Fetching gate logs…',
+    get_resource_copies: 'Loading copy details…',
+    get_resource_history: 'Loading resource history…',
+    get_resource_reservations: 'Fetching reservation queue…',
+    get_condition_summary: 'Checking copy conditions…',
+    get_collection_by_year: 'Loading collection by year…',
+    get_new_registrations: 'Loading registration trends…',
+    get_attendance_trends: 'Loading attendance trends…',
+    get_detailed_circulation: 'Loading circulation summary…',
+    get_patron_location: 'Checking patron location…',
+    get_inventory_status: 'Checking inventory status…',
+    get_inventory_sessions: 'Loading inventory sessions…',
 }
 
 const COMPLETION_PARAMS = {
@@ -117,7 +134,7 @@ export const LlmService = {
         ctx = await initLlama({
             model: path,
             use_mlock: true,
-            n_ctx: 2048,
+            n_ctx: 4096,
             n_gpu_layers: 0,
         })
     },
@@ -141,9 +158,11 @@ export const LlmService = {
         console.log('Chat input messages:', messages)
 
         // Phase 1: Let the model decide whether to call tools (non-streaming)
+        // Route to a focused tool subset so schemas don't eat the context window.
+        const routedTools = lastUserMsg ? routeTools(lastUserMsg.content) : TOOL_DEFINITIONS
         const phase1 = await (ctx as any).completion({
             messages,
-            tools: TOOL_DEFINITIONS,
+            tools: routedTools,
             tool_choice: 'auto',
             ...COMPLETION_PARAMS,
         })
