@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import {
     ActivityIndicator,
+    Image,
     Keyboard,
     KeyboardAvoidingView,
     Platform,
@@ -16,6 +17,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ChatMessage, LlmService, SYSTEM_PROMPT, TOOL_LABELS } from '../../src/services/LlmService'
 import { useAppStore } from '../../src/store/appStore'
+
+import MASCOT from '../../assets/images/leaf-listening.png'
 
 const LOADING_WORDS = ['Thinking', 'Reading', 'Searching', 'Leafing', 'Browsing', 'Scanning', 'Checking', 'Indexing', 'Sorting', 'Fetching']
 
@@ -192,14 +195,6 @@ export default function AiChatScreen() {
                     <View className='bg-mint rounded-[18px] p-4 mt-8 w-full gap-[10px]'>
                         <View className='flex-row items-center gap-3'>
                             <View className='w-8 h-8 rounded-full bg-white items-center justify-center'>
-                                <Ionicons name='cube-outline' size={16} color='#2A5C33' />
-                            </View>
-                            <Text className='text-[13px] text-[#1E293B]'>
-                                Model: <Text className='font-semibold'>Gemma 2 2B (Q4_K_M)</Text>
-                            </Text>
-                        </View>
-                        <View className='flex-row items-center gap-3'>
-                            <View className='w-8 h-8 rounded-full bg-white items-center justify-center'>
                                 <Ionicons name='download-outline' size={16} color='#2A5C33' />
                             </View>
                             <Text className='text-[13px] text-[#1E293B]'>
@@ -242,7 +237,7 @@ export default function AiChatScreen() {
                 <View className='w-20 h-20 rounded-full bg-mint items-center justify-center'>
                     <Ionicons name='cloud-download-outline' size={40} color='#5CB85C' />
                 </View>
-                <Text className='text-[22px] font-extrabold text-brand mt-5'>Downloading Model</Text>
+                <Text className='text-[22px] font-extrabold text-brand mt-5'>Downloading Leaf - Your AI Library Assistant</Text>
                 <Text className='text-[14px] text-[#64748B] mt-[6px]'>{downloaded} GB of ~1.5 GB</Text>
 
                 <View className='w-full h-2 bg-mint-dark rounded mt-7'>
@@ -259,7 +254,7 @@ export default function AiChatScreen() {
             <View className='flex-1 justify-center items-center bg-bio'>
                 <StatusBar barStyle='light-content' backgroundColor='#2A5C33' />
                 <ActivityIndicator size='large' color='#5CB85C' />
-                <Text className='text-[15px] text-[#64748B] mt-4'>Loading model into memory…</Text>
+                <Text className='text-[15px] text-[#64748B] mt-4'>Leaf is loading into memory…</Text>
                 <Text className='text-[12px] text-[#94A3B8] mt-[6px]'>This may take a few seconds.</Text>
             </View>
         )
@@ -335,7 +330,7 @@ export default function AiChatScreen() {
                     </View>
                     <View className='flex-1'>
                         <Text className='text-base font-extrabold text-white'>Leaf AI</Text>
-                        <Text className='text-[11px] text-white/60'>On-device · Gemma 2 2B</Text>
+                        <Text className='text-[11px] text-white/60'>Your AI Library Assistant</Text>
                     </View>
                     {messages.length > 0 && (
                         <TouchableOpacity
@@ -366,10 +361,10 @@ export default function AiChatScreen() {
             >
                 {displayMessages.length === 0 && (
                     <View className='items-center mt-[60px] px-6'>
-                        <View className='w-16 h-16 rounded-full bg-mint items-center justify-center'>
-                            <Ionicons name='chatbubbles-outline' size={32} color='#5CB85C' />
+                        <View className='w-32 h-32 rounded-full items-center justify-center'>
+                            <Image source={MASCOT} className='w-32 h-32 -mb-2' resizeMode='contain' />
                         </View>
-                        <Text className='text-brand mt-[14px] text-[15px] font-semibold text-center'>Ask me anything</Text>
+                        <Text className='text-brand mt-[14px] text-[15px] font-semibold text-center'>Ask Leaf anything</Text>
                         <Text className='text-[#94A3B8] mt-[6px] text-[13px] text-center leading-[20px]'>Books, members, borrowing, reports…</Text>
                     </View>
                 )}
@@ -428,7 +423,7 @@ export default function AiChatScreen() {
                             style={{ elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 3 }}
                         >
                             <ActivityIndicator size='small' color='#5CB85C' />
-                            <Text className='text-[13px] text-[#64748B]'>{toolStatus}</Text>
+                            <Text className='text-[11px] text-[#64748B]'>{toolStatus}</Text>
                         </View>
                     </View>
                 )}
