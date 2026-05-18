@@ -137,21 +137,21 @@ export default function ScanScreen() {
       <StatusBar barStyle="light-content" backgroundColor="#000" />
 
       <CameraView
-        className="flex-1"
+        style={{ flex: 1 }}
         barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'qr'] }}
         onBarcodeScanned={phase === 'scanning' ? handleBarcodeScan : undefined}
-      />
-
-      {/* Scanning frame overlay */}
-      {phase === 'scanning' && (
-        <View className="absolute inset-0 items-center justify-center">
-          <View className="absolute inset-0 bg-black/[0.45]" />
-          <View className="w-[260px] h-[120px] border-2 border-leaf rounded-xl" />
-          <Text className="text-white text-[14px] font-medium mt-5">
-            Point at a barcode or QR code
-          </Text>
-        </View>
-      )}
+      >
+        {/* Scanning frame overlay */}
+        {phase === 'scanning' && (
+          <View className="flex-1 items-center justify-center">
+            <View className="absolute inset-0 bg-black/[0.45]" />
+            <View className="w-[260px] h-[120px] border-2 border-leaf rounded-xl" />
+            <Text className="text-white text-[14px] font-medium mt-5">
+              Point at a barcode or QR code
+            </Text>
+          </View>
+        )}
+      </CameraView>
 
       {/* Resolving spinner */}
       {phase === 'resolving' && (
