@@ -5,6 +5,7 @@ import { Alert, ScrollView, StatusBar, Text, TextInput, TouchableOpacity, View }
 import { ServerStatusCard } from '../../src/components/common/ServerStatusCard'
 import { queryKeys } from '../../src/lib/queryKeys'
 import { BackupService } from '../../src/services/BackupService'
+import { seedDummyData } from '../../src/db/seedDummy'
 import { SettingsService } from '../../src/services/SettingsService'
 import { useAppStore } from '../../src/store/appStore'
 import { Settings } from '../../src/types'
@@ -17,6 +18,7 @@ export default function SettingsScreen() {
     const [saving, setSaving] = useState(false)
     const [exporting, setExporting] = useState(false)
     const [importing, setImporting] = useState(false)
+    const [seeding, setSeeding] = useState(false)
 
     useEffect(() => {
         if (saved) setForm(saved)
@@ -53,6 +55,31 @@ export default function SettingsScreen() {
         } finally {
             setExporting(false)
         }
+    }
+
+    const handleSeedDummy = () => {
+        Alert.alert(
+            'Load Demo Data',
+            'This will insert 19 users, 20 resources, 44 copies, borrowing records, fines, gate logs, and more. All demo accounts use PIN 1234. Continue?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Load',
+                    onPress: async () => {
+                        setSeeding(true)
+                        try {
+                            await seedDummyData()
+                            await queryClient.invalidateQueries()
+                            Alert.alert('Done', 'Demo data loaded successfully. All accounts use PIN: 1234')
+                        } catch (e) {
+                            Alert.alert('Error', e instanceof Error ? e.message : 'Failed to seed data.')
+                        } finally {
+                            setSeeding(false)
+                        }
+                    },
+                },
+            ],
+        )
     }
 
     const handleImport = () => {
@@ -198,6 +225,15 @@ export default function SettingsScreen() {
                     >
                         <Ionicons name='cloud-download-outline' size={18} color='#C2410C' />
                         <Text className='text-orange-700 font-bold'>{importing ? 'Restoring…' : 'Restore from Backup'}</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        className='bg-violet-50 border border-violet-200 rounded-xl py-3.5 flex-row items-center justify-center gap-2'
+                        onPress={handleSeedDummy}
+                        disabled={seeding}
+                    >
+                        <Ionicons name='flask-outline' size={18} color='#7C3AED' />
+                        <Text className='text-violet-700 font-bold'>{seeding ? 'Loading…' : 'Load Demo Data'}</Text>
                     </TouchableOpacity>
                 </View>
             </View>
