@@ -14,7 +14,7 @@ import { PatronReportService } from '../../src/services/PatronReportService'
 import { ReportService } from '../../src/services/ReportService'
 import { useAppStore } from '../../src/store/appStore'
 
-import MASCOT from '../../assets/images/bookleaf-mascot.png'
+import MASCOT from '../../assets/images/leaf-welcome.png'
 
 const CARD_SHADOW = {
     elevation: 2,
@@ -117,7 +117,7 @@ export default function DashboardScreen() {
     }
 
     return (
-        <ScrollView className='flex-1 bg-bio' contentContainerStyle={{ paddingBottom: 110 }}>
+        <ScrollView className='flex-1 bg-bio' contentContainerStyle={{ paddingBottom: 150 }}>
             <StatusBar barStyle='light-content' backgroundColor='#2A5C33' />
 
             {/* Header */}
@@ -129,11 +129,11 @@ export default function DashboardScreen() {
                         <Text className='text-sm text-[#A8D5A2] mt-0.5 font-medium'>{settings?.institution_name}</Text>
                     </View>
                     <View className='items-start flex-row gap-2'>
-                        <Image source={MASCOT} className='w-24 h-24 -mb-2' resizeMode='contain' />
+                        <TouchableOpacity onPress={() => router.push('/(server)/ai-chat')} hitSlop={8}>
+                            <Image source={MASCOT} className='w-24 h-24 -mb-2' resizeMode='contain' />
+                        </TouchableOpacity>
+
                         <View className='gap-2'>
-                            <TouchableOpacity onPress={() => router.push('/(server)/ai-chat')} hitSlop={8}>
-                                <Ionicons name='sparkles' size={22} color='#A8D5A2' />
-                            </TouchableOpacity>
                             {isAdmin && (
                                 <TouchableOpacity onPress={() => router.push('/(server)/settings')} hitSlop={8}>
                                     <Ionicons name='settings-outline' size={22} color='#A8D5A2' />
