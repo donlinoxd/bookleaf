@@ -9,6 +9,8 @@ import { IsbnLookupService } from '../../../src/services/IsbnLookupService'
 import { ResourceService } from '../../../src/services/ResourceService'
 import { useAppStore } from '../../../src/store/appStore'
 import { CallNumberType, MaterialType } from '../../../src/types'
+import { SubjectHeadingsInput } from '../../../src/components/cataloging/SubjectHeadingsInput'
+import { AuthorityPicker } from '../../../src/components/cataloging/AuthorityPicker'
 
 const CALL_NUMBER_TYPES: CallNumberType[] = ['DEWEY', 'LC', 'OTHER']
 
@@ -48,6 +50,10 @@ export default function AddResourceScreen() {
     const [mediaType, setMediaType] = useState('')
     const [carrierType, setCarrierType] = useState('')
     const [loanPeriodDays, setLoanPeriodDays] = useState('')
+    const [issn, setIssn] = useState('')
+    const [subjectHeadings, setSubjectHeadings] = useState<string[]>([])
+    const [authorAuthorityId, setAuthorAuthorityId] = useState<number | null>(null)
+    const [authorAuthorityName, setAuthorAuthorityName] = useState('')
 
     // Cover + lookup state
     const [coverUri, setCoverUri] = useState<string | null>(null)
@@ -113,6 +119,10 @@ export default function AddResourceScreen() {
         setCoverUri(null)
         setAutoFilled(false)
         setRdaMode(false)
+        setIssn('')
+        setSubjectHeadings([])
+        setAuthorAuthorityId(null)
+        setAuthorAuthorityName('')
     }
 
     const createMutation = useMutation({
@@ -143,6 +153,9 @@ export default function AddResourceScreen() {
                 content_type: contentType.trim() || null,
                 media_type: mediaType.trim() || null,
                 carrier_type: carrierType.trim() || null,
+                issn: issn.trim() || null,
+                subject_headings: subjectHeadings.length > 0 ? subjectHeadings : null,
+                author_authority_id: authorAuthorityId,
                 is_loanable: isLoanable,
                 loan_period_days: loanPeriodDays.trim() ? parseInt(loanPeriodDays.trim()) : null,
                 total_copies: copyCount,
@@ -358,6 +371,13 @@ export default function AddResourceScreen() {
                             placeholder='Author / Creator *'
                             placeholderTextColor='#94A3B8'
                         />
+                        <AuthorityPicker
+                            institutionId={institution!.id}
+                            selectedId={authorAuthorityId}
+                            selectedName={authorAuthorityName}
+                            onSelect={(id, name) => { setAuthorAuthorityId(id); setAuthorAuthorityName(name) }}
+                            onClear={() => { setAuthorAuthorityId(null); setAuthorAuthorityName('') }}
+                        />
                         <TextInput
                             className='bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]'
                             value={publisher}
@@ -398,6 +418,17 @@ export default function AddResourceScreen() {
                     {rdaMode && (
                         <>
                             <FormSection label='Bibliographic Details'>
+                                {(materialType === 'SERIAL' || materialType === 'ARTICLE') && (
+                                    <TextInput
+                                        className='bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]'
+                                        value={issn}
+                                        onChangeText={setIssn}
+                                        placeholder='ISSN (e.g. 1234-5678)'
+                                        placeholderTextColor='#94A3B8'
+                                        autoCapitalize='none'
+                                        keyboardType='numbers-and-punctuation'
+                                    />
+                                )}
                                 <TextInput
                                     className='bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]'
                                     value={subtitle}
@@ -474,6 +505,10 @@ export default function AddResourceScreen() {
                             </FormSection>
 
                             <FormSection label='Classification'>
+                                <SubjectHeadingsInput
+                                    headings={subjectHeadings}
+                                    onChange={setSubjectHeadings}
+                                />
                                 <TextInput
                                     className='bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]'
                                     value={callNumber}

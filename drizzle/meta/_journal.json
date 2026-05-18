@@ -36,6 +36,20 @@
       "when": 1778198400000,
       "tag": "0004_patron_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1747843200000,
+      "tag": "0005_copy_holdings",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1747929600000,
+      "tag": "0006_authority_subjects",
+      "breakpoints": true
     }
   ]
 }

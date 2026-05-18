@@ -23,6 +23,15 @@ export const users = sqliteTable('users', {
   user_type: text('user_type', { enum: ['student', 'faculty', 'alumni', 'external'] }),
 });
 
+export const authorityNames = sqliteTable('authority_names', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  institution_id: integer('institution_id').notNull().references(() => institutions.id),
+  name: text('name').notNull(),
+  name_type: text('name_type', { enum: ['personal', 'corporate', 'geographic'] }).notNull().default('personal'),
+  variants: text('variants'),
+  created_at: text('created_at').notNull().default(sql`(datetime('now'))`),
+});
+
 export const resources = sqliteTable('resources', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   institution_id: integer('institution_id').notNull().references(() => institutions.id),
@@ -31,6 +40,7 @@ export const resources = sqliteTable('resources', {
   }).notNull().default('BOOK'),
   // Core bibliographic fields
   isbn: text('isbn'),
+  issn: text('issn'),
   title: text('title').notNull(),
   author: text('author').notNull(),
   publisher: text('publisher'),
@@ -53,6 +63,8 @@ export const resources = sqliteTable('resources', {
   content_type: text('content_type'),
   media_type: text('media_type'),
   carrier_type: text('carrier_type'),
+  subject_headings: text('subject_headings'),
+  author_authority_id: integer('author_authority_id').references(() => authorityNames.id),
   // Lending rules
   is_loanable: integer('is_loanable', { mode: 'boolean' }).notNull().default(true),
   loan_period_days: integer('loan_period_days'),
@@ -68,6 +80,9 @@ export const resourceCopies = sqliteTable('resource_copies', {
   copy_number: integer('copy_number').notNull(),
   condition: text('condition', { enum: ['good', 'damaged', 'lost'] }).notNull().default('good'),
   status: text('status', { enum: ['available', 'borrowed', 'reserved'] }).notNull().default('available'),
+  barcode: text('barcode'),
+  shelf_location: text('shelf_location'),
+  accession_number: text('accession_number'),
 });
 
 export const borrowingRecords = sqliteTable('borrowing_records', {

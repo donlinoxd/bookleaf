@@ -3,32 +3,50 @@ import { db } from '../db';
 import { resources, resourceCopies } from '../db/schema';
 import { Resource, ResourceCopy } from '../types';
 
+function serializeSubjectHeadings(headings: string[] | null | undefined): string | null {
+  if (!headings || headings.length === 0) return null;
+  return JSON.stringify(headings);
+}
+
+function parseSubjectHeadings(raw: string | null | undefined): string[] | null {
+  if (!raw) return null;
+  try { return JSON.parse(raw) as string[]; } catch { return null; }
+}
+
+function mapRow(row: any): Resource {
+  return { ...row, subject_headings: parseSubjectHeadings(row.subject_headings) };
+}
+
 export const ResourceService = {
   async getAll(institutionId: number): Promise<Resource[]> {
-    return db.select().from(resources)
+    const rows = await db.select().from(resources)
       .where(eq(resources.institution_id, institutionId))
-      .orderBy(asc(resources.title)) as Promise<Resource[]>;
+      .orderBy(asc(resources.title));
+    return rows.map(mapRow);
   },
 
   async search(institutionId: number, query: string): Promise<Resource[]> {
     const q = `%${query}%`;
-    return db.select().from(resources)
+    const rows = await db.select().from(resources)
       .where(and(
         eq(resources.institution_id, institutionId),
         or(
           like(resources.title, q),
           like(resources.author, q),
           like(resources.isbn, q),
+          like(resources.issn, q),
           like(resources.genre, q),
+          like(resources.subject_headings, q),
           like(resources.material_type, q),
         )
       ))
-      .orderBy(asc(resources.title)) as Promise<Resource[]>;
+      .orderBy(asc(resources.title));
+    return rows.map(mapRow);
   },
 
   async getById(id: number): Promise<Resource | null> {
     const rows = await db.select().from(resources).where(eq(resources.id, id)).limit(1);
-    return (rows[0] ?? null) as Resource | null;
+    return rows[0] ? mapRow(rows[0]) : null;
   },
 
   async create(resource: Omit<Resource, 'id' | 'added_at' | 'available_copies'>): Promise<number> {
@@ -36,6 +54,7 @@ export const ResourceService = {
       institution_id: resource.institution_id,
       material_type: resource.material_type,
       isbn: resource.isbn ?? null,
+      issn: resource.issn ?? null,
       title: resource.title,
       author: resource.author,
       publisher: resource.publisher ?? null,
@@ -57,6 +76,8 @@ export const ResourceService = {
       content_type: resource.content_type ?? null,
       media_type: resource.media_type ?? null,
       carrier_type: resource.carrier_type ?? null,
+      subject_headings: serializeSubjectHeadings(resource.subject_headings),
+      author_authority_id: resource.author_authority_id ?? null,
       is_loanable: resource.is_loanable,
       loan_period_days: resource.loan_period_days ?? null,
       total_copies: resource.total_copies,
@@ -81,6 +102,7 @@ export const ResourceService = {
       description: data.description ?? null,
       cover_uri: data.cover_uri ?? null,
       isbn: data.isbn ?? null,
+      issn: data.issn ?? null,
       subtitle: data.subtitle ?? null,
       edition: data.edition ?? null,
       volume: data.volume ?? null,
@@ -95,6 +117,8 @@ export const ResourceService = {
       content_type: data.content_type ?? null,
       media_type: data.media_type ?? null,
       carrier_type: data.carrier_type ?? null,
+      subject_headings: serializeSubjectHeadings(data.subject_headings),
+      author_authority_id: data.author_authority_id ?? null,
       is_loanable: data.is_loanable,
       loan_period_days: data.loan_period_days ?? null,
     }).where(eq(resources.id, id));
@@ -124,5 +148,14 @@ export const ResourceService = {
       .where(and(eq(resourceCopies.resource_id, resourceId), eq(resourceCopies.status, 'available')))
       .limit(1);
     return (rows[0] ?? null) as ResourceCopy | null;
+  },
+
+  async updateCopy(copyId: number, data: { barcode?: string | null; shelf_location?: string | null; accession_number?: string | null; condition?: 'good' | 'damaged' | 'lost' }): Promise<void> {
+    await db.update(resourceCopies).set({
+      ...(data.barcode !== undefined && { barcode: data.barcode }),
+      ...(data.shelf_location !== undefined && { shelf_location: data.shelf_location }),
+      ...(data.accession_number !== undefined && { accession_number: data.accession_number }),
+      ...(data.condition !== undefined && { condition: data.condition }),
+    }).where(eq(resourceCopies.id, copyId));
   },
 };

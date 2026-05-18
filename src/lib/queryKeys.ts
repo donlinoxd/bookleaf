@@ -37,4 +37,6 @@ export const queryKeys = {
   patronByDepartment: (institutionId: number) => ['report', 'patron', 'byDepartment', institutionId] as const,
   patronRegistrations: (institutionId: number) => ['report', 'patron', 'registrations', institutionId] as const,
   patronAttendance: (institutionId: number) => ['report', 'patron', 'attendance', institutionId] as const,
+  authorityNames: (institutionId: number) => ['authority', institutionId] as const,
+  authoritySearch: (institutionId: number, query: string) => ['authority', institutionId, 'search', query] as const,
 };

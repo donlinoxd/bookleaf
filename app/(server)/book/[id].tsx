@@ -12,6 +12,8 @@ import { useAppStore } from '../../../src/store/appStore';
 import { Resource, MaterialType, CallNumberType } from '../../../src/types';
 import { queryKeys } from '../../../src/lib/queryKeys';
 import { MATERIAL_TYPE_META, MATERIAL_TYPES, IDENTIFIER_LABEL, CALL_NUMBER_TYPES } from '../../../src/lib/materialTypes';
+import { SubjectHeadingsInput } from '../../../src/components/cataloging/SubjectHeadingsInput';
+import { AuthorityPicker } from '../../../src/components/cataloging/AuthorityPicker';
 
 const CONDITION_COLOR: Record<string, string> = {
   good: '#16A34A', damaged: '#D97706', lost: '#DC2626',
@@ -29,6 +31,7 @@ export default function ResourceDetailScreen() {
   const resourceId = parseInt(id);
 
   const [editVisible, setEditVisible] = useState(false);
+  const [editCopy, setEditCopy] = useState<import('../../../src/types').ResourceCopy | null>(null);
 
   const { data: resource, isLoading } = useQuery({
     queryKey: queryKeys.resource(resourceId),
@@ -125,6 +128,12 @@ export default function ResourceDetailScreen() {
               <Text className="text-white font-extrabold text-base leading-5">{resource.title}</Text>
               {resource.subtitle ? <Text className="text-[#C8DFC5] text-xs mt-0.5 italic">{resource.subtitle}</Text> : null}
               <Text className="text-[#A8D5A2] text-sm mt-1">{resource.author}</Text>
+              {resource.author_authority_id ? (
+                <View className="flex-row items-center gap-1 mt-0.5">
+                  <Ionicons name="shield-checkmark-outline" size={11} color="#A8D5A2" />
+                  <Text className="text-[#A8D5A2] text-[10px]">Authority verified</Text>
+                </View>
+              ) : null}
               {resource.publisher ? <Text className="text-[#7A9A7E] text-xs mt-0.5">{resource.publisher}{resource.year ? ` · ${resource.year}` : ''}</Text> : null}
               {resource.genre ? (
                 <View className="self-start bg-[#1C3E23] rounded-md px-2 py-0.5 mt-1.5">
@@ -159,6 +168,7 @@ export default function ResourceDetailScreen() {
               {resource.series_title ? <DetailRow label="Series" value={resource.series_title} /> : null}
               {resource.language ? <DetailRow label="Language" value={resource.language} /> : null}
               {resource.isbn ? <DetailRow label={IDENTIFIER_LABEL[resource.material_type]} value={resource.isbn} /> : null}
+              {resource.issn ? <DetailRow label="ISSN" value={resource.issn} /> : null}
               {resource.doi ? <DetailRow label="DOI" value={resource.doi} /> : null}
               {resource.url ? <DetailRow label="URL" value={resource.url} /> : null}
               {resource.duration ? <DetailRow label="Duration" value={resource.duration} /> : null}
@@ -168,6 +178,18 @@ export default function ResourceDetailScreen() {
               {resource.content_type ? <DetailRow label="Content Type" value={resource.content_type} /> : null}
               {resource.media_type ? <DetailRow label="Media Type" value={resource.media_type} /> : null}
               {resource.carrier_type ? <DetailRow label="Carrier Type" value={resource.carrier_type} /> : null}
+              {resource.subject_headings && resource.subject_headings.length > 0 ? (
+                <View className="flex-row py-1.5 border-t border-[#F8F8F8]">
+                  <Text className="text-xs font-semibold text-[#7A9A7E] w-28">Subjects</Text>
+                  <View className="flex-1 flex-row flex-wrap gap-1.5">
+                    {resource.subject_headings.map((h) => (
+                      <View key={h} className="bg-mint rounded-md px-2 py-0.5">
+                        <Text className="text-[10px] font-semibold text-brand">{h}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ) : null}
             </Section>
           ) : resource.isbn ? (
             <Section title="Identifier">
@@ -184,14 +206,34 @@ export default function ResourceDetailScreen() {
               <Text className="text-sm text-[#94A3B8] text-center py-2">No copies yet</Text>
             ) : (
               copies.map((copy) => (
-                <View key={copy.id} className="flex-row items-center gap-2 py-2.5 border-t border-[#F1F5F9]">
-                  <Text className="text-sm text-[#374151] flex-1">Copy #{copy.copy_number}</Text>
-                  <View className="rounded-md px-2.5 py-1" style={{ backgroundColor: STATUS_COLOR[copy.status] + '20' }}>
-                    <Text className="text-xs font-semibold capitalize" style={{ color: STATUS_COLOR[copy.status] }}>{copy.status}</Text>
+                <View key={copy.id} className="border-t border-[#F1F5F9] pt-2.5 mt-0.5">
+                  <View className="flex-row items-center gap-2">
+                    <Text className="text-sm font-semibold text-[#374151] flex-1">Copy #{copy.copy_number}</Text>
+                    <View className="rounded-md px-2.5 py-1" style={{ backgroundColor: STATUS_COLOR[copy.status] + '20' }}>
+                      <Text className="text-xs font-semibold capitalize" style={{ color: STATUS_COLOR[copy.status] }}>{copy.status}</Text>
+                    </View>
+                    <View className="rounded-md px-2.5 py-1" style={{ backgroundColor: CONDITION_COLOR[copy.condition] + '20' }}>
+                      <Text className="text-xs font-semibold capitalize" style={{ color: CONDITION_COLOR[copy.condition] }}>{copy.condition}</Text>
+                    </View>
+                    {isStaff && (
+                      <TouchableOpacity onPress={() => setEditCopy(copy)} className="bg-mint rounded-lg px-2.5 py-1">
+                        <Text className="text-xs font-bold text-brand">Edit</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
-                  <View className="rounded-md px-2.5 py-1" style={{ backgroundColor: CONDITION_COLOR[copy.condition] + '20' }}>
-                    <Text className="text-xs font-semibold capitalize" style={{ color: CONDITION_COLOR[copy.condition] }}>{copy.condition}</Text>
-                  </View>
+                  {(copy.accession_number || copy.barcode || copy.shelf_location) && (
+                    <View className="flex-row flex-wrap gap-x-4 gap-y-0.5 mt-1.5 pl-0.5">
+                      {copy.accession_number ? (
+                        <Text className="text-xs text-[#7A9A7E]"><Text className="font-semibold">Acc#</Text> {copy.accession_number}</Text>
+                      ) : null}
+                      {copy.barcode ? (
+                        <Text className="text-xs text-[#7A9A7E]"><Text className="font-semibold">Barcode</Text> {copy.barcode}</Text>
+                      ) : null}
+                      {copy.shelf_location ? (
+                        <Text className="text-xs text-[#7A9A7E]"><Text className="font-semibold">Shelf</Text> {copy.shelf_location}</Text>
+                      ) : null}
+                    </View>
+                  )}
                 </View>
               ))
             )}
@@ -238,13 +280,23 @@ export default function ResourceDetailScreen() {
           queryClient.invalidateQueries({ queryKey: ['resources'] });
         }}
       />
+
+      <EditCopyModal
+        copy={editCopy}
+        onClose={() => setEditCopy(null)}
+        onSaved={() => {
+          setEditCopy(null);
+          queryClient.invalidateQueries({ queryKey: queryKeys.resourceCopies(resourceId) });
+        }}
+      />
     </>
   );
 }
 
 function hasAnyRda(r: Resource) {
   return r.edition || r.volume || r.issue_number || r.series_title || r.language ||
-    r.doi || r.url || r.duration || r.call_number || r.content_type || r.media_type || r.carrier_type;
+    r.doi || r.url || r.duration || r.call_number || r.content_type || r.media_type || r.carrier_type ||
+    r.issn || (r.subject_headings && r.subject_headings.length > 0);
 }
 
 function StatCard({ label, value, highlight }: { label: string; value: number; highlight?: 'green' | 'red' }) {
@@ -319,6 +371,11 @@ function EditResourceModal({ visible, resource, onClose, onSaved }: EditModalPro
   const [carrierType, setCarrierType] = useState(resource.carrier_type ?? '');
   const [isLoanable, setIsLoanable] = useState(resource.is_loanable);
   const [loanPeriodDays, setLoanPeriodDays] = useState(resource.loan_period_days ? String(resource.loan_period_days) : '');
+  const [issn, setIssn] = useState(resource.issn ?? '');
+  const [subjectHeadings, setSubjectHeadings] = useState<string[]>(resource.subject_headings ?? []);
+  const [authorAuthorityId, setAuthorAuthorityId] = useState<number | null>(resource.author_authority_id ?? null);
+  const [authorAuthorityName, setAuthorAuthorityName] = useState('');
+  const institution = useAppStore((s) => s.institution);
 
   useEffect(() => {
     setMaterialType(resource.material_type);
@@ -345,6 +402,10 @@ function EditResourceModal({ visible, resource, onClose, onSaved }: EditModalPro
     setCarrierType(resource.carrier_type ?? '');
     setIsLoanable(resource.is_loanable);
     setLoanPeriodDays(resource.loan_period_days ? String(resource.loan_period_days) : '');
+    setIssn(resource.issn ?? '');
+    setSubjectHeadings(resource.subject_headings ?? []);
+    setAuthorAuthorityId(resource.author_authority_id ?? null);
+    setAuthorAuthorityName('');
   }, [resource]);
 
   const updateMutation = useMutation({
@@ -371,6 +432,9 @@ function EditResourceModal({ visible, resource, onClose, onSaved }: EditModalPro
       content_type: contentType.trim() || null,
       media_type: mediaType.trim() || null,
       carrier_type: carrierType.trim() || null,
+      issn: issn.trim() || null,
+      subject_headings: subjectHeadings.length > 0 ? subjectHeadings : null,
+      author_authority_id: authorAuthorityId,
       is_loanable: isLoanable,
       loan_period_days: loanPeriodDays.trim() ? parseInt(loanPeriodDays.trim()) : null,
     }),
@@ -448,6 +512,15 @@ function EditResourceModal({ visible, resource, onClose, onSaved }: EditModalPro
           <EditSection label="Details">
             <TextInput className="bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]" value={title} onChangeText={setTitle} placeholder="Title *" placeholderTextColor="#94A3B8" />
             <TextInput className="bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]" value={author} onChangeText={setAuthor} placeholder="Author / Creator *" placeholderTextColor="#94A3B8" />
+            {institution && (
+              <AuthorityPicker
+                institutionId={institution.id}
+                selectedId={authorAuthorityId}
+                selectedName={authorAuthorityName}
+                onSelect={(id, name) => { setAuthorAuthorityId(id); setAuthorAuthorityName(name); }}
+                onClear={() => { setAuthorAuthorityId(null); setAuthorAuthorityName(''); }}
+              />
+            )}
             <TextInput className="bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]" value={publisher} onChangeText={setPublisher} placeholder="Publisher" placeholderTextColor="#94A3B8" />
             <View className="flex-row gap-2">
               <TextInput className="flex-1 bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]" value={year} onChangeText={setYear} placeholder="Year" placeholderTextColor="#94A3B8" keyboardType="numeric" maxLength={4} />
@@ -459,6 +532,9 @@ function EditResourceModal({ visible, resource, onClose, onSaved }: EditModalPro
           {rdaMode && (
             <>
               <EditSection label="Bibliographic Details">
+                {(materialType === 'SERIAL' || materialType === 'ARTICLE') && (
+                  <TextInput className="bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]" value={issn} onChangeText={setIssn} placeholder="ISSN (e.g. 1234-5678)" placeholderTextColor="#94A3B8" autoCapitalize="none" keyboardType="numbers-and-punctuation" />
+                )}
                 <TextInput className="bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]" value={subtitle} onChangeText={setSubtitle} placeholder="Subtitle" placeholderTextColor="#94A3B8" />
                 <TextInput className="bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]" value={edition} onChangeText={setEdition} placeholder="Edition" placeholderTextColor="#94A3B8" />
                 <View className="flex-row gap-2">
@@ -478,6 +554,7 @@ function EditResourceModal({ visible, resource, onClose, onSaved }: EditModalPro
               </EditSection>
 
               <EditSection label="Classification">
+                <SubjectHeadingsInput headings={subjectHeadings} onChange={setSubjectHeadings} />
                 <TextInput className="bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]" value={callNumber} onChangeText={setCallNumber} placeholder="Call Number" placeholderTextColor="#94A3B8" />
                 <View className="flex-row gap-2">
                   {CALL_NUMBER_TYPES.map((t: CallNumberType) => (
@@ -523,6 +600,101 @@ function EditResourceModal({ visible, resource, onClose, onSaved }: EditModalPro
                 keyboardType="numeric"
               />
             )}
+          </EditSection>
+        </ScrollView>
+      </View>
+    </Modal>
+  );
+}
+
+// ─── Edit Copy Modal ─────────────────────────────────────────────────────────
+
+const CONDITIONS = ['good', 'damaged', 'lost'] as const;
+const CONDITION_LABEL: Record<string, string> = { good: 'Good', damaged: 'Damaged', lost: 'Lost' };
+
+function EditCopyModal({ copy, onClose, onSaved }: { copy: import('../../../src/types').ResourceCopy | null; onClose: () => void; onSaved: () => void }) {
+  const [accession, setAccession] = useState('');
+  const [barcode, setBarcode] = useState('');
+  const [shelfLocation, setShelfLocation] = useState('');
+  const [condition, setCondition] = useState<'good' | 'damaged' | 'lost'>('good');
+
+  useEffect(() => {
+    if (copy) {
+      setAccession(copy.accession_number ?? '');
+      setBarcode(copy.barcode ?? '');
+      setShelfLocation(copy.shelf_location ?? '');
+      setCondition(copy.condition);
+    }
+  }, [copy]);
+
+  const saveMutation = useMutation({
+    mutationFn: () => ResourceService.updateCopy(copy!.id, {
+      accession_number: accession.trim() || null,
+      barcode: barcode.trim() || null,
+      shelf_location: shelfLocation.trim() || null,
+      condition,
+    }),
+    onSuccess: onSaved,
+    onError: (e: any) => Alert.alert('Error', e.message),
+  });
+
+  return (
+    <Modal visible={!!copy} animationType="slide" presentationStyle="pageSheet">
+      <View className="flex-1 bg-bio">
+        <View className="bg-brand flex-row items-center justify-between px-5 pb-4 pt-5 rounded-b-[20px]">
+          <TouchableOpacity onPress={onClose}>
+            <Text className="text-[#A8D5A2] text-sm font-medium">Cancel</Text>
+          </TouchableOpacity>
+          <Text className="text-white font-extrabold text-base">Edit Copy #{copy?.copy_number}</Text>
+          <TouchableOpacity onPress={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+            {saveMutation.isPending
+              ? <ActivityIndicator color="#A8D5A2" size="small" />
+              : <Text className="text-[#A8D5A2] text-sm font-bold">Save</Text>}
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 40 }}>
+          <EditSection label="Holdings">
+            <TextInput
+              className="bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]"
+              value={accession}
+              onChangeText={setAccession}
+              placeholder="Accession number (e.g. ACC-2024-001)"
+              placeholderTextColor="#94A3B8"
+              autoCapitalize="characters"
+            />
+            <TextInput
+              className="bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]"
+              value={barcode}
+              onChangeText={setBarcode}
+              placeholder="Barcode"
+              placeholderTextColor="#94A3B8"
+              autoCapitalize="none"
+              keyboardType="default"
+            />
+            <TextInput
+              className="bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]"
+              value={shelfLocation}
+              onChangeText={setShelfLocation}
+              placeholder="Shelf location (e.g. A3-Shelf2)"
+              placeholderTextColor="#94A3B8"
+              autoCapitalize="characters"
+            />
+          </EditSection>
+
+          <EditSection label="Condition">
+            <View className="flex-row gap-2">
+              {CONDITIONS.map((c) => (
+                <TouchableOpacity
+                  key={c}
+                  onPress={() => setCondition(c)}
+                  className={`flex-1 py-2.5 rounded-xl items-center border ${condition === c ? 'border-transparent' : 'bg-white border-mint'}`}
+                  style={condition === c ? { backgroundColor: CONDITION_COLOR[c] } : undefined}
+                >
+                  <Text className={`text-xs font-bold ${condition === c ? 'text-white' : 'text-[#374151]'}`}>{CONDITION_LABEL[c]}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </EditSection>
         </ScrollView>
       </View>

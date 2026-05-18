@@ -6,6 +6,8 @@ import m0001 from './0001_resources_rda.sql';
 import m0002 from './0002_inventory_scan.sql';
 import m0003 from './0003_gate_logs.sql';
 import m0004 from './0004_patron_fields.sql';
+import m0005 from './0005_copy_holdings.sql';
+import m0006 from './0006_authority_subjects.sql';
 
   export default {
     journal,
@@ -15,5 +17,7 @@ import m0004 from './0004_patron_fields.sql';
       m0002,
       m0003,
       m0004,
+      m0005,
+      m0006,
     }
   }

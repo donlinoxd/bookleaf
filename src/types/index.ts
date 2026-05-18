@@ -1,3 +1,4 @@
+export type AuthorityNameType = 'personal' | 'corporate' | 'geographic';
 export type UserRole = 'admin' | 'librarian' | 'member';
 export type UserType = 'student' | 'faculty' | 'alumni' | 'external';
 export type GateDirection = 'in' | 'out';
@@ -11,6 +12,15 @@ export type CallNumberType = 'DEWEY' | 'LC' | 'OTHER';
 
 /** @deprecated use CopyCondition */
 export type BookCondition = CopyCondition;
+
+export interface AuthorityName {
+  id: number;
+  institution_id: number;
+  name: string;
+  name_type: AuthorityNameType;
+  variants: string | null;
+  created_at: string;
+}
 
 export interface Institution {
   id: number;
@@ -40,6 +50,7 @@ export interface Resource {
   material_type: MaterialType;
   // Core bibliographic
   isbn: string | null;
+  issn: string | null;
   title: string;
   author: string;
   publisher: string | null;
@@ -62,6 +73,8 @@ export interface Resource {
   content_type: string | null;
   media_type: string | null;
   carrier_type: string | null;
+  subject_headings: string[] | null;
+  author_authority_id: number | null;
   // Lending
   is_loanable: boolean;
   loan_period_days: number | null;
@@ -77,6 +90,9 @@ export interface ResourceCopy {
   copy_number: number;
   condition: CopyCondition;
   status: CopyStatus;
+  barcode: string | null;
+  shelf_location: string | null;
+  accession_number: string | null;
 }
 
 export interface BorrowingRecord {
