@@ -25,8 +25,8 @@ export default function Index() {
   }, []);
 
   return (
-    <View className="flex-1 justify-center items-center">
-      <ActivityIndicator size="large" color="#2563EB" />
+    <View className="flex-1 justify-center items-center bg-[#2A5C33]">
+      <ActivityIndicator size="large" color="#E2EFE0" />
     </View>
   );
 }
