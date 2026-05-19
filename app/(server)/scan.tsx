@@ -258,24 +258,25 @@ export default function ScanScreen() {
             </TouchableOpacity>
             <Text className="text-white text-[17px] font-bold">Scan Member QR</Text>
           </View>
-          <CameraView
-            className="flex-1"
-            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-            onBarcodeScanned={({ data }) => {
-              if (memberScannedRef.current) return;
-              memberScannedRef.current = true;
-              setMemberScanOpen(false);
-              setMemberQuery(data);
-              lookupMember(data);
-            }}
-          >
-            <View className="flex-1 justify-center items-center gap-5">
+          <View className="flex-1">
+            <CameraView
+              style={{ flex: 1 }}
+              barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+              onBarcodeScanned={({ data }) => {
+                if (memberScannedRef.current) return;
+                memberScannedRef.current = true;
+                setMemberScanOpen(false);
+                setMemberQuery(data);
+                lookupMember(data);
+              }}
+            />
+            <View className="absolute inset-0 justify-center items-center gap-5" pointerEvents="none">
               <View className="w-[220px] h-[220px] border-2 border-leaf rounded-2xl" />
               <Text className="text-white text-[14px] font-medium">
                 Point at a member's QR code
               </Text>
             </View>
-          </CameraView>
+          </View>
         </View>
       </Modal>
     </View>
