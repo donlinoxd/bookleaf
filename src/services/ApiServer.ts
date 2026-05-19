@@ -320,16 +320,23 @@ export const ApiServer = {
       .where(eq(borrowingRecords.user_id, member.id))
       .orderBy(desc(borrowingRecords.borrowed_at));
 
-    const fineRow = await db.select({ total: sum(fines.amount) })
-      .from(fines)
+    const fineRows = await db.select({
+      borrowing_id: fines.borrowing_id,
+      total: sum(fines.amount),
+    }).from(fines)
       .innerJoin(borrowingRecords, eq(fines.borrowing_id, borrowingRecords.id))
       .where(and(eq(borrowingRecords.user_id, member.id), eq(fines.paid, false)))
-      .then(r => r[0]);
+      .groupBy(fines.borrowing_id);
+
+    const fineMap: Record<number, number> = {};
+    for (const f of fineRows) {
+      if (f.borrowing_id !== null) fineMap[f.borrowing_id] = Number(f.total ?? 0);
+    }
 
     return {
       member_name: member.name,
-      borrows,
-      total_fines: Number(fineRow?.total ?? 0),
+      borrows: borrows.map(b => ({ ...b, fine_amount: fineMap[b.id] ?? 0 })),
+      total_fines: Object.values(fineMap).reduce((a, b) => a + b, 0),
     };
   },
 };

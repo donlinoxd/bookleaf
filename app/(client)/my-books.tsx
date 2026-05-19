@@ -15,6 +15,7 @@ interface BorrowInfo {
   due_date: string;
   returned_at: string | null;
   renewal_count: number;
+  fine_amount: number;
 }
 
 interface Reservation {
@@ -99,7 +100,16 @@ export default function MyBooksScreen() {
     }
   };
 
-  const isOverdue = (dueDate: string) => new Date(dueDate) < new Date();
+  const daysUntil = (dueDate: string) =>
+    Math.ceil((new Date(dueDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+
+  const dueDateLabel = (dueDate: string) => {
+    const d = daysUntil(dueDate);
+    if (d < 0) return `${Math.abs(d)} day${Math.abs(d) !== 1 ? 's' : ''} overdue`;
+    if (d === 0) return 'Due today';
+    return `${d} day${d !== 1 ? 's' : ''} left`;
+  };
+
   const active = borrows.filter((b) => !b.returned_at);
   const history = borrows.filter((b) => !!b.returned_at);
 
@@ -165,7 +175,9 @@ export default function MyBooksScreen() {
                 <Text className="text-xs font-bold text-brand uppercase tracking-wider">Currently Borrowed</Text>
               </View>
               {active.map((item) => {
-                const overdue = isOverdue(item.due_date);
+                const days = daysUntil(item.due_date);
+                const overdue = days < 0;
+                const dueSoon = days >= 0 && days <= 3;
                 return (
                   <View key={item.id} className="bg-white rounded-2xl px-4 py-3.5"
                     style={{ elevation: 2, shadowColor: '#2A5C33', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4 }}>
@@ -174,11 +186,24 @@ export default function MyBooksScreen() {
                       <Text className="text-xs text-[#5A7A5E] mt-0.5">{item.book_author}</Text>
                     </TouchableOpacity>
                     <View className="flex-row items-center justify-between mt-2">
-                      <Text className={`text-xs font-semibold ${overdue ? 'text-red-600' : 'text-[#7A9A7E]'}`}>
-                        {overdue ? 'OVERDUE — ' : ''}Due {new Date(item.due_date).toLocaleDateString()}
-                      </Text>
+                      <View className={`flex-row items-center gap-1 rounded-md px-2 py-0.5 ${overdue ? 'bg-red-100' : dueSoon ? 'bg-amber-50' : 'bg-mint'}`}>
+                        <Ionicons
+                          name={overdue ? 'alert-circle' : 'time-outline'}
+                          size={11}
+                          color={overdue ? '#DC2626' : dueSoon ? '#D97706' : '#2A5C33'}
+                        />
+                        <Text className={`text-xs font-semibold ${overdue ? 'text-red-600' : dueSoon ? 'text-amber-700' : 'text-brand'}`}>
+                          {dueDateLabel(item.due_date)}
+                        </Text>
+                      </View>
                       <Text className="text-[10px] text-[#94A3B8]">Renewed {item.renewal_count}×</Text>
                     </View>
+                    {item.fine_amount > 0 && (
+                      <View className="flex-row items-center gap-1.5 mt-2 bg-red-50 rounded-xl px-3 py-1.5">
+                        <Ionicons name="receipt-outline" size={13} color="#DC2626" />
+                        <Text className="text-xs font-bold text-red-600">Fine: ₱{item.fine_amount.toFixed(2)}</Text>
+                      </View>
+                    )}
                     <TouchableOpacity
                       className="mt-2.5 bg-mint border border-[#C8DFC5] rounded-xl py-2 items-center"
                       onPress={() => handleRenew(item.id)}
@@ -201,25 +226,29 @@ export default function MyBooksScreen() {
                 <View className="w-2 h-2 rounded-full bg-amber-400" />
                 <Text className="text-xs font-bold text-brand uppercase tracking-wider">Active Holds</Text>
               </View>
-              {reservations.map((item) => (
-                <View key={item.id} className="bg-white rounded-2xl px-4 py-3.5 flex-row items-center gap-3"
-                  style={{ elevation: 2, shadowColor: '#2A5C33', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4 }}>
-                  <View className="w-9 h-9 rounded-full bg-amber-50 items-center justify-center">
-                    <Ionicons name="bookmark" size={16} color="#D97706" />
+              {reservations.map((item) => {
+                const ready = item.available_copies > 0;
+                return (
+                  <View key={item.id} className="bg-white rounded-2xl px-4 py-3.5 flex-row items-center gap-3"
+                    style={{ elevation: 2, shadowColor: '#2A5C33', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4 }}>
+                    <View className={`w-9 h-9 rounded-full items-center justify-center ${ready ? 'bg-mint' : 'bg-amber-50'}`}>
+                      <Ionicons name="bookmark" size={16} color={ready ? '#2A5C33' : '#D97706'} />
+                    </View>
+                    <TouchableOpacity className="flex-1" onPress={() => router.push(`/(client)/book/${item.resource_id}`)}>
+                      <Text className="text-sm font-bold text-[#1C2B1E]" numberOfLines={1}>{item.book_title}</Text>
+                      <Text className="text-xs text-[#5A7A5E]">{item.book_author}</Text>
+                      <Text className="text-xs text-[#94A3B8] mt-0.5">
+                        Placed {new Date(item.reserved_at).toLocaleDateString()}
+                      </Text>
+                    </TouchableOpacity>
+                    <View className={`rounded-full px-2.5 py-1 ${ready ? 'bg-leaf' : 'bg-amber-100'}`}>
+                      <Text className={`text-[10px] font-bold ${ready ? 'text-white' : 'text-amber-700'}`}>
+                        {ready ? 'Ready' : 'In Queue'}
+                      </Text>
+                    </View>
                   </View>
-                  <TouchableOpacity className="flex-1" onPress={() => router.push(`/(client)/book/${item.resource_id}`)}>
-                    <Text className="text-sm font-bold text-[#1C2B1E]" numberOfLines={1}>{item.book_title}</Text>
-                    <Text className="text-xs text-[#5A7A5E]">{item.book_author}</Text>
-                    <Text className="text-xs text-[#94A3B8] mt-0.5">
-                      Placed {new Date(item.reserved_at).toLocaleDateString()}
-                      {item.available_copies > 0 ? ' · Now available!' : ''}
-                    </Text>
-                  </TouchableOpacity>
-                  {item.available_copies > 0 && (
-                    <View className="bg-leaf rounded-full w-2 h-2" />
-                  )}
-                </View>
-              ))}
+                );
+              })}
             </View>
           )}
 
