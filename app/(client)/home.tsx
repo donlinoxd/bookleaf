@@ -110,9 +110,13 @@ export default function ClientHomeScreen() {
             style={{ elevation: 2, shadowColor: '#2A5C33', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4 }}
             onPress={() => router.push(`/(client)/book/${item.id}`)}
         >
-            <View className='w-14 h-[72px] bg-mint rounded-xl items-center justify-center'>
-                <Text className='text-2xl font-extrabold text-brand'>{item.title[0]}</Text>
-            </View>
+            {item.cover_uri ? (
+                <Image source={{ uri: item.cover_uri }} className='w-14 h-[72px] rounded-xl' resizeMode='cover' />
+            ) : (
+                <View className='w-14 h-[72px] bg-mint rounded-xl items-center justify-center'>
+                    <Text className='text-2xl font-extrabold text-brand'>{item.title[0]}</Text>
+                </View>
+            )}
             <View className='flex-1 ml-4'>
                 <Text className='text-base font-bold text-[#1C2B1E] leading-5' numberOfLines={2}>
                     {item.title}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  ActivityIndicator, Alert, FlatList, Modal, ScrollView, StatusBar,
+  ActivityIndicator, Alert, FlatList, Image, Modal, ScrollView, StatusBar,
   Text, TextInput, TouchableOpacity, View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,6 +20,7 @@ interface BookDetail {
   call_number: string | null;
   isbn: string | null;
   subject_headings: string | null;
+  cover_uri: string | null;
   available_copies: number;
   total_copies: number;
 }
@@ -29,6 +30,7 @@ interface SimilarBook {
   title: string;
   author: string;
   genre: string | null;
+  cover_uri: string | null;
   available_copies: number;
   total_copies: number;
 }
@@ -214,9 +216,13 @@ export default function ClientBookDetailScreen() {
           <Text className="text-[#A8D5A2] text-sm font-medium">Back</Text>
         </TouchableOpacity>
         <View className="flex-row items-start gap-3">
-          <View className="w-16 h-20 bg-[#1C3E23] rounded-xl items-center justify-center flex-shrink-0">
-            <Text className="text-3xl font-extrabold text-white">{book.title[0]}</Text>
-          </View>
+          {book.cover_uri ? (
+            <Image source={{ uri: book.cover_uri }} className="w-16 h-20 rounded-xl flex-shrink-0" resizeMode="cover" />
+          ) : (
+            <View className="w-16 h-20 bg-[#1C3E23] rounded-xl items-center justify-center flex-shrink-0">
+              <Text className="text-3xl font-extrabold text-white">{book.title[0]}</Text>
+            </View>
+          )}
           <View className="flex-1">
             <Text className="text-xl font-extrabold text-white leading-6">{book.title}</Text>
             <Text className="text-sm text-[#A8D5A2] mt-1">{book.author}</Text>
@@ -365,9 +371,13 @@ export default function ClientBookDetailScreen() {
                   style={{ elevation: 2, shadowColor: '#2A5C33', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4 }}
                   onPress={() => router.push(`/(client)/book/${item.id}`)}
                 >
-                  <View className="w-full h-16 bg-mint rounded-xl items-center justify-center mb-2">
-                    <Text className="text-2xl font-extrabold text-brand">{item.title[0]}</Text>
-                  </View>
+                  {item.cover_uri ? (
+                    <Image source={{ uri: item.cover_uri }} className="w-full h-16 rounded-xl mb-2" resizeMode="cover" />
+                  ) : (
+                    <View className="w-full h-16 bg-mint rounded-xl items-center justify-center mb-2">
+                      <Text className="text-2xl font-extrabold text-brand">{item.title[0]}</Text>
+                    </View>
+                  )}
                   <Text className="text-xs font-bold text-[#1C2B1E] leading-4" numberOfLines={2}>{item.title}</Text>
                   <Text className="text-[10px] text-[#7A9A7E] mt-0.5" numberOfLines={1}>{item.author}</Text>
                   <View className={`self-start rounded-md px-1.5 py-0.5 mt-1.5 ${item.available_copies > 0 ? 'bg-mint' : 'bg-red-100'}`}>

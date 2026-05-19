@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router'
-import { Text, TouchableOpacity, View } from 'react-native'
+import { Image, Text, TouchableOpacity, View } from 'react-native'
 
 export interface BookResult {
     id: number
@@ -9,6 +9,7 @@ export interface BookResult {
     year: number | null
     language?: string | null
     material_type: string
+    cover_uri?: string | null
     available_copies: number
     total_copies: number
 }
@@ -21,9 +22,13 @@ export function HorizontalBookCard({ item }: { item: BookResult }) {
             style={{ elevation: 2, shadowColor: '#2A5C33', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4 }}
             onPress={() => router.push(`/(client)/book/${item.id}`)}
         >
-            <View className='w-full h-16 bg-mint rounded-xl items-center justify-center mb-2'>
-                <Text className='text-2xl font-extrabold text-brand'>{item.title[0]}</Text>
-            </View>
+            {item.cover_uri ? (
+                <Image source={{ uri: item.cover_uri }} className='w-full h-16 rounded-xl mb-2' resizeMode='cover' />
+            ) : (
+                <View className='w-full h-16 bg-mint rounded-xl items-center justify-center mb-2'>
+                    <Text className='text-2xl font-extrabold text-brand'>{item.title[0]}</Text>
+                </View>
+            )}
             <Text className='text-xs font-bold text-[#1C2B1E] leading-4' numberOfLines={2}>
                 {item.title}
             </Text>

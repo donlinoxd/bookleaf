@@ -22,6 +22,7 @@ export const ApiServer = {
       genre: resources.genre,
       year: resources.year,
       material_type: resources.material_type,
+      cover_uri: resources.cover_uri,
       available_copies: resources.available_copies,
       total_copies: resources.total_copies,
     }).from(resources)
@@ -48,6 +49,7 @@ export const ApiServer = {
       genre: resources.genre,
       year: resources.year,
       material_type: resources.material_type,
+      cover_uri: resources.cover_uri,
       available_copies: resources.available_copies,
       total_copies: resources.total_copies,
     }).from(resources)
@@ -64,6 +66,7 @@ export const ApiServer = {
       genre: resources.genre,
       year: resources.year,
       material_type: resources.material_type,
+      cover_uri: resources.cover_uri,
       available_copies: resources.available_copies,
       total_copies: resources.total_copies,
       borrow_count: sql<number>`count(${borrowingRecords.id})`,
@@ -110,6 +113,7 @@ export const ApiServer = {
       genre: resources.genre,
       year: resources.year,
       material_type: resources.material_type,
+      cover_uri: resources.cover_uri,
       available_copies: resources.available_copies,
       total_copies: resources.total_copies,
     }).from(resources)
@@ -131,6 +135,7 @@ export const ApiServer = {
       call_number: resources.call_number,
       isbn: resources.isbn,
       subject_headings: resources.subject_headings,
+      cover_uri: resources.cover_uri,
       available_copies: resources.available_copies,
       total_copies: resources.total_copies,
     }).from(resources)
@@ -153,6 +158,7 @@ export const ApiServer = {
       title: resources.title,
       author: resources.author,
       genre: resources.genre,
+      cover_uri: resources.cover_uri,
       available_copies: resources.available_copies,
       total_copies: resources.total_copies,
     }).from(resources)
@@ -185,6 +191,7 @@ export const ApiServer = {
       year: resources.year,
       material_type: resources.material_type,
       language: resources.language,
+      cover_uri: resources.cover_uri,
       available_copies: resources.available_copies,
       total_copies: resources.total_copies,
     }).from(resources)
