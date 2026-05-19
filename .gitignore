@@ -42,3 +42,4 @@ yarn-error.*
 
 # Claude plugin settings
 .claude/settings.local.json
+.idea/
