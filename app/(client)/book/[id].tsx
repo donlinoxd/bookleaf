@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  ActivityIndicator, Alert, FlatList, Image, Modal, ScrollView, StatusBar,
+  ActivityIndicator, Alert, FlatList, Image, Linking, Modal, ScrollView, StatusBar,
   Text, TextInput, TouchableOpacity, View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,8 +19,11 @@ interface BookDetail {
   language: string | null;
   call_number: string | null;
   isbn: string | null;
+  edition: string | null;
+  url: string | null;
   subject_headings: string | null;
   cover_uri: string | null;
+  shelf_locations: string[] | undefined;
   available_copies: number;
   total_copies: number;
 }
@@ -267,6 +270,32 @@ export default function ClientBookDetailScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Online access buttons */}
+        {book.url && (
+          <View className="flex-row gap-3">
+            <TouchableOpacity
+              className="flex-1 bg-leaf rounded-2xl py-3.5 items-center flex-row justify-center gap-2"
+              style={{ elevation: 2, shadowColor: '#5CB85C', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4 }}
+              onPress={() => Linking.openURL(book.url!)}
+            >
+              <Ionicons name="globe-outline" size={18} color="#fff" />
+              <Text className="text-white font-bold">
+                {book.material_type === 'DIGITAL' ? 'Read Online' : 'View Online'}
+              </Text>
+            </TouchableOpacity>
+            {book.material_type === 'DIGITAL' && (
+              <TouchableOpacity
+                className="flex-1 bg-white border border-mint rounded-2xl py-3.5 items-center flex-row justify-center gap-2"
+                style={{ elevation: 1 }}
+                onPress={() => Linking.openURL(book.url!)}
+              >
+                <Ionicons name="download-outline" size={18} color="#2A5C33" />
+                <Text className="text-brand font-bold">Download</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
         {/* Meta chips */}
         <View className="flex-row flex-wrap gap-2">
           {book.genre && (
@@ -277,6 +306,11 @@ export default function ClientBookDetailScreen() {
           {book.language && (
             <View className="bg-mint rounded-full px-3 py-1">
               <Text className="text-xs font-semibold text-brand">{book.language}</Text>
+            </View>
+          )}
+          {book.edition && (
+            <View className="bg-mint rounded-full px-3 py-1">
+              <Text className="text-xs font-semibold text-brand">{book.edition} ed.</Text>
             </View>
           )}
           {book.call_number && (
@@ -290,6 +324,26 @@ export default function ClientBookDetailScreen() {
             </View>
           )}
         </View>
+
+        {/* Shelf location */}
+        {(book.shelf_locations ?? []).length > 0 && (
+          <View className="bg-white rounded-2xl p-4 gap-3" style={{ elevation: 1 }}>
+            <View className="flex-row items-center gap-2">
+              <Ionicons name="location-outline" size={16} color="#2A5C33" />
+              <Text className="text-xs font-bold text-brand uppercase tracking-wider">Find It</Text>
+            </View>
+            <View className="gap-2">
+              {(book.shelf_locations ?? []).map((loc, i) => (
+                <View key={i} className="flex-row items-center gap-3">
+                  <View className="w-7 h-7 bg-mint rounded-lg items-center justify-center">
+                    <Ionicons name="library-outline" size={14} color="#2A5C33" />
+                  </View>
+                  <Text className="text-sm font-semibold text-[#1C2B1E]">{loc}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
 
         {/* Subject headings */}
         {subjects.length > 0 && (

@@ -122,7 +122,7 @@ export const ApiServer = {
   },
 
   async getBookDetail(resourceId: number) {
-    return db.select({
+    const resource = await db.select({
       id: resources.id,
       title: resources.title,
       author: resources.author,
@@ -134,6 +134,8 @@ export const ApiServer = {
       language: resources.language,
       call_number: resources.call_number,
       isbn: resources.isbn,
+      edition: resources.edition,
+      url: resources.url,
       subject_headings: resources.subject_headings,
       cover_uri: resources.cover_uri,
       available_copies: resources.available_copies,
@@ -142,6 +144,18 @@ export const ApiServer = {
       .where(eq(resources.id, resourceId))
       .limit(1)
       .then(r => r[0] ?? null);
+
+    if (!resource) return null;
+
+    const copies = await db.select({ shelf_location: resourceCopies.shelf_location })
+      .from(resourceCopies)
+      .where(eq(resourceCopies.resource_id, resourceId));
+
+    const shelf_locations = [...new Set(
+      copies.map(c => c.shelf_location).filter((s): s is string => !!s)
+    )];
+
+    return { ...resource, shelf_locations };
   },
 
   async getSimilarBooks(resourceId: number) {
