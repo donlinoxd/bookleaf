@@ -32,13 +32,16 @@ export default function ConnectScreen() {
 
   const connect = async (url: string) => {
     setConnecting(true);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
     try {
-      const res = await fetch(`${url}/ping`, { signal: AbortSignal.timeout(5000) });
+      const res = await fetch(`${url}/ping`, { signal: controller.signal });
       if (res.ok) { setServerUrl(url); router.replace('/(client)/home'); }
       else Alert.alert('Connection Failed', 'Server responded with an error.');
     } catch {
       Alert.alert('Connection Failed', 'Could not reach the server. Make sure you are on the same Wi-Fi network.');
     } finally {
+      clearTimeout(timer);
       setConnecting(false);
     }
   };

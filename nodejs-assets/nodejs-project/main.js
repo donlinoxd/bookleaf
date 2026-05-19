@@ -6,8 +6,29 @@
 const rn_bridge = require('rn-bridge');
 const http = require('http');
 const url = require('url');
+const dgram = require('dgram');
 
 const PORT = 3000;
+const DISCOVERY_PORT = 41234;
+
+let beaconSocket = null;
+let beaconInterval = null;
+
+function startBeacon() {
+  beaconSocket = dgram.createSocket('udp4');
+  beaconSocket.bind(() => {
+    beaconSocket.setBroadcast(true);
+    const msg = Buffer.from(JSON.stringify({ type: 'bookleaf_beacon', name: 'Bookleaf Library', port: PORT }));
+    beaconInterval = setInterval(() => {
+      beaconSocket.send(msg, 0, msg.length, DISCOVERY_PORT, '255.255.255.255');
+    }, 3000);
+  });
+}
+
+function stopBeacon() {
+  if (beaconInterval) { clearInterval(beaconInterval); beaconInterval = null; }
+  if (beaconSocket) { try { beaconSocket.close(); } catch {} beaconSocket = null; }
+}
 
 // Pending request map: requestId -> resolve function
 const pending = new Map();
@@ -38,6 +59,7 @@ rn_bridge.channel.on('message', (raw) => {
     const msg = JSON.parse(raw);
 
     if (msg.type === 'stop') {
+      stopBeacon();
       server.close(() => process.exit(0));
       return;
     }
@@ -330,6 +352,7 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, '0.0.0.0', () => {
   rn_bridge.channel.send(JSON.stringify({ type: 'server_ready', port: PORT }));
+  startBeacon();
 });
 
 server.on('error', (err) => {

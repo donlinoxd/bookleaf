@@ -1,10 +1,6 @@
-import Zeroconf from 'react-native-zeroconf';
+import UdpSocket from 'react-native-udp';
 
-const SERVICE_TYPE = 'bookleaf';
-const SERVICE_PROTOCOL = 'tcp';
-const SERVICE_DOMAIN = 'local.';
-const SERVICE_NAME = 'Bookleaf Library';
-const PORT = 3000;
+const DISCOVERY_PORT = 41234;
 
 export type DiscoveredServer = {
   name: string;
@@ -13,54 +9,51 @@ export type DiscoveredServer = {
   url: string;
 };
 
-let zc: Zeroconf | null = null;
-
-function getInstance(): Zeroconf {
-  if (!zc) zc = new Zeroconf();
-  return zc;
-}
+let listenSocket: ReturnType<typeof UdpSocket.createSocket> | null = null;
 
 export const MdnsService = {
   publish() {
-    getInstance().publishService(SERVICE_TYPE, SERVICE_PROTOCOL, SERVICE_DOMAIN, SERVICE_NAME, PORT);
+    // Publishing is handled by the Node.js process via UDP broadcast (main.js).
   },
 
   unpublish() {
-    getInstance().unpublishService(SERVICE_NAME);
+    // Nothing to do — beacon is stopped by main.js on server stop.
   },
 
   startScan(
     onFound: (server: DiscoveredServer) => void,
-    onRemove: (name: string) => void,
-    onError: (err: Error) => void,
+    _onRemove: (name: string) => void,
+    onTimeout: () => void,
   ) {
-    const zeroconf = getInstance();
+    if (listenSocket) return;
 
-    zeroconf.on('resolved', (service) => {
-      const host = (service.addresses?.[0] ?? service.host).replace(/\.$/, '');
-      onFound({
-        name: service.name,
-        host,
-        port: service.port,
-        url: `http://${host}:${service.port}`,
-      });
+    listenSocket = UdpSocket.createSocket({ type: 'udp4', reusePort: true });
+
+    listenSocket.on('message', (data: Buffer, rinfo: { address: string; port: number }) => {
+      try {
+        const msg = JSON.parse(data.toString());
+        if (msg.type === 'bookleaf_beacon') {
+          onFound({
+            name: msg.name,
+            host: rinfo.address,
+            port: msg.port,
+            url: `http://${rinfo.address}:${msg.port}`,
+          });
+        }
+      } catch {}
     });
 
-    zeroconf.on('remove', (name: string) => {
-      onRemove(name);
+    listenSocket.on('error', () => {
+      onTimeout();
     });
 
-    zeroconf.on('error', (err: Error) => {
-      onError(err);
-    });
-
-    zeroconf.scan(SERVICE_TYPE, SERVICE_PROTOCOL, SERVICE_DOMAIN);
+    listenSocket.bind(DISCOVERY_PORT);
   },
 
   stopScan() {
-    getInstance().stop();
-    // Remove all listeners to avoid stale callbacks on next scan
-    const zeroconf = getInstance();
-    zeroconf.removeDeviceListeners();
+    if (listenSocket) {
+      try { listenSocket.close(); } catch {}
+      listenSocket = null;
+    }
   },
 };
