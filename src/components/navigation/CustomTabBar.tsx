@@ -29,7 +29,7 @@ export function CustomTabBar({ state, descriptors, navigation, accentRoute }: Pr
         }
     })
 
-    const accentIdx = accentRoute ? visibleRoutes.findIndex((r) => r.name === accentRoute) : Math.floor(visibleRoutes.length / 2)
+    const accentIdx = accentRoute ? visibleRoutes.findIndex((r) => r.name === accentRoute) : null
 
     return (
         <View
