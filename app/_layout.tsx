@@ -4,10 +4,13 @@ import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
-import { View, Text, ActivityIndicator } from 'react-native';
+import { View, Text } from 'react-native';
 import { useEffect } from 'react';
+import * as SplashScreen from 'expo-splash-screen';
 import { db, seedDefaults } from '../src/db';
 import migrations from '../drizzle/migrations';
+
+SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
@@ -17,8 +20,13 @@ export default function RootLayout() {
   useEffect(() => {
     if (success) {
       seedDefaults();
+      SplashScreen.hideAsync();
     }
   }, [success]);
+
+  useEffect(() => {
+    if (error) SplashScreen.hideAsync();
+  }, [error]);
 
   if (error) {
     return (
@@ -28,13 +36,7 @@ export default function RootLayout() {
     );
   }
 
-  if (!success) {
-    return (
-      <View className="flex-1 justify-center items-center bg-[#2A5C33]">
-        <ActivityIndicator color="#E2EFE0" />
-      </View>
-    );
-  }
+  if (!success) return null;
 
   return (
     <GestureHandlerRootView className="flex-1">
