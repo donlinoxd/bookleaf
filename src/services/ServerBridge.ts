@@ -92,6 +92,12 @@ async function handleQuery(requestId: number, action: string, params: Record<str
           params.institutionId as number,
         );
         break;
+      case 'authenticateMember':
+        data = await ApiServer.authenticateMember(
+          params.idNumber as string,
+          params.pin as string,
+        );
+        break;
       default:
         data = { error: `Unknown action: ${action}` };
     }

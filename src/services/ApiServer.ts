@@ -257,6 +257,26 @@ export const ApiServer = {
     return { user_name: user.name, direction: result.direction, logged_at: result.logged_at };
   },
 
+  async authenticateMember(idNumber: string, pin: string) {
+    const row = await db.select({
+      id: users.id,
+      institution_id: users.institution_id,
+      name: users.name,
+      id_number: users.id_number,
+      role: users.role,
+      pin_hash: users.pin_hash,
+      photo_uri: users.photo_uri,
+      is_active: users.is_active,
+      created_at: users.created_at,
+      department: users.department,
+      user_type: users.user_type,
+    }).from(users).where(eq(users.id_number, idNumber)).limit(1).then(r => r[0] ?? null);
+    if (!row || !row.is_active) return null;
+    if (!verifyPin(pin, row.pin_hash)) return null;
+    const { pin_hash: _, ...safeUser } = row;
+    return safeUser;
+  },
+
   async getMemberBorrows(idNumber: string) {
     const member = await db.select({ id: users.id, name: users.name })
       .from(users)

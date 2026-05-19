@@ -330,6 +330,17 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, data);
     }
 
+    // POST /api/auth/member — client-side patron login (idNumber + pin)
+    if (req.method === 'POST' && path === '/api/auth/member') {
+      const body = await readBody(req);
+      let idNumber, pin;
+      try { ({ idNumber, pin } = JSON.parse(body)); } catch { return send(res, 400, { error: 'Invalid body' }); }
+      if (!idNumber || !pin) return send(res, 400, { error: 'idNumber and pin are required' });
+      const data = await queryRN('authenticateMember', { idNumber, pin });
+      if (!data || data.error || !data.id || !data.name) return send(res, 401, { error: 'Invalid ID or PIN' });
+      return send(res, 200, data);
+    }
+
     // POST /api/gate/log — app clients log attendance (idNumber + institutionId)
     if (req.method === 'POST' && path === '/api/gate/log') {
       const body = await readBody(req);

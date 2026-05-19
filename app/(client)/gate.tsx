@@ -3,6 +3,7 @@ import { ActivityIndicator, StatusBar, Text, TouchableOpacity, View } from 'reac
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useAppStore } from '../../src/store/appStore';
 import { GateDirection } from '../../src/types';
@@ -17,7 +18,8 @@ type Result = {
 
 export default function ClientGateScreen() {
   const insets = useSafeAreaInsets();
-  const { currentUser, serverUrl } = useAppStore();
+  const router = useRouter();
+  const { currentUser } = useAppStore();
   const [permission, requestPermission] = useCameraPermissions();
 
   const [scanning, setScanning] = useState(false);
@@ -86,11 +88,21 @@ export default function ClientGateScreen() {
 
   if (!currentUser) {
     return (
-      <View className="flex-1 bg-[#F4F9F4] items-center justify-center px-8">
-        <Ionicons name="person-circle-outline" size={56} color="#C8DFC5" />
-        <Text className="text-[15px] font-bold text-brand mt-4 text-center">
-          You need to be logged in to check in or out.
-        </Text>
+      <View className="flex-1 bg-[#F4F9F4] items-center justify-center px-8 gap-4">
+        <View className="w-16 h-16 bg-mint rounded-2xl items-center justify-center">
+          <Ionicons name="qr-code-outline" size={36} color="#2A5C33" />
+        </View>
+        <View className="items-center gap-1">
+          <Text className="text-base font-bold text-[#1C2B1E]">Sign in to use Gate</Text>
+          <Text className="text-sm text-[#7A9A7E] text-center">You need to be signed in to check in or out at the library gate.</Text>
+        </View>
+        <TouchableOpacity
+          className="bg-leaf rounded-2xl px-8 py-3.5 mt-2"
+          onPress={() => router.push('/(auth)/client-login')}
+          style={{ elevation: 4, shadowColor: '#5CB85C', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 6 }}
+        >
+          <Text className="text-white font-bold">Sign In</Text>
+        </TouchableOpacity>
       </View>
     );
   }

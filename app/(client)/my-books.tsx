@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator, Alert, ScrollView, StatusBar,
-  Text, TextInput, TouchableOpacity, View,
+  Text, TouchableOpacity, View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -36,34 +36,38 @@ interface Favorite {
 }
 
 export default function MyBooksScreen() {
-  const serverUrl = useAppStore((s) => s.serverUrl);
+  const { serverUrl, currentUser } = useAppStore();
   const router = useRouter();
-  const [idNumber, setIdNumber] = useState('');
   const [borrows, setBorrows] = useState<BorrowInfo[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [fines, setFines] = useState<number>(0);
-  const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const [renewingId, setRenewingId] = useState<number | null>(null);
 
-  const handleLookup = async () => {
-    const idn = idNumber.trim();
-    if (!idn || !serverUrl) return;
+  useEffect(() => {
+    if (currentUser && serverUrl) {
+      loadAccount(currentUser.id_number);
+    }
+  }, [currentUser, serverUrl]);
+
+  const loadAccount = async (idNumber: string) => {
+    if (!serverUrl) return;
     setLoading(true);
     try {
       const [borrowRes, resRes, favRes] = await Promise.all([
-        fetch(`${serverUrl}/api/members/${encodeURIComponent(idn)}/borrows`),
-        fetch(`${serverUrl}/api/members/${encodeURIComponent(idn)}/reservations`),
-        fetch(`${serverUrl}/api/members/${encodeURIComponent(idn)}/favorites`),
+        fetch(`${serverUrl}/api/members/${encodeURIComponent(idNumber)}/borrows`),
+        fetch(`${serverUrl}/api/members/${encodeURIComponent(idNumber)}/reservations`),
+        fetch(`${serverUrl}/api/members/${encodeURIComponent(idNumber)}/favorites`),
       ]);
-      if (!borrowRes.ok) { Alert.alert('Not Found', 'No member found with that ID'); return; }
+      if (!borrowRes.ok) { Alert.alert('Error', 'Could not load account'); return; }
       const borrowData = await borrowRes.json();
       setBorrows(borrowData.borrows);
       setFines(borrowData.total_fines ?? 0);
       if (resRes.ok) { const rd = await resRes.json(); setReservations(rd.reservations ?? []); }
       if (favRes.ok) { const fd = await favRes.json(); setFavorites(fd.favorites ?? []); }
-      setSearched(true);
+      setLoaded(true);
     } catch {
       Alert.alert('Error', 'Could not reach the library server.');
     } finally {
@@ -72,14 +76,13 @@ export default function MyBooksScreen() {
   };
 
   const handleRenew = async (borrowId: number) => {
-    const idn = idNumber.trim();
-    if (!idn || !serverUrl) return;
+    if (!currentUser || !serverUrl) return;
     setRenewingId(borrowId);
     try {
       const res = await fetch(`${serverUrl}/api/borrows/${borrowId}/renew`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idNumber: idn }),
+        body: JSON.stringify({ idNumber: currentUser.id_number }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -100,36 +103,50 @@ export default function MyBooksScreen() {
   const active = borrows.filter((b) => !b.returned_at);
   const history = borrows.filter((b) => !!b.returned_at);
 
+  // Guest state — prompt to sign in
+  if (!currentUser) {
+    return (
+      <View className="flex-1 bg-bio">
+        <StatusBar barStyle="light-content" backgroundColor="#2A5C33" />
+        <View className="bg-brand px-5 pb-6 pt-[52px] rounded-b-[28px]">
+          <Text className="text-2xl font-extrabold text-white">My Account</Text>
+          <Text className="text-xs text-[#A8D5A2] mt-1">Borrows, holds, and favorites</Text>
+        </View>
+        <View className="flex-1 items-center justify-center px-8 gap-4">
+          <View className="w-16 h-16 bg-mint rounded-2xl items-center justify-center">
+            <Ionicons name="person-circle-outline" size={36} color="#2A5C33" />
+          </View>
+          <View className="items-center gap-1">
+            <Text className="text-base font-bold text-[#1C2B1E]">Sign in to view your account</Text>
+            <Text className="text-sm text-[#7A9A7E] text-center">See your borrowed books, active holds, favorites, and reading history.</Text>
+          </View>
+          <TouchableOpacity
+            className="bg-leaf rounded-2xl px-8 py-3.5 mt-2"
+            onPress={() => router.push('/(auth)/client-login')}
+            style={{ elevation: 4, shadowColor: '#5CB85C', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 6 }}
+          >
+            <Text className="text-white font-bold">Sign In</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <ScrollView className="flex-1 bg-bio" contentContainerStyle={{ paddingBottom: 110 }}>
       <StatusBar barStyle="light-content" backgroundColor="#2A5C33" />
 
       <View className="bg-brand px-5 pb-5 pt-[52px] rounded-b-[28px]">
-        <Text className="text-2xl font-extrabold text-white mb-1">My Account</Text>
-        <Text className="text-xs text-[#A8D5A2] mb-4">Enter your ID to view your library account</Text>
-        <View className="flex-row bg-white rounded-2xl overflow-hidden"
-          style={{ elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 4 }}>
-          <TextInput
-            className="flex-1 px-4 py-3.5 text-sm text-[#1C2B1E]"
-            value={idNumber}
-            onChangeText={setIdNumber}
-            placeholder="Your ID number"
-            placeholderTextColor="#94A3B8"
-            autoCapitalize="none"
-            returnKeyType="search"
-            onSubmitEditing={handleLookup}
-          />
-          <TouchableOpacity className="bg-leaf px-5 justify-center" onPress={handleLookup} disabled={loading}>
-            {loading ? <ActivityIndicator color="#fff" size="small" /> : <Text className="text-white font-bold text-sm">Look up</Text>}
-          </TouchableOpacity>
-        </View>
+        <Text className="text-2xl font-extrabold text-white mb-0.5">My Account</Text>
+        <Text className="text-xs text-[#A8D5A2]">{currentUser.name} · {currentUser.id_number}</Text>
       </View>
 
-      {!searched ? (
+      {loading ? (
+        <ActivityIndicator color="#2A5C33" style={{ marginTop: 48 }} />
+      ) : !loaded ? (
         <View className="items-center pt-12 px-8">
-          <Ionicons name="person-circle-outline" size={56} color="#C8DFC5" />
-          <Text className="text-sm font-bold text-brand mt-3 mb-1">View your account</Text>
-          <Text className="text-xs text-[#7A9A7E] text-center">Enter your ID number to see borrows, holds, and favorites</Text>
+          <Ionicons name="reload-outline" size={40} color="#C8DFC5" />
+          <Text className="text-sm text-[#94A3B8] mt-3">Loading your account…</Text>
         </View>
       ) : (
         <View className="px-4 pt-4 gap-4">

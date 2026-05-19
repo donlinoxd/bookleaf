@@ -39,14 +39,14 @@ export function MemberCard({ name, idNumber, role, institutionName, qrSize = 120
             className="w-11 h-11 rounded-full items-center justify-center mb-1.5"
             style={{ backgroundColor: color + '20' }}
           >
-            <Text className="text-xl font-bold" style={{ color }}>{name.charAt(0).toUpperCase()}</Text>
+            <Text className="text-xl font-bold" style={{ color }}>{name?.charAt(0)?.toUpperCase() ?? '?'}</Text>
           </View>
           <Text className="text-base font-bold text-[#1E293B]" numberOfLines={2}>{name}</Text>
           <View
             className="self-start rounded px-2 py-[3px] mt-0.5"
             style={{ backgroundColor: color + '20' }}
           >
-            <Text className="text-[10px] font-bold tracking-[0.5px]" style={{ color }}>{role.toUpperCase()}</Text>
+            <Text className="text-[10px] font-bold tracking-[0.5px]" style={{ color }}>{role?.toUpperCase() ?? ''}</Text>
           </View>
           <Text className="text-[10px] text-[#94A3B8] mt-2 tracking-widest">ID NUMBER</Text>
           <Text className="text-[15px] font-bold text-[#1E293B] tracking-widest" style={{ fontVariant: ['tabular-nums'] }}>{idNumber}</Text>

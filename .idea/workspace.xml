@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="NONE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="6bd2cc95-5ded-49b0-aade-e4ac4f20c396" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/.idea/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/deviceManager.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/library-mobi.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/markdown.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/(auth)/client-login.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(auth)/connect.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(auth)/connect.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(client)/gate.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(client)/gate.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(client)/my-books.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(client)/my-books.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/(client)/my-card.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/(client)/my-card.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/nodejs-assets/nodejs-project/main.js" beforeDir="false" afterPath="$PROJECT_DIR$/nodejs-assets/nodejs-project/main.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/members/MemberCard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/members/MemberCard.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/services/ApiServer.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/services/ApiServer.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/services/ServerBridge.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/services/ServerBridge.ts" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 2
+}</component>
+  <component name="ProjectId" id="3DwHNJiMLeH9oKBcuS12IIAGHvR" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
+    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
+    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;
+  }
+}</component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="6bd2cc95-5ded-49b0-aade-e4ac4f20c396" name="Changes" comment="" />
+      <created>1779186187149</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1779186187149</updated>
+    </task>
+    <servers />
+  </component>
+</project>

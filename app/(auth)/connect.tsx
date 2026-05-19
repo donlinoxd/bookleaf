@@ -7,7 +7,7 @@ import { MdnsService, type DiscoveredServer } from '../../src/services/MdnsServi
 
 export default function ConnectScreen() {
   const router = useRouter();
-  const setServerUrl = useAppStore((s) => s.setServerUrl);
+  const { setServerUrl, setCurrentUser } = useAppStore();
   const [servers, setServers] = useState<DiscoveredServer[]>([]);
   const [scanning, setScanning] = useState(true);
   const [ip, setIp] = useState('');
@@ -36,7 +36,7 @@ export default function ConnectScreen() {
     const timer = setTimeout(() => controller.abort(), 5000);
     try {
       const res = await fetch(`${url}/ping`, { signal: controller.signal });
-      if (res.ok) { setServerUrl(url); router.replace('/(client)/home'); }
+      if (res.ok) { setServerUrl(url); setCurrentUser(null); router.replace('/(auth)/client-login'); }
       else Alert.alert('Connection Failed', 'Server responded with an error.');
     } catch {
       Alert.alert('Connection Failed', 'Could not reach the server. Make sure you are on the same Wi-Fi network.');
