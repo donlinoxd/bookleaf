@@ -33,6 +33,9 @@ App name in config: `bookleaf` · Bundle ID: `com.bookleaf.app` · Deep-link sch
 | Crypto | crypto-js (SHA-256 PIN hashing) | 4.2.0 |
 | Icons | @expo/vector-icons (Ionicons) | 15.1.1 |
 | QR codes | react-native-qrcode-svg | — |
+| Push notifications | expo-notifications | 0.32.17 |
+| File system | expo-file-system | 19.0.22 |
+| Export/print | expo-sharing + expo-print + expo-document-picker | — |
 
 ---
 
@@ -70,9 +73,10 @@ app/
 Boot logic (`index.tsx`): reads `app_mode` from AsyncStorage → `server` → `/(auth)/login`, `client` → `/(auth)/connect`, null → `/(auth)/setup`.
 
 **Server tabs** (visible): dashboard, books, scan *(accent)*, members, opac  
-**Server hidden routes** (href: null): ai-chat, borrow, settings, book/[id], member/[id], inventory-scan, gate-scan, reports/*
+**Server hidden routes** (href: null): ai-chat, borrow, settings, book/[id], book/add, member/[id], member/add, inventory-scan, gate-scan, gate-qr, reservations, inventory-report/[sessionId], reports/*
 
-**Client tabs**: home, my-books *(accent)*, my-card, gate
+**Client tabs**: dashboard, home, my-books *(accent)*, my-card, gate
+**Client hidden routes** (href: null): book/[id]
 
 ### Global State (`src/store/appStore.ts`)
 ```typescript
@@ -106,6 +110,14 @@ Business logic is in ~20 services. Key ones:
 - `LlmService` — Gemma 2B inference + tool calling
 - `LibraryTools` — 6 LLM tool definitions (search_resources, get_patron_info, get_patron_fines, get_overdue_books, get_circulation_stats, get_today_gate_activity)
 - `*ReportService` — circulation, collection, fines, patron, inventory analytics
+- `ReservationService` — book reservation management
+- `InventoryService` / `InventoryAuditService` — physical inventory & audit sessions
+- `FavoritesService` — patron book favorites
+- `ReviewService` — patron book reviews/ratings
+- `IsbnLookupService` — external ISBN metadata lookup
+- `NotificationService` — local push notifications (expo-notifications)
+- `AuthorityService` — authority/subject heading control
+- `SettingsService` — institution settings CRUD
 - `MdnsService` — mDNS publish/scan
 - `BackupService` — export/import
 
