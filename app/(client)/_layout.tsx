@@ -9,6 +9,16 @@ export default function ClientLayout() {
       tabBar={(props) => <CustomTabBar {...props} />}
     >
       <Tabs.Screen
+        name="dashboard"
+        options={{
+          title: 'Dashboard',
+          tabBarLabel: 'Home',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? 'home' : 'home-outline'} size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="home"
         options={{
           title: 'Catalog',
