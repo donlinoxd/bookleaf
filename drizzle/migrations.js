@@ -11,6 +11,7 @@ import m0006 from './0006_authority_subjects.sql';
 import m0007 from './0007_renewals_grace.sql';
 import m0008 from './0008_favorites.sql';
 import m0009 from './0009_reviews.sql';
+import m0010 from './0010_performance_indexes.sql';
 
   export default {
     journal,
@@ -25,5 +26,6 @@ import m0009 from './0009_reviews.sql';
       m0007,
       m0008,
       m0009,
+      m0010,
     }
   }

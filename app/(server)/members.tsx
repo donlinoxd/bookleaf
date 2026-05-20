@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { FlatList, StatusBar, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { queryKeys } from '../../src/lib/queryKeys'
 import { UserService } from '../../src/services/UserService'
@@ -29,7 +29,7 @@ export default function MembersScreen() {
         enabled: !!institution,
     })
 
-    const renderMember = ({ item }: { item: User }) => {
+    const renderMember = useCallback(({ item }: { item: User }) => {
         const rs = ROLE_STYLE[item.role] ?? ROLE_STYLE.member
         return (
             <TouchableOpacity
@@ -62,7 +62,7 @@ export default function MembersScreen() {
                 <Ionicons name='chevron-forward' size={16} color='#C8DFC5' />
             </TouchableOpacity>
         )
-    }
+    }, [router])
 
     return (
         <View className='flex-1 bg-bio'>
@@ -100,6 +100,10 @@ export default function MembersScreen() {
                 contentContainerStyle={{ padding: 16, paddingBottom: 150 }}
                 onRefresh={refetch}
                 refreshing={isFetching}
+                removeClippedSubviews
+                initialNumToRender={15}
+                maxToRenderPerBatch={10}
+                windowSize={5}
                 ListEmptyComponent={
                     <View className='items-center pt-16'>
                         <Ionicons name='people-outline' size={48} color='#C8DFC5' />

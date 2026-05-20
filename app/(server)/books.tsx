@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { FlatList, Image, StatusBar, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { MATERIAL_TYPE_META } from '../../src/lib/materialTypes'
 import { queryKeys } from '../../src/lib/queryKeys'
@@ -24,7 +24,7 @@ export default function CatalogScreen() {
         enabled: !!institution,
     })
 
-    const renderItem = ({ item }: { item: Resource }) => {
+    const renderItem = useCallback(({ item }: { item: Resource }) => {
         const meta = MATERIAL_TYPE_META[item.material_type]
         return (
             <TouchableOpacity
@@ -63,7 +63,7 @@ export default function CatalogScreen() {
                 <Ionicons name='chevron-forward' size={16} color='#C8DFC5' className='self-center' />
             </TouchableOpacity>
         )
-    }
+    }, [router])
 
     return (
         <View className='flex-1 bg-bio'>
@@ -101,6 +101,10 @@ export default function CatalogScreen() {
                 contentContainerStyle={{ padding: 16, paddingBottom: 150 }}
                 onRefresh={refetch}
                 refreshing={isFetching}
+                removeClippedSubviews
+                initialNumToRender={15}
+                maxToRenderPerBatch={10}
+                windowSize={5}
                 ListEmptyComponent={
                     <View className='items-center pt-16'>
                         <Ionicons name='library-outline' size={48} color='#C8DFC5' />

@@ -85,8 +85,12 @@ export const ResourceService = {
     }).returning({ id: resources.id });
 
     const resourceId = result[0].id;
-    for (let i = 1; i <= resource.total_copies; i++) {
-      await db.insert(resourceCopies).values({ resource_id: resourceId, copy_number: i });
+    if (resource.total_copies > 0) {
+      const copyRows = Array.from({ length: resource.total_copies }, (_, i) => ({
+        resource_id: resourceId,
+        copy_number: i + 1,
+      }));
+      await db.insert(resourceCopies).values(copyRows);
     }
     return resourceId;
   },

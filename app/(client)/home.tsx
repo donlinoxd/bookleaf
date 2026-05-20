@@ -34,16 +34,19 @@ export default function ClientHomeScreen() {
 
     useEffect(() => {
         if (!serverUrl) return
+        const controller = new AbortController()
+        const { signal } = controller
         Promise.all([
-            fetch(`${serverUrl}/api/books/recent?limit=10`).then((r) => r.json()),
-            fetch(`${serverUrl}/api/books/popular?limit=10`).then((r) => r.json()),
+            fetch(`${serverUrl}/api/books/recent?limit=10`, { signal }).then((r) => r.json()),
+            fetch(`${serverUrl}/api/books/popular?limit=10`, { signal }).then((r) => r.json()),
         ])
             .then(([rec, pop]) => {
                 setRecent(rec ?? [])
                 setPopular(pop ?? [])
             })
-            .catch(() => {})
+            .catch((e) => { if (e.name !== 'AbortError') {} })
             .finally(() => setDiscoveryLoading(false))
+        return () => controller.abort()
     }, [serverUrl])
 
     const buildSearchUrl = (q: string, type: string, yf: string, yt: string, lang: string) => {
