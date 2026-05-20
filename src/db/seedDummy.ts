@@ -5,9 +5,6 @@ import {
 } from './schema'
 import { hashPin } from './database'
 
-// All demo accounts use PIN 1234
-const PIN_1234 = hashPin('1234')
-
 function daysAgo(n: number): string {
   const d = new Date()
   d.setDate(d.getDate() - n)
@@ -21,6 +18,11 @@ function daysFromNow(n: number): string {
 }
 
 export async function seedDummyData(): Promise<void> {
+  // All demo accounts use PIN 1234. Hashed lazily so the module is
+  // import-safe (hashPin needs crypto.getRandomValues, which is only
+  // polyfilled after the root layout loads).
+  const PIN_1234 = hashPin('1234')
+
   // ── Institution ─────────────────────────────────────────────────────────────
   const [inst] = await db.insert(institutions).values({
     name: 'St. Thomas Aquinas College',

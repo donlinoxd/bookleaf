@@ -10,13 +10,14 @@ Bookleaf is designed for use on a **trusted local Wi-Fi network** — a school's
 
 What the v1 beta protects against:
 - Patron impersonation via guessed ID numbers — every per-member API call requires a server-issued bearer token, not just an ID number.
-- PIN brute-force — failed logins are rate-limited per account (5 attempts → 1 min, 10 → 5 min, 15+ → 15 min lockout).
-- Offline PIN cracking — PINs are stored with PBKDF2-SHA256 (100,000 iterations, per-account salt).
-- Backup theft — exported backups are AES-encrypted with a librarian-supplied passphrase. Without the passphrase the file cannot be read.
+- Online PIN brute-force — failed logins are rate-limited per account (5 attempts → 1 min, 10 → 5 min, 15+ → 15 min lockout).
+- Rainbow-table attacks on stored PINs — PINs are stored as salted SHA-256 (per-account 16-byte salt), so identical PINs no longer collide and precomputed tables don't work.
+- Backup theft — exported backups are AES-256-encrypted (passphrase-derived key via PBKDF2 + HMAC-SHA256 for integrity). Without the passphrase the file cannot be read.
 
 What the v1 beta does **not** yet protect against:
 - **Passive network sniffing.** The HTTP API is plain HTTP (not HTTPS). Anyone on the same Wi-Fi running a packet capture can read patron PINs as they log in and steal session tokens (which are valid for 30 days). Full TLS with self-signed cert + dynamic pinning is planned for v1.1; until then, only deploy on a trusted LAN.
 - **Active man-in-the-middle.** A rogue device on the same Wi-Fi could spoof the UDP discovery beacon to intercept patron logins. This is the same root cause as above.
+- **Offline brute-force of short PINs against a stolen SQLite file.** 4-digit numeric PINs only have 10,000 combinations; even with salted hashing, an attacker who pulls `library.db` off the device can recover every PIN in seconds. We rely on the device staying physically secure and on the bearer-token + rate-limiting layer above. Migrating to a native KDF (e.g. `react-native-quick-crypto` with PBKDF2-600k or scrypt) is a v1.1 task that will harden this; pure-JS PBKDF2 in Hermes is too slow on low-end Android to be usable for an interactive login.
 
 If you're piloting Bookleaf, treat the librarian's device the same way you'd treat a paper logbook: keep it physically secured, take backups regularly (with a passphrase you don't lose), and don't connect untrusted devices to the same Wi-Fi.
 

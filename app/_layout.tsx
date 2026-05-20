@@ -1,3 +1,6 @@
+// Polyfill `crypto.getRandomValues` for React Native — must run before any
+// module that imports crypto-js. See src/polyfills.ts for details.
+import '../src/polyfills';
 import '../global.css';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';

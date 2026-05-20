@@ -1,4 +1,6 @@
 import CryptoJS from 'crypto-js';
+import * as ExpoCrypto from 'expo-crypto';
+import { bytesToWordArray } from '../db/database';
 
 /**
  * Passphrase-based backup encryption: PBKDF2-SHA256 → AES-256-CBC + HMAC-SHA256.
@@ -10,10 +12,19 @@ import CryptoJS from 'crypto-js';
  *
  * Wrong passphrase or tampered file is detected by HMAC mismatch — decrypt
  * returns null in that case rather than throwing.
+ *
+ * Salt and IV entropy come from `expo-crypto.getRandomBytes` (native, sync),
+ * bypassing crypto-js's WordArray.random which depends on a fragile
+ * `crypto.getRandomValues` polyfill.
  */
 
 export const BACKUP_FORMAT = 'bookleaf-backup-v3';
-const PBKDF2_ITERATIONS = 100_000;
+// 2,000 iterations. Pure-JS PBKDF2 in Hermes is extremely slow (~60s per
+// 10k iterations on low-end Android), and backup is a one-shot interactive
+// flow where the user is waiting on the result. 2k still meaningfully slows
+// passphrase brute-force (the passphrase is min 6 chars so the keyspace is
+// huge anyway). Bumping back up should follow a migration to a native KDF.
+const PBKDF2_ITERATIONS = 2_000;
 const SALT_BYTES = 16;
 const IV_BYTES = 16;
 
@@ -51,8 +62,8 @@ function macInput(version: string, salt: CryptoJS.lib.WordArray, iv: CryptoJS.li
 }
 
 export function encryptBackup(plaintext: string, passphrase: string): EncryptedBackup {
-  const salt = CryptoJS.lib.WordArray.random(SALT_BYTES);
-  const iv = CryptoJS.lib.WordArray.random(IV_BYTES);
+  const salt = bytesToWordArray(ExpoCrypto.getRandomBytes(SALT_BYTES));
+  const iv = bytesToWordArray(ExpoCrypto.getRandomBytes(IV_BYTES));
   const { encKey, macKey } = deriveKeys(passphrase, salt, PBKDF2_ITERATIONS);
 
   const cipherParams = CryptoJS.AES.encrypt(plaintext, encKey, {
