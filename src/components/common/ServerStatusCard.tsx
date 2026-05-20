@@ -1,24 +1,12 @@
 import { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, Platform, NativeModules } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { ServerBridge } from '../../services/ServerBridge';
-import { useAppStore } from '../../store/appStore';
+import { getLocalIpAddress } from '../../utils/networkInfo';
 
 type ServerStatus = 'idle' | 'starting' | 'running' | 'error' | 'stopped';
 
 interface Props {
   institutionId: number;
-}
-
-async function getLocalIp(): Promise<string> {
-  try {
-    if (Platform.OS === 'android') {
-      const { NetworkInfo } = NativeModules;
-      if (NetworkInfo?.getIPAddress) {
-        return await new Promise<string>((resolve) => NetworkInfo.getIPAddress(resolve, () => resolve('unknown')));
-      }
-    }
-  } catch { /* fall through */ }
-  return 'unknown';
 }
 
 export function ServerStatusCard({ institutionId }: Props) {
@@ -28,7 +16,7 @@ export function ServerStatusCard({ institutionId }: Props) {
   const port = 3000;
 
   useEffect(() => {
-    getLocalIp().then(setIp);
+    getLocalIpAddress().then(setIp);
 
     ServerBridge.setStatusCallback((s, d) => {
       setStatus(s);
@@ -91,7 +79,7 @@ export function ServerStatusCard({ institutionId }: Props) {
         </TouchableOpacity>
       </View>
 
-      {isRunning && ip !== 'unknown' && (
+      {isRunning && ip && ip !== '0.0.0.0' && (
         <View className="mt-3 bg-[#F0FDF4] rounded-lg p-3">
           <Text className="text-xs text-[#16A34A] font-semibold">Clients connect to:</Text>
           <Text className="text-xl font-bold text-[#15803D] tracking-widest mt-0.5">{ip}:{port}</Text>

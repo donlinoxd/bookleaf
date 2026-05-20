@@ -1,22 +1,12 @@
-import { Platform, NativeModules } from 'react-native';
+import * as Network from 'expo-network';
 
 /**
- * Returns the device's local Wi-Fi IP address.
- * On Android, uses the NetworkInfo native module.
- * Falls back gracefully if unavailable.
+ * Returns the device's local Wi-Fi IPv4 address, or '0.0.0.0' if unavailable.
  */
 export async function getLocalIpAddress(): Promise<string> {
   try {
-    if (Platform.OS === 'android') {
-      const { NetworkInfo } = NativeModules;
-      if (NetworkInfo?.getIPAddress) {
-        return new Promise((resolve, reject) => {
-          NetworkInfo.getIPAddress(resolve, reject);
-        });
-      }
-    }
+    return await Network.getIpAddressAsync();
   } catch {
-    // fall through to placeholder
+    return '0.0.0.0';
   }
-  return '0.0.0.0';
 }

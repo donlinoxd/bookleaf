@@ -227,14 +227,16 @@ export default function SettingsScreen() {
                         <Text className='text-orange-700 font-bold'>{importing ? 'Restoring…' : 'Restore from Backup'}</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity
-                        className='bg-violet-50 border border-violet-200 rounded-xl py-3.5 flex-row items-center justify-center gap-2'
-                        onPress={handleSeedDummy}
-                        disabled={seeding}
-                    >
-                        <Ionicons name='flask-outline' size={18} color='#7C3AED' />
-                        <Text className='text-violet-700 font-bold'>{seeding ? 'Loading…' : 'Load Demo Data'}</Text>
-                    </TouchableOpacity>
+                    {__DEV__ && (
+                        <TouchableOpacity
+                            className='bg-violet-50 border border-violet-200 rounded-xl py-3.5 flex-row items-center justify-center gap-2'
+                            onPress={handleSeedDummy}
+                            disabled={seeding}
+                        >
+                            <Ionicons name='flask-outline' size={18} color='#7C3AED' />
+                            <Text className='text-violet-700 font-bold'>{seeding ? 'Loading…' : 'Load Demo Data (dev only)'}</Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
             </View>
         </ScrollView>
