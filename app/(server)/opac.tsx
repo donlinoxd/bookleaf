@@ -76,7 +76,7 @@ export default function OPACScreen() {
                 <View className='flex-row items-end justify-between mb-5'>
                     <View className='flex-1'>
                         <Text className='text-2xl font-extrabold text-white'>{settings?.institution_name ?? 'Library'}</Text>
-                        <Text className='text-xs text-[#A8D5A2] mt-0.5 font-medium uppercase tracking-widest'>Public Catalog</Text>
+                        <Text className='text-xs text-[#A8D5A2] mt-0.5 font-medium uppercase tracking-widest'>Online Public Access Catalog</Text>
                     </View>
                     <Image source={MASCOT} className='w-16 h-16 -mb-1' resizeMode='contain' />
                 </View>
