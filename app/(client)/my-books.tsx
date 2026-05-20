@@ -6,6 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAppStore } from '../../src/store/appStore';
+import { clientFetch } from '../../src/services/clientApi';
 
 interface BorrowInfo {
   id: number;
@@ -49,19 +50,23 @@ export default function MyBooksScreen() {
 
   useEffect(() => {
     if (currentUser && serverUrl) {
-      loadAccount(currentUser.id_number);
+      loadAccount();
     }
   }, [currentUser, serverUrl]);
 
-  const loadAccount = async (idNumber: string) => {
+  const loadAccount = async () => {
     if (!serverUrl) return;
     setLoading(true);
     try {
       const [borrowRes, resRes, favRes] = await Promise.all([
-        fetch(`${serverUrl}/api/members/${encodeURIComponent(idNumber)}/borrows`),
-        fetch(`${serverUrl}/api/members/${encodeURIComponent(idNumber)}/reservations`),
-        fetch(`${serverUrl}/api/members/${encodeURIComponent(idNumber)}/favorites`),
+        clientFetch('/api/me/borrows'),
+        clientFetch('/api/me/reservations'),
+        clientFetch('/api/me/favorites'),
       ]);
+      if (borrowRes.status === 401) {
+        router.replace('/(auth)/client-login');
+        return;
+      }
       if (!borrowRes.ok) { Alert.alert('Error', 'Could not load account'); return; }
       const borrowData = await borrowRes.json();
       setBorrows(borrowData.borrows);
@@ -80,11 +85,7 @@ export default function MyBooksScreen() {
     if (!currentUser || !serverUrl) return;
     setRenewingId(borrowId);
     try {
-      const res = await fetch(`${serverUrl}/api/borrows/${borrowId}/renew`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idNumber: currentUser.id_number }),
-      });
+      const res = await clientFetch(`/api/borrows/${borrowId}/renew`, { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setBorrows(prev => prev.map(b =>

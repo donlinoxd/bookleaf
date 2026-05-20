@@ -8,6 +8,7 @@ import { AppMode } from '../src/types';
 export default function Index() {
   const router = useRouter();
   const setMode = useAppStore((s) => s.setMode);
+  const hydrateClientSession = useAppStore((s) => s.hydrateClientSession);
 
   useEffect(() => {
     (async () => {
@@ -17,7 +18,8 @@ export default function Index() {
         router.replace('/(auth)/login');
       } else if (savedMode === 'client') {
         setMode('client');
-        router.replace('/(auth)/connect');
+        const restored = await hydrateClientSession();
+        router.replace(restored ? '/(client)/home' : '/(auth)/connect');
       } else {
         router.replace('/(auth)/setup');
       }

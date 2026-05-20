@@ -2,6 +2,12 @@
  * Node.js HTTP server running inside nodejs-mobile-react-native.
  * All database queries are delegated back to the React Native side
  * via rn-bridge — the RN side owns the SQLite connection.
+ *
+ * Auth model: per-member endpoints require `Authorization: Bearer <token>`.
+ * The token is issued by /api/auth/member after PIN verification and is
+ * validated server-side via the `validateSession` bridge action. The browser
+ * gate page (/gate, /gate/login) is unchanged and continues to verify PIN
+ * on every check-in.
  */
 const rn_bridge = require('rn-bridge');
 const http = require('http');
@@ -80,6 +86,8 @@ function send(res, statusCode, data) {
   res.writeHead(statusCode, {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   });
   res.end(JSON.stringify(data));
 }
@@ -90,6 +98,25 @@ function readBody(req) {
     req.on('data', (chunk) => { body += chunk; });
     req.on('end', () => resolve(body));
   });
+}
+
+/**
+ * Extract Bearer token from the Authorization header and resolve it to a
+ * SessionPrincipal via the RN bridge. Returns null if the header is missing,
+ * malformed, or the token is invalid/expired.
+ */
+async function authResolve(req) {
+  const header = req.headers['authorization'] || req.headers['Authorization'];
+  if (!header || typeof header !== 'string') return null;
+  const match = header.match(/^Bearer\s+(\S+)$/i);
+  if (!match) return null;
+  const token = match[1];
+  try {
+    const principal = await queryRN('validateSession', { token });
+    return principal || null;
+  } catch {
+    return null;
+  }
 }
 
 const GATE_HTML = `<!DOCTYPE html>
@@ -162,6 +189,16 @@ const server = http.createServer(async (req, res) => {
   const path = parsed.pathname;
   const query = parsed.query;
 
+  // CORS preflight
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    });
+    return res.end();
+  }
+
   try {
     // GET /ping
     if (req.method === 'GET' && path === '/ping') {
@@ -219,93 +256,110 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, data);
     }
 
-    // POST /api/books/:id/reviews
+    // POST /api/books/:id/reviews — requires auth
     const reviewsPostMatch = path.match(/^\/api\/books\/(\d+)\/reviews$/);
     if (req.method === 'POST' && reviewsPostMatch) {
+      const principal = await authResolve(req);
+      if (!principal) return send(res, 401, { error: 'Unauthorized' });
       const body = await readBody(req);
-      let idNumber, rating, comment;
-      try { ({ idNumber, rating, comment } = JSON.parse(body)); } catch { return send(res, 400, { error: 'Invalid body' }); }
+      let rating, comment;
+      try { ({ rating, comment } = JSON.parse(body)); } catch { return send(res, 400, { error: 'Invalid body' }); }
       try {
-        const data = await queryRN('submitReview', { resourceId: parseInt(reviewsPostMatch[1]), idNumber, rating, comment: comment || null });
+        const data = await queryRN('submitReview', {
+          resourceId: parseInt(reviewsPostMatch[1]),
+          userId: principal.user_id,
+          rating,
+          comment: comment || null,
+        });
         return send(res, 200, data);
       } catch (e) {
         return send(res, 400, { error: e.message });
       }
     }
 
-    // GET /api/books/:id/favorite?idNumber=
+    // GET /api/books/:id/favorite — requires auth (per-user state)
     const favGetMatch = path.match(/^\/api\/books\/(\d+)\/favorite$/);
     if (req.method === 'GET' && favGetMatch) {
-      if (!query.idNumber) return send(res, 400, { error: 'idNumber required' });
-      const data = await queryRN('getFavoriteStatus', { resourceId: parseInt(favGetMatch[1]), idNumber: query.idNumber });
+      const principal = await authResolve(req);
+      if (!principal) return send(res, 401, { error: 'Unauthorized' });
+      const data = await queryRN('getFavoriteStatus', {
+        resourceId: parseInt(favGetMatch[1]),
+        userId: principal.user_id,
+      });
       return send(res, 200, data);
     }
 
-    // POST /api/books/:id/favorite
+    // POST /api/books/:id/favorite — requires auth
     const favPostMatch = path.match(/^\/api\/books\/(\d+)\/favorite$/);
     if (req.method === 'POST' && favPostMatch) {
-      const body = await readBody(req);
-      let idNumber;
-      try { ({ idNumber } = JSON.parse(body)); } catch { return send(res, 400, { error: 'Invalid body' }); }
+      const principal = await authResolve(req);
+      if (!principal) return send(res, 401, { error: 'Unauthorized' });
       try {
-        const data = await queryRN('toggleFavorite', { resourceId: parseInt(favPostMatch[1]), idNumber });
+        const data = await queryRN('toggleFavorite', {
+          resourceId: parseInt(favPostMatch[1]),
+          userId: principal.user_id,
+        });
         return send(res, 200, data);
       } catch (e) {
         return send(res, 400, { error: e.message });
       }
     }
 
-    // POST /api/books/:id/reserve
+    // POST /api/books/:id/reserve — requires auth
     const reserveMatch = path.match(/^\/api\/books\/(\d+)\/reserve$/);
     if (req.method === 'POST' && reserveMatch) {
-      const body = await readBody(req);
-      let idNumber;
-      try { ({ idNumber } = JSON.parse(body)); } catch { return send(res, 400, { error: 'Invalid body' }); }
+      const principal = await authResolve(req);
+      if (!principal) return send(res, 401, { error: 'Unauthorized' });
       try {
-        const data = await queryRN('reserveBook', { resourceId: parseInt(reserveMatch[1]), idNumber });
+        const data = await queryRN('reserveBook', {
+          resourceId: parseInt(reserveMatch[1]),
+          userId: principal.user_id,
+        });
         return send(res, 200, data);
       } catch (e) {
         return send(res, 400, { error: e.message });
       }
     }
 
-    // POST /api/borrows/:id/renew
+    // POST /api/borrows/:id/renew — requires auth
     const renewMatch = path.match(/^\/api\/borrows\/(\d+)\/renew$/);
     if (req.method === 'POST' && renewMatch) {
-      const body = await readBody(req);
-      let idNumber;
-      try { ({ idNumber } = JSON.parse(body)); } catch { return send(res, 400, { error: 'Invalid body' }); }
+      const principal = await authResolve(req);
+      if (!principal) return send(res, 401, { error: 'Unauthorized' });
       try {
-        const data = await queryRN('renewBorrow', { borrowingId: parseInt(renewMatch[1]), idNumber });
+        const data = await queryRN('renewBorrow', {
+          borrowingId: parseInt(renewMatch[1]),
+          userId: principal.user_id,
+        });
         return send(res, 200, data);
       } catch (e) {
         return send(res, 400, { error: e.message });
       }
     }
 
-    // GET /api/members/:idNumber/borrows
-    const memberMatch = path.match(/^\/api\/members\/([^/]+)\/borrows$/);
-    if (req.method === 'GET' && memberMatch) {
-      const idNumber = decodeURIComponent(memberMatch[1]);
-      const data = await queryRN('getMemberBorrows', { idNumber });
+    // GET /api/me/borrows — requires auth
+    if (req.method === 'GET' && path === '/api/me/borrows') {
+      const principal = await authResolve(req);
+      if (!principal) return send(res, 401, { error: 'Unauthorized' });
+      const data = await queryRN('getMemberBorrows', { userId: principal.user_id });
       if (!data) return send(res, 404, { error: 'Member not found' });
       return send(res, 200, data);
     }
 
-    // GET /api/members/:idNumber/reservations
-    const reservationsMatch = path.match(/^\/api\/members\/([^/]+)\/reservations$/);
-    if (req.method === 'GET' && reservationsMatch) {
-      const idNumber = decodeURIComponent(reservationsMatch[1]);
-      const data = await queryRN('getMemberReservations', { idNumber });
+    // GET /api/me/reservations — requires auth
+    if (req.method === 'GET' && path === '/api/me/reservations') {
+      const principal = await authResolve(req);
+      if (!principal) return send(res, 401, { error: 'Unauthorized' });
+      const data = await queryRN('getMemberReservations', { userId: principal.user_id });
       if (!data) return send(res, 404, { error: 'Member not found' });
       return send(res, 200, data);
     }
 
-    // GET /api/members/:idNumber/favorites
-    const favoritesMatch = path.match(/^\/api\/members\/([^/]+)\/favorites$/);
-    if (req.method === 'GET' && favoritesMatch) {
-      const idNumber = decodeURIComponent(favoritesMatch[1]);
-      const data = await queryRN('getMemberFavorites', { idNumber });
+    // GET /api/me/favorites — requires auth
+    if (req.method === 'GET' && path === '/api/me/favorites') {
+      const principal = await authResolve(req);
+      if (!principal) return send(res, 401, { error: 'Unauthorized' });
+      const data = await queryRN('getMemberFavorites', { userId: principal.user_id });
       if (!data) return send(res, 404, { error: 'Member not found' });
       return send(res, 200, data);
     }
@@ -337,20 +391,29 @@ const server = http.createServer(async (req, res) => {
       try { ({ idNumber, pin } = JSON.parse(body)); } catch { return send(res, 400, { error: 'Invalid body' }); }
       if (!idNumber || !pin) return send(res, 400, { error: 'idNumber and pin are required' });
       const data = await queryRN('authenticateMember', { idNumber, pin });
-      if (!data || data.error || !data.id || !data.name) return send(res, 401, { error: 'Invalid ID or PIN' });
+      if (!data || data.error || !data.user || !data.token) return send(res, 401, { error: 'Invalid ID or PIN' });
       return send(res, 200, data);
     }
 
-    // POST /api/gate/log — app clients log attendance (idNumber + institutionId)
-    if (req.method === 'POST' && path === '/api/gate/log') {
-      const body = await readBody(req);
-      let idNumber, institutionId;
-      try {
-        ({ idNumber, institutionId } = JSON.parse(body));
-      } catch {
-        return send(res, 400, { error: 'Invalid request body.' });
+    // POST /api/auth/logout — revoke the current session
+    if (req.method === 'POST' && path === '/api/auth/logout') {
+      const header = req.headers['authorization'] || req.headers['Authorization'];
+      const match = header && typeof header === 'string' && header.match(/^Bearer\s+(\S+)$/i);
+      if (match) {
+        try { await queryRN('logout', { token: match[1] }); } catch {}
       }
-      const data = await queryRN('gateLogByIdNumber', { idNumber, institutionId: institutionId || 1, method: 'app' });
+      return send(res, 200, { ok: true });
+    }
+
+    // POST /api/gate/log — app clients log attendance (auth via token)
+    if (req.method === 'POST' && path === '/api/gate/log') {
+      const principal = await authResolve(req);
+      if (!principal) return send(res, 401, { error: 'Unauthorized' });
+      const data = await queryRN('gateLogByUserId', {
+        userId: principal.user_id,
+        institutionId: principal.institution_id,
+        method: 'app',
+      });
       if (!data) return send(res, 404, { error: 'Member not found.' });
       return send(res, 200, data);
     }

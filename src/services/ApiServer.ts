@@ -1,11 +1,12 @@
 import { eq, like, or, and, desc, sum, sql, ne, gte, lte } from 'drizzle-orm';
 import { db } from '../db';
-import { resources, resourceCopies, borrowingRecords, users, fines, favorites, reviews } from '../db/schema';
+import { resources, resourceCopies, borrowingRecords, users, fines } from '../db/schema';
 import { GateService } from './GateService';
 import { BorrowService } from './BorrowService';
 import { ReservationService } from './ReservationService';
 import { FavoritesService } from './FavoritesService';
 import { ReviewService } from './ReviewService';
+import { SessionService, SessionPrincipal } from './SessionService';
 import { verifyPin } from '../db/database';
 
 export const ApiServer = {
@@ -79,29 +80,23 @@ export const ApiServer = {
       .limit(limit);
   },
 
-  async renewBorrow(borrowingId: number, idNumber: string) {
-    const member = await db.select({ id: users.id })
-      .from(users).where(eq(users.id_number, idNumber)).limit(1).then(r => r[0] ?? null);
-    if (!member) throw new Error('Member not found');
+  async renewBorrow(borrowingId: number, userId: number) {
     const record = await db.select({ user_id: borrowingRecords.user_id })
       .from(borrowingRecords).where(eq(borrowingRecords.id, borrowingId)).limit(1).then(r => r[0] ?? null);
     if (!record) throw new Error('Borrowing record not found');
-    if (record.user_id !== member.id) throw new Error('Unauthorized');
+    if (record.user_id !== userId) throw new Error('Not allowed');
     return BorrowService.renewBook(borrowingId);
   },
 
-  async reserveBook(resourceId: number, idNumber: string) {
-    const member = await db.select({ id: users.id })
-      .from(users).where(eq(users.id_number, idNumber)).limit(1).then(r => r[0] ?? null);
-    if (!member) throw new Error('Member not found');
-    return ReservationService.reserve(resourceId, member.id);
+  async reserveBook(resourceId: number, userId: number) {
+    return ReservationService.reserve(resourceId, userId);
   },
 
-  async getMemberReservations(idNumber: string) {
-    const member = await db.select({ id: users.id, name: users.name })
-      .from(users).where(eq(users.id_number, idNumber)).limit(1).then(r => r[0] ?? null);
+  async getMemberReservations(userId: number) {
+    const member = await db.select({ name: users.name })
+      .from(users).where(eq(users.id, userId)).limit(1).then(r => r[0] ?? null);
     if (!member) return null;
-    const holds = await ReservationService.getByUser(member.id);
+    const holds = await ReservationService.getByUser(userId);
     return { member_name: member.name, reservations: holds.filter(h => h.status === 'active') };
   },
 
@@ -214,26 +209,20 @@ export const ApiServer = {
       .limit(100);
   },
 
-  async toggleFavorite(resourceId: number, idNumber: string) {
-    const member = await db.select({ id: users.id })
-      .from(users).where(eq(users.id_number, idNumber)).limit(1).then(r => r[0] ?? null);
-    if (!member) throw new Error('Member not found');
-    return FavoritesService.toggle(member.id, resourceId);
+  async toggleFavorite(resourceId: number, userId: number) {
+    return FavoritesService.toggle(userId, resourceId);
   },
 
-  async getFavoriteStatus(resourceId: number, idNumber: string) {
-    const member = await db.select({ id: users.id })
-      .from(users).where(eq(users.id_number, idNumber)).limit(1).then(r => r[0] ?? null);
-    if (!member) return { favorited: false };
-    const favorited = await FavoritesService.isFavorited(member.id, resourceId);
+  async getFavoriteStatus(resourceId: number, userId: number) {
+    const favorited = await FavoritesService.isFavorited(userId, resourceId);
     return { favorited };
   },
 
-  async getMemberFavorites(idNumber: string) {
-    const member = await db.select({ id: users.id, name: users.name })
-      .from(users).where(eq(users.id_number, idNumber)).limit(1).then(r => r[0] ?? null);
+  async getMemberFavorites(userId: number) {
+    const member = await db.select({ name: users.name })
+      .from(users).where(eq(users.id, userId)).limit(1).then(r => r[0] ?? null);
     if (!member) return null;
-    const items = await FavoritesService.getByUser(member.id);
+    const items = await FavoritesService.getByUser(userId);
     return { member_name: member.name, favorites: items };
   },
 
@@ -245,20 +234,17 @@ export const ApiServer = {
     return { reviews: reviewList, avg_rating: avgRating };
   },
 
-  async submitReview(resourceId: number, idNumber: string, rating: number, comment: string | null) {
-    const member = await db.select({ id: users.id })
-      .from(users).where(eq(users.id_number, idNumber)).limit(1).then(r => r[0] ?? null);
-    if (!member) throw new Error('Member not found');
-    const eligible = await ReviewService.canReview(member.id, resourceId);
+  async submitReview(resourceId: number, userId: number, rating: number, comment: string | null) {
+    const eligible = await ReviewService.canReview(userId, resourceId);
     if (!eligible) throw new Error('You must have borrowed this item to leave a review');
-    await ReviewService.submit(member.id, resourceId, rating, comment);
+    await ReviewService.submit(userId, resourceId, rating, comment);
     return { ok: true };
   },
 
-  async gateLogByIdNumber(idNumber: string, institutionId: number, method: 'app' | 'browser' | 'manual') {
+  async gateLogByUserId(userId: number, institutionId: number, method: 'app' | 'browser' | 'manual') {
     const user = await db.select({ id: users.id, name: users.name, is_active: users.is_active })
       .from(users)
-      .where(eq(users.id_number, idNumber))
+      .where(eq(users.id, userId))
       .limit(1)
       .then((r) => r[0] ?? null);
     if (!user || !user.is_active) return null;
@@ -295,13 +281,23 @@ export const ApiServer = {
     if (!row || !row.is_active) return null;
     if (!verifyPin(pin, row.pin_hash)) return null;
     const { pin_hash: _, ...safeUser } = row;
-    return safeUser;
+    const session = await SessionService.create(row.id);
+    return { user: safeUser, token: session.token, expires_at: session.expires_at };
   },
 
-  async getMemberBorrows(idNumber: string) {
-    const member = await db.select({ id: users.id, name: users.name })
+  async validateSession(token: string): Promise<SessionPrincipal | null> {
+    return SessionService.validate(token);
+  },
+
+  async logout(token: string): Promise<{ ok: true }> {
+    await SessionService.revoke(token);
+    return { ok: true };
+  },
+
+  async getMemberBorrows(userId: number) {
+    const member = await db.select({ name: users.name })
       .from(users)
-      .where(eq(users.id_number, idNumber))
+      .where(eq(users.id, userId))
       .limit(1)
       .then(r => r[0] ?? null);
     if (!member) return null;
@@ -317,7 +313,7 @@ export const ApiServer = {
     }).from(borrowingRecords)
       .innerJoin(resourceCopies, eq(borrowingRecords.copy_id, resourceCopies.id))
       .innerJoin(resources, eq(resourceCopies.resource_id, resources.id))
-      .where(eq(borrowingRecords.user_id, member.id))
+      .where(eq(borrowingRecords.user_id, userId))
       .orderBy(desc(borrowingRecords.borrowed_at));
 
     const fineRows = await db.select({
@@ -325,7 +321,7 @@ export const ApiServer = {
       total: sum(fines.amount),
     }).from(fines)
       .innerJoin(borrowingRecords, eq(fines.borrowing_id, borrowingRecords.id))
-      .where(and(eq(borrowingRecords.user_id, member.id), eq(fines.paid, false)))
+      .where(and(eq(borrowingRecords.user_id, userId), eq(fines.paid, false)))
       .groupBy(fines.borrowing_id);
 
     const fineMap: Record<number, number> = {};

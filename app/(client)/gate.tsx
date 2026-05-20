@@ -6,6 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useAppStore } from '../../src/store/appStore';
+import { clientFetch } from '../../src/services/clientApi';
 import { GateDirection } from '../../src/types';
 
 const BRAND = '#2A5C33';
@@ -65,12 +66,12 @@ export default function ClientGateScreen() {
     }
 
     try {
-      const res = await fetch(`${baseUrl}/api/gate/log`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idNumber: currentUser.id_number, institutionId: currentUser.institution_id }),
-      });
+      const res = await clientFetch(`${baseUrl}/api/gate/log`, { method: 'POST' });
       const json = await res.json();
+      if (res.status === 401) {
+        setError('Your session expired. Please sign in again.');
+        return;
+      }
       if (!res.ok || json.error) {
         setError(json.error ?? 'Check-in failed.');
         return;

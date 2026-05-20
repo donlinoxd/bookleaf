@@ -28,7 +28,7 @@ async function handleQuery(requestId: number, action: string, params: Record<str
         data = await ApiServer.getBookDetail(params.id as number);
         break;
       case 'getMemberBorrows':
-        data = await ApiServer.getMemberBorrows(params.idNumber as string);
+        data = await ApiServer.getMemberBorrows(params.userId as number);
         break;
       case 'getRecentlyAdded':
         data = await ApiServer.getRecentlyAdded(institutionId, (params.limit as number) || 10);
@@ -37,13 +37,13 @@ async function handleQuery(requestId: number, action: string, params: Record<str
         data = await ApiServer.getPopular(institutionId, (params.limit as number) || 10);
         break;
       case 'renewBorrow':
-        data = await ApiServer.renewBorrow(params.borrowingId as number, params.idNumber as string);
+        data = await ApiServer.renewBorrow(params.borrowingId as number, params.userId as number);
         break;
       case 'reserveBook':
-        data = await ApiServer.reserveBook(params.resourceId as number, params.idNumber as string);
+        data = await ApiServer.reserveBook(params.resourceId as number, params.userId as number);
         break;
       case 'getMemberReservations':
-        data = await ApiServer.getMemberReservations(params.idNumber as string);
+        data = await ApiServer.getMemberReservations(params.userId as number);
         break;
       case 'searchBooksFiltered':
         data = await ApiServer.searchBooksFiltered(
@@ -59,13 +59,13 @@ async function handleQuery(requestId: number, action: string, params: Record<str
         data = await ApiServer.getSimilarBooks(params.resourceId as number);
         break;
       case 'toggleFavorite':
-        data = await ApiServer.toggleFavorite(params.resourceId as number, params.idNumber as string);
+        data = await ApiServer.toggleFavorite(params.resourceId as number, params.userId as number);
         break;
       case 'getFavoriteStatus':
-        data = await ApiServer.getFavoriteStatus(params.resourceId as number, params.idNumber as string);
+        data = await ApiServer.getFavoriteStatus(params.resourceId as number, params.userId as number);
         break;
       case 'getMemberFavorites':
-        data = await ApiServer.getMemberFavorites(params.idNumber as string);
+        data = await ApiServer.getMemberFavorites(params.userId as number);
         break;
       case 'getBookReviews':
         data = await ApiServer.getBookReviews(params.resourceId as number);
@@ -73,14 +73,14 @@ async function handleQuery(requestId: number, action: string, params: Record<str
       case 'submitReview':
         data = await ApiServer.submitReview(
           params.resourceId as number,
-          params.idNumber as string,
+          params.userId as number,
           params.rating as number,
           (params.comment as string) || null,
         );
         break;
-      case 'gateLogByIdNumber':
-        data = await ApiServer.gateLogByIdNumber(
-          params.idNumber as string,
+      case 'gateLogByUserId':
+        data = await ApiServer.gateLogByUserId(
+          params.userId as number,
           params.institutionId as number,
           params.method as 'app' | 'browser' | 'manual',
         );
@@ -97,6 +97,12 @@ async function handleQuery(requestId: number, action: string, params: Record<str
           params.idNumber as string,
           params.pin as string,
         );
+        break;
+      case 'validateSession':
+        data = await ApiServer.validateSession(params.token as string);
+        break;
+      case 'logout':
+        data = await ApiServer.logout(params.token as string);
         break;
       default:
         data = { error: `Unknown action: ${action}` };

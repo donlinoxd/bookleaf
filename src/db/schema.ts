@@ -158,6 +158,13 @@ export const settings = sqliteTable('settings', {
   value: text('value').notNull(),
 });
 
+export const sessions = sqliteTable('sessions', {
+  token: text('token').primaryKey(),
+  user_id: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  expires_at: text('expires_at').notNull(),
+  created_at: text('created_at').notNull().default(sql`(datetime('now'))`),
+});
+
 export const DEFAULT_SETTINGS = [
   { key: 'fine_per_day', value: '5' },
   { key: 'max_borrow_days', value: '7' },

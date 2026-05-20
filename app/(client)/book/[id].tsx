@@ -6,6 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAppStore } from '../../../src/store/appStore';
+import { clientFetch } from '../../../src/services/clientApi';
 
 interface BookDetail {
   id: number;
@@ -60,7 +61,9 @@ export default function ClientBookDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const serverUrl = useAppStore((s) => s.serverUrl);
+  const currentUser = useAppStore((s) => s.currentUser);
   const resourceId = Number(id);
+  const isSignedIn = !!currentUser;
 
   const [book, setBook] = useState<BookDetail | null>(null);
   const [similar, setSimilar] = useState<SimilarBook[]>([]);
@@ -69,74 +72,47 @@ export default function ClientBookDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [favorited, setFavorited] = useState(false);
 
-  const [reserveModalVisible, setReserveModalVisible] = useState(false);
-  const [reserveId, setReserveId] = useState('');
   const [reserving, setReserving] = useState(false);
+  const [togglingFav, setTogglingFav] = useState(false);
 
   const [reviewModalVisible, setReviewModalVisible] = useState(false);
-  const [reviewIdNumber, setReviewIdNumber] = useState('');
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
 
-  const [favIdNumber, setFavIdNumber] = useState('');
-  const [favModalVisible, setFavModalVisible] = useState(false);
-  const [togglingFav, setTogglingFav] = useState(false);
-
   useEffect(() => {
     if (!serverUrl || !resourceId) return;
-    Promise.all([
+    const tasks: Promise<any>[] = [
       fetch(`${serverUrl}/api/books/${resourceId}`).then(r => r.json()),
       fetch(`${serverUrl}/api/books/${resourceId}/similar`).then(r => r.json()),
       fetch(`${serverUrl}/api/books/${resourceId}/reviews`).then(r => r.json()),
-    ]).then(([detail, sim, rev]) => {
+    ];
+    if (isSignedIn) {
+      tasks.push(clientFetch(`/api/books/${resourceId}/favorite`).then(r => r.ok ? r.json() : { favorited: false }));
+    }
+    Promise.all(tasks).then(([detail, sim, rev, favStatus]) => {
       setBook(detail);
       setSimilar(sim ?? []);
       setReviews(rev?.reviews ?? []);
       setAvgRating(rev?.avg_rating ?? 0);
+      if (favStatus) setFavorited(!!favStatus.favorited);
     }).catch(() => {
       Alert.alert('Error', 'Could not load book details.');
     }).finally(() => setLoading(false));
-  }, [serverUrl, resourceId]);
+  }, [serverUrl, resourceId, isSignedIn]);
 
-  const checkFavorite = async (idn: string) => {
-    if (!idn.trim()) return;
-    try {
-      const res = await fetch(`${serverUrl}/api/books/${resourceId}/favorite?idNumber=${encodeURIComponent(idn.trim())}`);
-      const data = await res.json();
-      setFavorited(data.favorited);
-      setFavIdNumber(idn.trim());
-    } catch {}
+  const requireSignIn = (action: string) => {
+    Alert.alert('Sign In Required', `Please sign in to ${action}.`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Sign In', onPress: () => router.push('/(auth)/client-login') },
+    ]);
   };
 
   const handleToggleFavorite = async () => {
-    if (!favIdNumber) { setFavModalVisible(true); return; }
+    if (!isSignedIn) { requireSignIn('save favorites'); return; }
     setTogglingFav(true);
     try {
-      const res = await fetch(`${serverUrl}/api/books/${resourceId}/favorite`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idNumber: favIdNumber }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setFavorited(data.favorited);
-    } catch (e: any) {
-      Alert.alert('Error', e.message);
-    } finally { setTogglingFav(false); }
-  };
-
-  const handleFavIdSubmit = async () => {
-    if (!favIdNumber.trim()) return;
-    setFavModalVisible(false);
-    await checkFavorite(favIdNumber.trim());
-    setTogglingFav(true);
-    try {
-      const res = await fetch(`${serverUrl}/api/books/${resourceId}/favorite`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idNumber: favIdNumber.trim() }),
-      });
+      const res = await clientFetch(`/api/books/${resourceId}/favorite`, { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setFavorited(data.favorited);
@@ -146,37 +122,35 @@ export default function ClientBookDetailScreen() {
   };
 
   const handleReserve = async () => {
-    if (!reserveId.trim()) return;
+    if (!isSignedIn) { requireSignIn('place a hold'); return; }
     setReserving(true);
     try {
-      const res = await fetch(`${serverUrl}/api/books/${resourceId}/reserve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idNumber: reserveId.trim() }),
-      });
+      const res = await clientFetch(`/api/books/${resourceId}/reserve`, { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setReserveModalVisible(false);
-      setReserveId('');
       Alert.alert('Hold Placed', 'You have been added to the waitlist for this item.');
     } catch (e: any) {
       Alert.alert('Error', e.message);
     } finally { setReserving(false); }
   };
 
+  const handleOpenReview = () => {
+    if (!isSignedIn) { requireSignIn('write a review'); return; }
+    setReviewModalVisible(true);
+  };
+
   const handleSubmitReview = async () => {
-    if (!reviewIdNumber.trim()) return;
+    if (!isSignedIn) return;
     setSubmittingReview(true);
     try {
-      const res = await fetch(`${serverUrl}/api/books/${resourceId}/reviews`, {
+      const res = await clientFetch(`/api/books/${resourceId}/reviews`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idNumber: reviewIdNumber.trim(), rating: reviewRating, comment: reviewComment.trim() || null }),
+        body: JSON.stringify({ rating: reviewRating, comment: reviewComment.trim() || null }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setReviewModalVisible(false);
-      setReviewIdNumber(''); setReviewComment(''); setReviewRating(5);
+      setReviewComment(''); setReviewRating(5);
       const rev = await fetch(`${serverUrl}/api/books/${resourceId}/reviews`).then(r => r.json());
       setReviews(rev?.reviews ?? []);
       setAvgRating(rev?.avg_rating ?? 0);
@@ -254,16 +228,17 @@ export default function ClientBookDetailScreen() {
             <TouchableOpacity
               className="flex-1 bg-brand rounded-2xl py-3.5 items-center flex-row justify-center gap-2"
               style={{ elevation: 2 }}
-              onPress={() => setReserveModalVisible(true)}
+              onPress={handleReserve}
+              disabled={reserving}
             >
               <Ionicons name="bookmark-outline" size={18} color="#fff" />
-              <Text className="text-white font-bold">Place Hold</Text>
+              <Text className="text-white font-bold">{reserving ? 'Placing…' : 'Place Hold'}</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity
             className="flex-1 bg-white border border-mint rounded-2xl py-3.5 items-center flex-row justify-center gap-2"
             style={{ elevation: 1 }}
-            onPress={() => setReviewModalVisible(true)}
+            onPress={handleOpenReview}
           >
             <Ionicons name="star-outline" size={18} color="#2A5C33" />
             <Text className="text-brand font-bold">Write Review</Text>
@@ -446,82 +421,12 @@ export default function ClientBookDetailScreen() {
         )}
       </View>
 
-      {/* Reserve Modal */}
-      <Modal visible={reserveModalVisible} transparent animationType="fade" onRequestClose={() => setReserveModalVisible(false)}>
-        <View className="flex-1 bg-black/50 justify-center px-6">
-          <View className="bg-white rounded-3xl p-6 gap-4">
-            <Text className="text-lg font-extrabold text-[#1C2B1E]">Place a Hold</Text>
-            <Text className="text-sm text-[#5A7A5E]">Enter your library ID number to join the waitlist for "{book.title}".</Text>
-            <TextInput
-              className="bg-bio border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]"
-              value={reserveId}
-              onChangeText={setReserveId}
-              placeholder="Your ID number"
-              placeholderTextColor="#94A3B8"
-              autoCapitalize="none"
-            />
-            <View className="flex-row gap-3">
-              <TouchableOpacity className="flex-1 bg-bio border border-mint rounded-xl py-3 items-center" onPress={() => { setReserveModalVisible(false); setReserveId(''); }}>
-                <Text className="font-bold text-[#5A7A5E]">Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                className="flex-1 bg-brand rounded-xl py-3 items-center"
-                onPress={handleReserve}
-                disabled={!reserveId.trim() || reserving}
-                style={{ opacity: reserveId.trim() ? 1 : 0.4 }}
-              >
-                {reserving ? <ActivityIndicator color="#fff" size="small" /> : <Text className="text-white font-bold">Place Hold</Text>}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Favorite ID Modal */}
-      <Modal visible={favModalVisible} transparent animationType="fade" onRequestClose={() => setFavModalVisible(false)}>
-        <View className="flex-1 bg-black/50 justify-center px-6">
-          <View className="bg-white rounded-3xl p-6 gap-4">
-            <Text className="text-lg font-extrabold text-[#1C2B1E]">Save to Favorites</Text>
-            <Text className="text-sm text-[#5A7A5E]">Enter your library ID to save this to your personal reading list.</Text>
-            <TextInput
-              className="bg-bio border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]"
-              value={favIdNumber}
-              onChangeText={setFavIdNumber}
-              placeholder="Your ID number"
-              placeholderTextColor="#94A3B8"
-              autoCapitalize="none"
-            />
-            <View className="flex-row gap-3">
-              <TouchableOpacity className="flex-1 bg-bio border border-mint rounded-xl py-3 items-center" onPress={() => setFavModalVisible(false)}>
-                <Text className="font-bold text-[#5A7A5E]">Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                className="flex-1 bg-brand rounded-xl py-3 items-center"
-                onPress={handleFavIdSubmit}
-                disabled={!favIdNumber.trim()}
-                style={{ opacity: favIdNumber.trim() ? 1 : 0.4 }}
-              >
-                <Text className="text-white font-bold">Save</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
       {/* Review Modal */}
       <Modal visible={reviewModalVisible} transparent animationType="slide" onRequestClose={() => setReviewModalVisible(false)}>
         <View className="flex-1 bg-black/50 justify-end">
           <View className="bg-white rounded-t-3xl p-6 gap-4">
             <Text className="text-lg font-extrabold text-[#1C2B1E]">Write a Review</Text>
             <Text className="text-xs text-[#94A3B8]">You must have borrowed this item to leave a review.</Text>
-            <TextInput
-              className="bg-bio border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]"
-              value={reviewIdNumber}
-              onChangeText={setReviewIdNumber}
-              placeholder="Your library ID number"
-              placeholderTextColor="#94A3B8"
-              autoCapitalize="none"
-            />
             <View className="gap-1">
               <Text className="text-xs font-bold text-brand uppercase tracking-wider">Rating</Text>
               <View className="flex-row gap-3 py-1">
@@ -543,14 +448,13 @@ export default function ClientBookDetailScreen() {
               style={{ minHeight: 80, textAlignVertical: 'top' }}
             />
             <View className="flex-row gap-3">
-              <TouchableOpacity className="flex-1 bg-bio border border-mint rounded-xl py-3 items-center" onPress={() => { setReviewModalVisible(false); setReviewIdNumber(''); setReviewComment(''); setReviewRating(5); }}>
+              <TouchableOpacity className="flex-1 bg-bio border border-mint rounded-xl py-3 items-center" onPress={() => { setReviewModalVisible(false); setReviewComment(''); setReviewRating(5); }}>
                 <Text className="font-bold text-[#5A7A5E]">Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 className="flex-1 bg-brand rounded-xl py-3 items-center"
                 onPress={handleSubmitReview}
-                disabled={!reviewIdNumber.trim() || submittingReview}
-                style={{ opacity: reviewIdNumber.trim() ? 1 : 0.4 }}
+                disabled={submittingReview}
               >
                 {submittingReview ? <ActivityIndicator color="#fff" size="small" /> : <Text className="text-white font-bold">Submit</Text>}
               </TouchableOpacity>

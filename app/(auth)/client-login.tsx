@@ -8,7 +8,7 @@ import MASCOT from '../../assets/images/bookleaf-mascot.png'
 
 export default function ClientLoginScreen() {
     const router = useRouter()
-    const { serverUrl, setCurrentUser } = useAppStore()
+    const { serverUrl, setCurrentUser, setClientSession } = useAppStore()
     const [idNumber, setIdNumber] = useState('')
     const [pin, setPin] = useState('')
     const [loading, setLoading] = useState(false)
@@ -31,11 +31,16 @@ export default function ClientLoginScreen() {
                 Alert.alert('Login Failed', data.error ?? 'Invalid ID or PIN')
                 return
             }
-            if (!data.id || !data.name || !data.id_number) {
+            if (!data.user || !data.token || !data.expires_at) {
                 Alert.alert('Login Failed', 'Server returned incomplete data. Make sure the library server is up to date.')
                 return
             }
-            setCurrentUser(data)
+            await setClientSession({
+                user: data.user,
+                token: data.token,
+                expires_at: data.expires_at,
+                serverUrl,
+            })
             router.replace('/(client)/home')
         } catch {
             Alert.alert('Error', 'Could not reach the library server.')
