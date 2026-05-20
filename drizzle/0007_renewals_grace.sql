@@ -1,1 +1,0 @@
-ALTER TABLE `borrowing_records` ADD `renewal_count` integer DEFAULT 0 NOT NULL;
