@@ -1,7 +1,7 @@
 import { eq, asc, and, like, or } from 'drizzle-orm';
 import { db } from '../db';
 import { users } from '../db/schema';
-import { hashPin, verifyPin } from '../db/database';
+import { hashPin, verifyPin, isLegacyHash } from '../db/database';
 import { User, UserRole, UserType } from '../types';
 
 export const UserService = {
@@ -58,7 +58,11 @@ export const UserService = {
   async authenticate(idNumber: string, pin: string): Promise<User | null> {
     const user = await UserService.getByIdNumber(idNumber);
     if (!user || !user.is_active) return null;
-    return verifyPin(pin, user.pin_hash) ? user : null;
+    if (!verifyPin(pin, user.pin_hash)) return null;
+    if (isLegacyHash(user.pin_hash)) {
+      await db.update(users).set({ pin_hash: hashPin(pin) }).where(eq(users.id, user.id));
+    }
+    return user;
   },
 
   async updateStatus(id: number, isActive: boolean): Promise<void> {

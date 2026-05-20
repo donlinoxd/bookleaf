@@ -7,7 +7,7 @@ import { ReservationService } from './ReservationService';
 import { FavoritesService } from './FavoritesService';
 import { ReviewService } from './ReviewService';
 import { SessionService, SessionPrincipal } from './SessionService';
-import { verifyPin } from '../db/database';
+import { hashPin, verifyPin, isLegacyHash } from '../db/database';
 
 export const ApiServer = {
   async ping() {
@@ -260,6 +260,9 @@ export const ApiServer = {
       .then((r) => r[0] ?? null);
     if (!user || !user.is_active) return null;
     if (!verifyPin(pin, user.pin_hash)) return null;
+    if (isLegacyHash(user.pin_hash)) {
+      await db.update(users).set({ pin_hash: hashPin(pin) }).where(eq(users.id, user.id));
+    }
     const result = await GateService.logEntry(user.id, institutionId, 'browser');
     return { user_name: user.name, direction: result.direction, logged_at: result.logged_at };
   },
@@ -280,6 +283,9 @@ export const ApiServer = {
     }).from(users).where(eq(users.id_number, idNumber)).limit(1).then(r => r[0] ?? null);
     if (!row || !row.is_active) return null;
     if (!verifyPin(pin, row.pin_hash)) return null;
+    if (isLegacyHash(row.pin_hash)) {
+      await db.update(users).set({ pin_hash: hashPin(pin) }).where(eq(users.id, row.id));
+    }
     const { pin_hash: _, ...safeUser } = row;
     const session = await SessionService.create(row.id);
     return { user: safeUser, token: session.token, expires_at: session.expires_at };

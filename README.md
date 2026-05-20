@@ -4,6 +4,24 @@ An offline-first Android library management system for institutions that cannot 
 
 ---
 
+## Security note for the v1 beta
+
+Bookleaf is designed for use on a **trusted local Wi-Fi network** — a school's private network where the librarian controls who can connect. **Do not deploy it on public, shared, or hostile Wi-Fi (e.g. coffee-shop, dorm-wide, or guest networks).**
+
+What the v1 beta protects against:
+- Patron impersonation via guessed ID numbers — every per-member API call requires a server-issued bearer token, not just an ID number.
+- PIN brute-force — failed logins are rate-limited per account (5 attempts → 1 min, 10 → 5 min, 15+ → 15 min lockout).
+- Offline PIN cracking — PINs are stored with PBKDF2-SHA256 (100,000 iterations, per-account salt).
+- Backup theft — exported backups are AES-encrypted with a librarian-supplied passphrase. Without the passphrase the file cannot be read.
+
+What the v1 beta does **not** yet protect against:
+- **Passive network sniffing.** The HTTP API is plain HTTP (not HTTPS). Anyone on the same Wi-Fi running a packet capture can read patron PINs as they log in and steal session tokens (which are valid for 30 days). Full TLS with self-signed cert + dynamic pinning is planned for v1.1; until then, only deploy on a trusted LAN.
+- **Active man-in-the-middle.** A rogue device on the same Wi-Fi could spoof the UDP discovery beacon to intercept patron logins. This is the same root cause as above.
+
+If you're piloting Bookleaf, treat the librarian's device the same way you'd treat a paper logbook: keep it physically secured, take backups regularly (with a passphrase you don't lose), and don't connect untrusted devices to the same Wi-Fi.
+
+---
+
 ## How it works
 
 ```

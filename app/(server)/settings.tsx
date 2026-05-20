@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
-import { Alert, ScrollView, StatusBar, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import { ActivityIndicator, Alert, Modal, ScrollView, StatusBar, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { ServerStatusCard } from '../../src/components/common/ServerStatusCard'
 import { queryKeys } from '../../src/lib/queryKeys'
 import { BackupService } from '../../src/services/BackupService'
@@ -19,10 +19,73 @@ export default function SettingsScreen() {
     const [exporting, setExporting] = useState(false)
     const [importing, setImporting] = useState(false)
     const [seeding, setSeeding] = useState(false)
+    const [pwModal, setPwModal] = useState<{ open: boolean; mode: 'export' | 'import' }>({ open: false, mode: 'export' })
+    const [pwPass, setPwPass] = useState('')
+    const [pwConfirm, setPwConfirm] = useState('')
+    const [pwBusy, setPwBusy] = useState(false)
 
     useEffect(() => {
         if (saved) setForm(saved)
     }, [saved])
+
+    const openPwModal = (mode: 'export' | 'import') => {
+        setPwPass('')
+        setPwConfirm('')
+        setPwModal({ open: true, mode })
+    }
+
+    const closePwModal = () => {
+        if (pwBusy) return
+        if (pwModal.mode === 'export') setExporting(false)
+        else setImporting(false)
+        setPwModal({ open: false, mode: pwModal.mode })
+        setPwPass('')
+        setPwConfirm('')
+    }
+
+    const handlePwSubmit = async () => {
+        if (pwModal.mode === 'export') {
+            if (pwPass.length < 6) {
+                Alert.alert('Passphrase too short', 'Use at least 6 characters.')
+                return
+            }
+            if (pwPass !== pwConfirm) {
+                Alert.alert('Passphrases do not match', 'Re-type the same passphrase in both fields.')
+                return
+            }
+        } else if (!pwPass) {
+            Alert.alert('Passphrase required', 'Enter the passphrase used when the backup was created.')
+            return
+        }
+
+        setPwBusy(true)
+        try {
+            if (pwModal.mode === 'export') {
+                await BackupService.exportJson(pwPass)
+                setExporting(false)
+                setPwModal({ open: false, mode: 'export' })
+                setPwPass(''); setPwConfirm('')
+                Alert.alert(
+                    'Backup Created',
+                    'Save the passphrase somewhere safe — restoring this backup requires it. Without the passphrase the file cannot be opened.',
+                )
+            } else {
+                await BackupService.importJson(pwPass)
+                await queryClient.invalidateQueries()
+                setImporting(false)
+                setPwModal({ open: false, mode: 'import' })
+                setPwPass(''); setPwConfirm('')
+                Alert.alert('Restored', 'Backup restored successfully. Please restart the app.')
+            }
+        } catch (e) {
+            Alert.alert(
+                pwModal.mode === 'export' ? 'Export Failed' : 'Import Failed',
+                e instanceof Error ? e.message : 'Operation failed.',
+            )
+        } finally {
+            setPwBusy(false)
+        }
+    }
 
     const set = (key: keyof Settings, value: string) => setForm((prev) => ({ ...prev, [key]: value }))
 
@@ -46,15 +109,9 @@ export default function SettingsScreen() {
         }
     }
 
-    const handleExport = async () => {
+    const handleExport = () => {
         setExporting(true)
-        try {
-            await BackupService.exportJson()
-        } catch (e) {
-            Alert.alert('Export Failed', e instanceof Error ? e.message : 'Could not create backup.')
-        } finally {
-            setExporting(false)
-        }
+        openPwModal('export')
     }
 
     const handleSeedDummy = () => {
@@ -88,17 +145,9 @@ export default function SettingsScreen() {
             {
                 text: 'Restore',
                 style: 'destructive',
-                onPress: async () => {
+                onPress: () => {
                     setImporting(true)
-                    try {
-                        await BackupService.importJson()
-                        await queryClient.invalidateQueries()
-                        Alert.alert('Restored', 'Backup restored successfully. Please restart the app.')
-                    } catch (e) {
-                        Alert.alert('Import Failed', e instanceof Error ? e.message : 'Could not restore backup.')
-                    } finally {
-                        setImporting(false)
-                    }
+                    openPwModal('import')
                 },
             },
         ])
@@ -239,6 +288,72 @@ export default function SettingsScreen() {
                     )}
                 </View>
             </View>
+
+            <Modal visible={pwModal.open} transparent animationType='fade' onRequestClose={closePwModal}>
+                <View className='flex-1 bg-black/50 justify-center px-6'>
+                    <View className='bg-white rounded-3xl p-6 gap-4'>
+                        <Text className='text-lg font-extrabold text-[#1C2B1E]'>
+                            {pwModal.mode === 'export' ? 'Set a Backup Passphrase' : 'Enter Backup Passphrase'}
+                        </Text>
+                        <Text className='text-xs text-[#5A7A5E] leading-5'>
+                            {pwModal.mode === 'export'
+                                ? 'Choose a passphrase to encrypt this backup. You will need the exact same passphrase to restore it later. There is no recovery if you forget it.'
+                                : 'Enter the passphrase that was used when this backup was created. Without it the file cannot be opened.'}
+                        </Text>
+
+                        <View className='gap-1'>
+                            <Text className='text-xs font-bold text-brand uppercase tracking-wider'>Passphrase</Text>
+                            <TextInput
+                                className='bg-bio border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]'
+                                value={pwPass}
+                                onChangeText={setPwPass}
+                                secureTextEntry
+                                autoCapitalize='none'
+                                autoCorrect={false}
+                                placeholder={pwModal.mode === 'export' ? 'At least 6 characters' : 'Backup passphrase'}
+                                placeholderTextColor='#94A3B8'
+                                editable={!pwBusy}
+                            />
+                        </View>
+
+                        {pwModal.mode === 'export' && (
+                            <View className='gap-1'>
+                                <Text className='text-xs font-bold text-brand uppercase tracking-wider'>Confirm Passphrase</Text>
+                                <TextInput
+                                    className='bg-bio border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]'
+                                    value={pwConfirm}
+                                    onChangeText={setPwConfirm}
+                                    secureTextEntry
+                                    autoCapitalize='none'
+                                    autoCorrect={false}
+                                    placeholder='Type the passphrase again'
+                                    placeholderTextColor='#94A3B8'
+                                    editable={!pwBusy}
+                                />
+                            </View>
+                        )}
+
+                        <View className='flex-row gap-3 mt-2'>
+                            <TouchableOpacity
+                                className='flex-1 bg-bio border border-mint rounded-xl py-3 items-center'
+                                onPress={closePwModal}
+                                disabled={pwBusy}
+                            >
+                                <Text className='font-bold text-[#5A7A5E]'>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                className='flex-1 bg-brand rounded-xl py-3 items-center'
+                                onPress={handlePwSubmit}
+                                disabled={pwBusy}
+                            >
+                                {pwBusy
+                                    ? <ActivityIndicator color='#fff' size='small' />
+                                    : <Text className='text-white font-bold'>{pwModal.mode === 'export' ? 'Create Backup' : 'Restore'}</Text>}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </ScrollView>
     )
 }

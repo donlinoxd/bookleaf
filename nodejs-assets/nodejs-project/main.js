@@ -82,15 +82,63 @@ rn_bridge.channel.on('message', (raw) => {
   }
 });
 
-function send(res, statusCode, data) {
+function send(res, statusCode, data, extraHeaders) {
   res.writeHead(statusCode, {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    ...(extraHeaders || {}),
   });
   res.end(JSON.stringify(data));
 }
+
+/**
+ * Per-account rate limiter for login endpoints. Tracks failures in memory.
+ *
+ * Schedule (kicks in after 4 free attempts):
+ *   5–9  failures   → 1 minute lockout
+ *   10–14 failures  → 5 minute lockout
+ *   15+ failures    → 15 minute lockout
+ *
+ * Successful logins clear the entry. A periodic sweep prunes entries whose
+ * last activity is older than an hour AND aren't currently blocked.
+ */
+const loginFailures = new Map();
+
+function rateLimitCheck(key) {
+  const now = Date.now();
+  const entry = loginFailures.get(key);
+  if (!entry) return { blocked: false };
+  if (entry.blockedUntil > now) {
+    return { blocked: true, retryAfter: Math.ceil((entry.blockedUntil - now) / 1000) };
+  }
+  return { blocked: false };
+}
+
+function rateLimitRecordFailure(key) {
+  const now = Date.now();
+  const entry = loginFailures.get(key) || { count: 0, blockedUntil: 0, lastActivity: now };
+  entry.count += 1;
+  entry.lastActivity = now;
+  if (entry.count >= 15) entry.blockedUntil = now + 15 * 60 * 1000;
+  else if (entry.count >= 10) entry.blockedUntil = now + 5 * 60 * 1000;
+  else if (entry.count >= 5) entry.blockedUntil = now + 60 * 1000;
+  loginFailures.set(key, entry);
+}
+
+function rateLimitRecordSuccess(key) {
+  loginFailures.delete(key);
+}
+
+const _loginFailuresCleanup = setInterval(() => {
+  const now = Date.now();
+  const cutoff = now - 60 * 60 * 1000;
+  for (const [k, e] of loginFailures.entries()) {
+    if (e.lastActivity < cutoff && e.blockedUntil < now) loginFailures.delete(k);
+  }
+}, 5 * 60 * 1000);
+if (_loginFailuresCleanup.unref) _loginFailuresCleanup.unref();
 
 function readBody(req) {
   return new Promise((resolve) => {
@@ -379,8 +427,17 @@ const server = http.createServer(async (req, res) => {
       } catch {
         return send(res, 400, { error: 'Invalid request body.' });
       }
+      if (!idNumber || !pin) return send(res, 400, { error: 'idNumber and pin are required.' });
+      const rl = rateLimitCheck(`gate:${idNumber}`);
+      if (rl.blocked) {
+        return send(res, 429, { error: 'Too many failed attempts. Try again later.', retry_after: rl.retryAfter }, { 'Retry-After': String(rl.retryAfter) });
+      }
       const data = await queryRN('gateVerifyAndLog', { idNumber, pin, institutionId: institutionId || 1 });
-      if (!data) return send(res, 401, { error: 'Invalid ID or PIN.' });
+      if (!data) {
+        rateLimitRecordFailure(`gate:${idNumber}`);
+        return send(res, 401, { error: 'Invalid ID or PIN.' });
+      }
+      rateLimitRecordSuccess(`gate:${idNumber}`);
       return send(res, 200, data);
     }
 
@@ -390,8 +447,16 @@ const server = http.createServer(async (req, res) => {
       let idNumber, pin;
       try { ({ idNumber, pin } = JSON.parse(body)); } catch { return send(res, 400, { error: 'Invalid body' }); }
       if (!idNumber || !pin) return send(res, 400, { error: 'idNumber and pin are required' });
+      const rl = rateLimitCheck(`auth:${idNumber}`);
+      if (rl.blocked) {
+        return send(res, 429, { error: 'Too many failed attempts. Try again later.', retry_after: rl.retryAfter }, { 'Retry-After': String(rl.retryAfter) });
+      }
       const data = await queryRN('authenticateMember', { idNumber, pin });
-      if (!data || data.error || !data.user || !data.token) return send(res, 401, { error: 'Invalid ID or PIN' });
+      if (!data || data.error || !data.user || !data.token) {
+        rateLimitRecordFailure(`auth:${idNumber}`);
+        return send(res, 401, { error: 'Invalid ID or PIN' });
+      }
+      rateLimitRecordSuccess(`auth:${idNumber}`);
       return send(res, 200, data);
     }
 

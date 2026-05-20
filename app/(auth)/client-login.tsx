@@ -27,6 +27,11 @@ export default function ClientLoginScreen() {
                 body: JSON.stringify({ idNumber: idNumber.trim(), pin: pin.trim() }),
             })
             const data = await res.json()
+            if (res.status === 429) {
+                const mins = Math.ceil((data.retry_after ?? 60) / 60)
+                Alert.alert('Too Many Attempts', `Please try again in about ${mins} minute${mins === 1 ? '' : 's'}.`)
+                return
+            }
             if (!res.ok || data.error) {
                 Alert.alert('Login Failed', data.error ?? 'Invalid ID or PIN')
                 return
