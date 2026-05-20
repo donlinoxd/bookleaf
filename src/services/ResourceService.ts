@@ -1,4 +1,4 @@
-import { eq, asc, and, like, or, max, sql } from 'drizzle-orm';
+import { eq, ne, asc, and, like, or, max, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { resources, resourceCopies } from '../db/schema';
 import { Resource, ResourceCopy } from '../types';
@@ -149,17 +149,46 @@ export const ResourceService = {
 
   async getAvailableCopy(resourceId: number): Promise<ResourceCopy | null> {
     const rows = await db.select().from(resourceCopies)
-      .where(and(eq(resourceCopies.resource_id, resourceId), eq(resourceCopies.status, 'available')))
+      .where(and(
+        eq(resourceCopies.resource_id, resourceId),
+        eq(resourceCopies.status, 'available'),
+        ne(resourceCopies.condition, 'lost'),
+      ))
       .limit(1);
     return (rows[0] ?? null) as ResourceCopy | null;
   },
 
   async updateCopy(copyId: number, data: { barcode?: string | null; shelf_location?: string | null; accession_number?: string | null; condition?: 'good' | 'damaged' | 'lost' }): Promise<void> {
-    await db.update(resourceCopies).set({
-      ...(data.barcode !== undefined && { barcode: data.barcode }),
-      ...(data.shelf_location !== undefined && { shelf_location: data.shelf_location }),
-      ...(data.accession_number !== undefined && { accession_number: data.accession_number }),
-      ...(data.condition !== undefined && { condition: data.condition }),
-    }).where(eq(resourceCopies.id, copyId));
+    await db.transaction(async (tx) => {
+      const before = await tx.select({
+        condition: resourceCopies.condition,
+        status: resourceCopies.status,
+        resource_id: resourceCopies.resource_id,
+      }).from(resourceCopies).where(eq(resourceCopies.id, copyId)).limit(1).then((r) => r[0] ?? null);
+
+      await tx.update(resourceCopies).set({
+        ...(data.barcode !== undefined && { barcode: data.barcode }),
+        ...(data.shelf_location !== undefined && { shelf_location: data.shelf_location }),
+        ...(data.accession_number !== undefined && { accession_number: data.accession_number }),
+        ...(data.condition !== undefined && { condition: data.condition }),
+      }).where(eq(resourceCopies.id, copyId));
+
+      // Reconcile available_copies when the copy transitions in or out of the
+      // 'lost' condition. Lost copies cannot be borrowed (see getAvailableCopy),
+      // so the denormalized counter must shed them.
+      if (data.condition !== undefined && before && before.status === 'available') {
+        const wasLost = before.condition === 'lost';
+        const isLost = data.condition === 'lost';
+        if (!wasLost && isLost) {
+          await tx.update(resources)
+            .set({ available_copies: sql`${resources.available_copies} - 1` })
+            .where(eq(resources.id, before.resource_id));
+        } else if (wasLost && !isLost) {
+          await tx.update(resources)
+            .set({ available_copies: sql`${resources.available_copies} + 1` })
+            .where(eq(resources.id, before.resource_id));
+        }
+      }
+    });
   },
 };

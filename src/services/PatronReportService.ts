@@ -159,7 +159,7 @@ export const PatronReportService = {
         and(
           eq(users.institution_id, institutionId),
           eq(users.role, 'member'),
-          sql`${users.created_at} >= datetime('now', ${`-${months} months`})`,
+          sql`datetime(${users.created_at}) >= datetime('now', ${`-${months} months`})`,
         ),
       )
       .groupBy(sql`strftime('%Y-%m', ${users.created_at})`)
@@ -182,7 +182,7 @@ export const PatronReportService = {
         and(
           eq(gateLogs.institution_id, institutionId),
           eq(gateLogs.direction, 'in'),
-          sql`${gateLogs.logged_at} >= datetime('now', ${`-${months} months`})`,
+          sql`datetime(${gateLogs.logged_at}) >= datetime('now', ${`-${months} months`})`,
         ),
       )
       .groupBy(sql`strftime('%Y-%m', ${gateLogs.logged_at})`)

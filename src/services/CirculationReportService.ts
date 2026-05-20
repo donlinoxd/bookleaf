@@ -49,7 +49,7 @@ export const CirculationReportService = {
       .select({
         total_borrows: count(borrowingRecords.id),
         currently_borrowed: sql<number>`SUM(CASE WHEN ${borrowingRecords.returned_at} IS NULL THEN 1 ELSE 0 END)`,
-        overdue: sql<number>`SUM(CASE WHEN ${borrowingRecords.returned_at} IS NULL AND ${borrowingRecords.due_date} < datetime('now') THEN 1 ELSE 0 END)`,
+        overdue: sql<number>`SUM(CASE WHEN ${borrowingRecords.returned_at} IS NULL AND datetime(${borrowingRecords.due_date}) < datetime('now') THEN 1 ELSE 0 END)`,
         returned: sql<number>`SUM(CASE WHEN ${borrowingRecords.returned_at} IS NOT NULL THEN 1 ELSE 0 END)`,
       })
       .from(borrowingRecords)
@@ -87,7 +87,7 @@ export const CirculationReportService = {
       .innerJoin(resources, eq(resourceCopies.resource_id, resources.id))
       .where(and(
         eq(resources.institution_id, institutionId),
-        sql`${borrowingRecords.borrowed_at} >= datetime('now', ${`-${months} months`})`,
+        sql`datetime(${borrowingRecords.borrowed_at}) >= datetime('now', ${`-${months} months`})`,
       ))
       .groupBy(sql`strftime('%Y-%m', ${borrowingRecords.borrowed_at})`)
       .orderBy(sql`strftime('%Y-%m', ${borrowingRecords.borrowed_at})`);
@@ -103,7 +103,7 @@ export const CirculationReportService = {
       .where(and(
         eq(resources.institution_id, institutionId),
         isNotNull(borrowingRecords.returned_at),
-        sql`${borrowingRecords.returned_at} >= datetime('now', ${`-${months} months`})`,
+        sql`datetime(${borrowingRecords.returned_at}) >= datetime('now', ${`-${months} months`})`,
       ))
       .groupBy(sql`strftime('%Y-%m', ${borrowingRecords.returned_at})`)
       .orderBy(sql`strftime('%Y-%m', ${borrowingRecords.returned_at})`);

@@ -105,6 +105,7 @@ export interface BorrowingRecord {
   fine_amount: number;
   renewal_count: number;
   // joined fields
+  resource_id?: number;
   book_title?: string;
   book_author?: string;
   member_name?: string;

@@ -269,7 +269,7 @@ function ReturnForm() {
               </TouchableOpacity>
               <TouchableOpacity
                 className="flex-[2] bg-leaf rounded-xl py-2 items-center"
-                onPress={() => returnMutation.mutate({ borrowId: b.id, bookTitle: b.book_title ?? '', resourceId: b.copy_id })}
+                onPress={() => returnMutation.mutate({ borrowId: b.id, bookTitle: b.book_title ?? '', resourceId: b.resource_id ?? 0 })}
                 disabled={returnMutation.isPending || renewMutation.isPending}
               >
                 <Text className="text-white font-bold text-sm">Return</Text>

@@ -91,7 +91,7 @@ export const FinesReportService = {
           eq(resources.institution_id, institutionId),
           eq(fines.paid, true),
           sql`${fines.paid_at} IS NOT NULL`,
-          sql`${fines.paid_at} >= datetime('now', ${`-${months} months`})`,
+          sql`datetime(${fines.paid_at}) >= datetime('now', ${`-${months} months`})`,
         ),
       )
       .groupBy(sql`strftime('%Y-%m', ${fines.paid_at})`)

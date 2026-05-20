@@ -1,4 +1,4 @@
-import { eq, and, isNull, asc, desc, lt, sql, count } from 'drizzle-orm';
+import { eq, ne, and, isNull, asc, desc, sql, count } from 'drizzle-orm';
 import { db } from '../db';
 import { borrowingRecords, resourceCopies, resources, users, fines } from '../db/schema';
 import { BorrowingRecord, Fine } from '../types';
@@ -11,21 +11,29 @@ export const BorrowService = {
     dueDate.setDate(dueDate.getDate() + settings.max_borrow_days);
 
     return db.transaction(async (tx) => {
+      // Atomic claim: only succeeds if the copy is still available AND not lost.
+      // If two devices race for the same copy, exactly one update will affect
+      // a row and the loser will see an empty `returning()` result.
+      const claimed = await tx.update(resourceCopies)
+        .set({ status: 'borrowed' })
+        .where(and(
+          eq(resourceCopies.id, copyId),
+          eq(resourceCopies.status, 'available'),
+          ne(resourceCopies.condition, 'lost'),
+        ))
+        .returning({ id: resourceCopies.id, resource_id: resourceCopies.resource_id });
+
+      if (claimed.length === 0) {
+        throw new Error('This copy is no longer available. Please pick another.');
+      }
+
       const result = await tx.insert(borrowingRecords)
         .values({ copy_id: copyId, user_id: userId, due_date: dueDate.toISOString() })
         .returning({ id: borrowingRecords.id });
 
-      await tx.update(resourceCopies)
-        .set({ status: 'borrowed' })
-        .where(eq(resourceCopies.id, copyId));
-
-      const copy = await tx.select({ resource_id: resourceCopies.resource_id })
-        .from(resourceCopies).where(eq(resourceCopies.id, copyId)).limit(1);
-      if (copy[0]) {
-        await tx.update(resources)
-          .set({ available_copies: sql`${resources.available_copies} - 1` })
-          .where(eq(resources.id, copy[0].resource_id));
-      }
+      await tx.update(resources)
+        .set({ available_copies: sql`${resources.available_copies} - 1` })
+        .where(eq(resources.id, claimed[0].resource_id));
 
       return result[0].id;
     });
@@ -42,7 +50,8 @@ export const BorrowService = {
 
     if (now > due) {
       const settings = await SettingsService.getAll();
-      const daysLate = Math.ceil((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
+      // Floor — partial days don't count, so a return 1 minute past due isn't a full day late.
+      const daysLate = Math.max(0, Math.floor((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24)));
       const billableDays = Math.max(0, daysLate - (settings.grace_period_days ?? 0));
       fineAmount = billableDays * settings.fine_per_day;
     }
@@ -52,16 +61,23 @@ export const BorrowService = {
         .set({ returned_at: now.toISOString(), fine_amount: fineAmount })
         .where(eq(borrowingRecords.id, borrowingId));
 
+      // 'lost' copies leave circulation: status stays 'available' (no semantic
+      // 'lost' status in the enum) but condition='lost' is the source of truth.
+      // `getAvailableCopy` filters out lost condition, and we do NOT increment
+      // available_copies — the copy is gone.
+      const typedCondition = condition as 'good' | 'damaged' | 'lost';
       await tx.update(resourceCopies)
-        .set({ status: 'available', condition: condition as 'good' | 'damaged' | 'lost' })
+        .set({ status: 'available', condition: typedCondition })
         .where(eq(resourceCopies.id, record.copy_id));
 
-      const copy = await tx.select({ resource_id: resourceCopies.resource_id })
-        .from(resourceCopies).where(eq(resourceCopies.id, record.copy_id)).limit(1);
-      if (copy[0]) {
-        await tx.update(resources)
-          .set({ available_copies: sql`${resources.available_copies} + 1` })
-          .where(eq(resources.id, copy[0].resource_id));
+      if (typedCondition !== 'lost') {
+        const copy = await tx.select({ resource_id: resourceCopies.resource_id })
+          .from(resourceCopies).where(eq(resourceCopies.id, record.copy_id)).limit(1);
+        if (copy[0]) {
+          await tx.update(resources)
+            .set({ available_copies: sql`${resources.available_copies} + 1` })
+            .where(eq(resources.id, copy[0].resource_id));
+        }
       }
 
       if (fineAmount > 0) {
@@ -85,6 +101,7 @@ export const BorrowService = {
       returned_at: borrowingRecords.returned_at,
       fine_amount: borrowingRecords.fine_amount,
       renewal_count: borrowingRecords.renewal_count,
+      resource_id: resourceCopies.resource_id,
       book_title: resources.title,
       book_author: resources.author,
     }).from(borrowingRecords)
@@ -130,7 +147,7 @@ export const BorrowService = {
       .innerJoin(users, eq(borrowingRecords.user_id, users.id))
       .where(and(
         isNull(borrowingRecords.returned_at),
-        lt(borrowingRecords.due_date, sql`datetime('now')`)
+        sql`datetime(${borrowingRecords.due_date}) < datetime('now')`,
       ))
       .orderBy(asc(borrowingRecords.due_date)) as Promise<BorrowingRecord[]>;
   },

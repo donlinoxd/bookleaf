@@ -1,4 +1,4 @@
-import { asc, eq, like, or } from 'drizzle-orm';
+import { and, asc, eq, like, or } from 'drizzle-orm';
 import { db } from '../db';
 import { authorityNames } from '../db/schema';
 import { AuthorityName, AuthorityNameType } from '../types';
@@ -7,25 +7,18 @@ export const AuthorityService = {
   async search(institutionId: number, query: string): Promise<AuthorityName[]> {
     const q = `%${query}%`;
     return db.select().from(authorityNames)
-      .where(or(
+      .where(and(
         eq(authorityNames.institution_id, institutionId),
+        or(
+          like(authorityNames.name, q),
+          like(authorityNames.variants, q),
+        ),
       ))
       .orderBy(asc(authorityNames.name)) as Promise<AuthorityName[]>;
   },
 
   async searchByName(institutionId: number, query: string): Promise<AuthorityName[]> {
-    const q = `%${query}%`;
-    return db.select().from(authorityNames)
-      .where(
-        eq(authorityNames.institution_id, institutionId),
-      )
-      .orderBy(asc(authorityNames.name))
-      .then((rows) =>
-        rows.filter((r) =>
-          r.name.toLowerCase().includes(query.toLowerCase()) ||
-          (r.variants ?? '').toLowerCase().includes(query.toLowerCase())
-        )
-      ) as Promise<AuthorityName[]>;
+    return AuthorityService.search(institutionId, query);
   },
 
   async getAll(institutionId: number): Promise<AuthorityName[]> {
