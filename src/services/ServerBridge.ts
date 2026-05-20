@@ -10,19 +10,26 @@ type BridgeMessage =
 
 type StatusCallback = (status: 'starting' | 'running' | 'error' | 'stopped', detail?: string) => void;
 
-let institutionId = 1;
+let institutionId: number | null = null;
 let statusCallback: StatusCallback | null = null;
 let isStarted = false;
+
+function requireInstitution(): number {
+  if (institutionId === null) {
+    throw new Error('ServerBridge not initialized — call start(institutionId) first');
+  }
+  return institutionId;
+}
 
 async function handleQuery(requestId: number, action: string, params: Record<string, unknown>) {
   let data: unknown;
   try {
     switch (action) {
       case 'searchBooks':
-        data = await ApiServer.searchBooks(institutionId, (params.q as string) || '');
+        data = await ApiServer.searchBooks(requireInstitution(), (params.q as string) || '');
         break;
       case 'getAllBooks':
-        data = await ApiServer.getAllBooks(institutionId);
+        data = await ApiServer.getAllBooks(requireInstitution());
         break;
       case 'getBookDetail':
         data = await ApiServer.getBookDetail(params.id as number);
@@ -31,10 +38,10 @@ async function handleQuery(requestId: number, action: string, params: Record<str
         data = await ApiServer.getMemberBorrows(params.userId as number);
         break;
       case 'getRecentlyAdded':
-        data = await ApiServer.getRecentlyAdded(institutionId, (params.limit as number) || 10);
+        data = await ApiServer.getRecentlyAdded(requireInstitution(), (params.limit as number) || 10);
         break;
       case 'getPopular':
-        data = await ApiServer.getPopular(institutionId, (params.limit as number) || 10);
+        data = await ApiServer.getPopular(requireInstitution(), (params.limit as number) || 10);
         break;
       case 'renewBorrow':
         data = await ApiServer.renewBorrow(params.borrowingId as number, params.userId as number);
@@ -47,7 +54,7 @@ async function handleQuery(requestId: number, action: string, params: Record<str
         break;
       case 'searchBooksFiltered':
         data = await ApiServer.searchBooksFiltered(
-          institutionId,
+          requireInstitution(),
           (params.query as string) || '',
           params.materialType as string | undefined,
           params.yearFrom as number | undefined,
