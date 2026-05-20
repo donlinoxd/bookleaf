@@ -43,3 +43,6 @@ yarn-error.*
 # Claude plugin settings
 .claude/settings.local.json
 .idea/
+
+bookleaf-release.keystore
+gradle.properties
