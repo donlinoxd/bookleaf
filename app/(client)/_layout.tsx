@@ -1,8 +1,22 @@
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
+import { useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { CustomTabBar } from '../../src/components/navigation/CustomTabBar';
+import { useAppStore } from '../../src/store/appStore';
 
 export default function ClientLayout() {
+  const router = useRouter();
+  const mode = useAppStore((s) => s.mode);
+
+  // Mode guard: bounce back to the boot screen if this device isn't
+  // actually in client mode. Boot will re-route based on persisted
+  // app_mode.
+  useEffect(() => {
+    if (mode !== null && mode !== 'client') {
+      router.replace('/');
+    }
+  }, [mode]);
+
   return (
     <Tabs
       screenOptions={{ headerShown: false }}

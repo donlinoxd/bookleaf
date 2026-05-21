@@ -1,20 +1,31 @@
 import { Ionicons } from '@expo/vector-icons'
-import { Tabs } from 'expo-router'
+import { Tabs, useRouter } from 'expo-router'
 import { useEffect } from 'react'
 import { CustomTabBar } from '../../src/components/navigation/CustomTabBar'
 import { ServerBridge } from '../../src/services/ServerBridge'
 import { useAppStore } from '../../src/store/appStore'
 
 export default function ServerLayout() {
+    const router = useRouter()
+    const mode = useAppStore((s) => s.mode)
     const currentUser = useAppStore((s) => s.currentUser)
     const institution = useAppStore((s) => s.institution)
     const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'librarian'
 
+    // Mode guard: bounce back to the boot screen if this device isn't
+    // actually in server mode. Boot will re-route based on persisted
+    // app_mode, which is the canonical source of truth.
     useEffect(() => {
-        if (institution?.id) {
+        if (mode !== null && mode !== 'server') {
+            router.replace('/')
+        }
+    }, [mode])
+
+    useEffect(() => {
+        if (mode === 'server' && institution?.id) {
             ServerBridge.start(institution.id, () => {});
         }
-    }, [institution?.id])
+    }, [mode, institution?.id])
 
     return (
         <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <CustomTabBar {...props} accentRoute='scan' />}>
