@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import Constants from 'expo-constants'
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, Alert, Modal, ScrollView, StatusBar, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { ServerStatusCard } from '../../src/components/common/ServerStatusCard'
@@ -286,6 +287,20 @@ export default function SettingsScreen() {
                             <Text className='text-violet-700 font-bold'>{seeding ? 'Loading…' : 'Load Demo Data (dev only)'}</Text>
                         </TouchableOpacity>
                     )}
+                </View>
+
+                {/* About / version footer */}
+                <View className='items-center pt-4 pb-2 gap-1'>
+                    <Text className='text-xs font-semibold text-[#7A9A7E]' selectable>
+                        Bookleaf v{Constants.expoConfig?.version ?? '?'}
+                        {Constants.expoConfig?.android?.versionCode != null
+                            ? ` (build ${Constants.expoConfig.android.versionCode})`
+                            : ''}
+                        {__DEV__ ? ' · dev' : ''}
+                    </Text>
+                    <Text className='text-[10px] text-[#94A3B8]' selectable>
+                        Expo SDK {Constants.expoConfig?.sdkVersion ?? '?'}
+                    </Text>
                 </View>
             </View>
 
