@@ -1,6 +1,6 @@
 import { eq, ne, and, isNull, asc, desc, sql, count } from 'drizzle-orm';
 import { db } from '../db';
-import { borrowingRecords, resourceCopies, resources, users, fines } from '../db/schema';
+import { borrowingRecords, resourceCopies, resources, users, fines, reservations } from '../db/schema';
 import { BorrowingRecord, Fine } from '../types';
 import { SettingsService } from './SettingsService';
 
@@ -34,6 +34,19 @@ export const BorrowService = {
       await tx.update(resources)
         .set({ available_copies: sql`${resources.available_copies} - 1` })
         .where(eq(resources.id, claimed[0].resource_id));
+
+      // If this borrower had an active reservation for this resource, mark
+      // it fulfilled — the queue advances when the patron actually picks the
+      // book up, not just when it was returned by the previous holder.
+      // ReservationService.reserve already prevents duplicate active holds,
+      // so this update touches 0 or 1 row.
+      await tx.update(reservations)
+        .set({ status: 'fulfilled' })
+        .where(and(
+          eq(reservations.resource_id, claimed[0].resource_id),
+          eq(reservations.user_id, userId),
+          eq(reservations.status, 'active'),
+        ));
 
       return result[0].id;
     });
