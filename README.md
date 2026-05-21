@@ -52,7 +52,11 @@ The server device runs a Node.js HTTP server (via `nodejs-mobile-react-native`) 
 
 ### Client mode (students / teachers)
 - **Catalog search** — search books by title, author, genre, or ISBN over Wi-Fi
-- **My Books** — self-lookup by ID number to view borrowed books, due dates, and outstanding fines
+- **My Books** — see your active borrows, due-date countdown, per-item fines, active holds, favorites, and history
+- **Holds & favorites** — place a hold on a checked-out book; save books to a personal favorites list
+- **Reviews** — rate and review books you've borrowed
+- **Renew** — extend a borrow's due date (subject to renewal cap)
+- **Gate check-in** — scan the library's gate QR to log entry/exit
 
 ---
 
@@ -65,8 +69,10 @@ The server device runs a Node.js HTTP server (via `nodejs-mobile-react-native`) 
 | Database | SQLite via `expo-sqlite` (server device only) |
 | Local HTTP server | `nodejs-mobile-react-native` + Node.js `http` module |
 | State | Zustand |
+| Auth | Bearer tokens (30-day sessions), salted SHA-256 PINs |
+| Backup | AES-256-CBC + HMAC-SHA256 (passphrase-derived, encrypt-then-MAC) |
 | Barcode scanning | `expo-camera` |
-| Server discovery | Manual IP entry (mDNS via `react-native-zeroconf` planned) |
+| Server discovery | UDP broadcast beacon (port 41234) + manual IP fallback |
 
 ---
 
@@ -99,15 +105,19 @@ app/
 src/
   db/
     schema.ts                SQL table definitions and default settings
-    database.ts              DB init, migrations, PIN hashing (SHA-256)
+    database.ts              PIN hashing (salted SHA-256, legacy formats supported)
+  polyfills.ts               crypto.getRandomValues via expo-crypto (loaded at boot)
   services/
     BookService.ts           Book CRUD, search, copy management
     UserService.ts           Member auth, CRUD, PIN management
     BorrowService.ts         Checkout, return, fine calculation, history
+    SessionService.ts        Bearer-token session create/validate/revoke
     SettingsService.ts       Configurable institution settings
     ReportService.ts         Analytics queries (most borrowed, fines summary)
     ApiServer.ts             REST handler — called by the Node.js bridge
     ServerBridge.ts          nodejs-mobile ↔ expo-sqlite message bridge
+    clientApi.ts             clientFetch helper (Authorization injection + 401 → clear session)
+    backupCrypto.ts          AES-CBC + HMAC encrypt-then-MAC for backup files
   store/
     appStore.ts              Global Zustand state (mode, user, institution)
   types/
