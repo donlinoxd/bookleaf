@@ -2,6 +2,7 @@ import { Tabs, useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { CustomTabBar } from '../../src/components/navigation/CustomTabBar';
+import { ErrorBoundary } from '../../src/components/common/ErrorBoundary';
 import { useAppStore } from '../../src/store/appStore';
 
 export default function ClientLayout() {
@@ -18,6 +19,7 @@ export default function ClientLayout() {
   }, [mode]);
 
   return (
+    <ErrorBoundary>
     <Tabs
       screenOptions={{ headerShown: false }}
       tabBar={(props) => <CustomTabBar {...props} />}
@@ -74,5 +76,6 @@ export default function ClientLayout() {
       />
       <Tabs.Screen name="book/[id]" options={{ href: null }} />
     </Tabs>
+    </ErrorBoundary>
   );
 }

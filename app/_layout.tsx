@@ -12,6 +12,7 @@ import { useEffect } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 import { db, seedDefaults } from '../src/db';
 import migrations from '../drizzle/migrations';
+import { ErrorBoundary } from '../src/components/common/ErrorBoundary';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -43,15 +44,17 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView className="flex-1">
-      <QueryClientProvider client={queryClient}>
-        <StatusBar style="dark" />
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(server)" />
-          <Stack.Screen name="(client)" />
-        </Stack>
-      </QueryClientProvider>
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <StatusBar style="dark" />
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="(server)" />
+            <Stack.Screen name="(client)" />
+          </Stack>
+        </QueryClientProvider>
+      </ErrorBoundary>
     </GestureHandlerRootView>
   );
 }

@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { Tabs, useRouter } from 'expo-router'
 import { useEffect } from 'react'
 import { CustomTabBar } from '../../src/components/navigation/CustomTabBar'
+import { ErrorBoundary } from '../../src/components/common/ErrorBoundary'
 import { ServerBridge } from '../../src/services/ServerBridge'
 import { useAppStore } from '../../src/store/appStore'
 
@@ -28,6 +29,7 @@ export default function ServerLayout() {
     }, [mode, institution?.id])
 
     return (
+        <ErrorBoundary>
         <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <CustomTabBar {...props} accentRoute='scan' />}>
                     <Tabs.Screen
                         name='dashboard'
@@ -84,5 +86,6 @@ export default function ServerLayout() {
                     <Tabs.Screen name='reports' options={{ href: null }} />
                     <Tabs.Screen name='reservations' options={{ href: null }} />
         </Tabs>
+        </ErrorBoundary>
     )
 }
