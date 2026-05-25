@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
@@ -15,6 +16,7 @@ const ROLE_COLOR: Record<UserRole, string> = {
     librarian: '#2563EB',
     member: '#16A34A',
 }
+
 
 export default function MemberDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>()
@@ -118,169 +120,179 @@ export default function MemberDetailScreen() {
 
     if (isLoading) {
         return (
-            <View className='flex-1 justify-center items-center'>
-                <ActivityIndicator size='large' color='#2563EB' />
+            <View className="flex-1 justify-center items-center bg-bio">
+                <ActivityIndicator size="large" color="#2A5C33" />
             </View>
         )
     }
 
     if (!member) {
         return (
-            <View className='flex-1 justify-center items-center'>
-                <Text className='text-[#DC2626] text-base'>Member not found</Text>
+            <View className="flex-1 justify-center items-center bg-bio">
+                <Text className="text-red-600 text-base">Member not found</Text>
             </View>
         )
     }
 
     return (
         <>
-            <ScrollView className='flex-1 bg-[#F8FAFC]' contentContainerStyle={{ paddingBottom: 120 }}>
-                <View
-                    className='flex-row justify-between items-center px-4 bg-white border-b border-[#F1F5F9]'
-                    style={{ paddingTop: 52, paddingBottom: 12 }}
-                >
-                    <TouchableOpacity onPress={() => router.back()}>
-                        <Text className='text-[15px] text-[#2563EB] font-semibold'>← Back</Text>
-                    </TouchableOpacity>
-                    <View className='flex-row gap-2'>
+            <ScrollView className="flex-1 bg-bio" contentContainerStyle={{ paddingBottom: 120 }}>
+                {/* Header */}
+                <View className="bg-brand px-5 pb-6 pt-[52px] rounded-b-[28px]">
+                    <View className="flex-row items-center justify-between mb-5">
+                        <TouchableOpacity onPress={() => router.back()} className="flex-row items-center gap-1">
+                            <Ionicons name="chevron-back" size={20} color="#A8D5A2" />
+                            <Text className="text-[#A8D5A2] text-sm font-medium">Back</Text>
+                        </TouchableOpacity>
+                        <View className="flex-row gap-2">
+                            {isAdmin && (
+                                <TouchableOpacity
+                                    className="bg-[#1C3E23] rounded-xl px-3 py-2"
+                                    onPress={() => setPinVisible(true)}
+                                >
+                                    <Text className="text-[#A8D5A2] text-sm font-bold">Reset PIN</Text>
+                                </TouchableOpacity>
+                            )}
+                            <TouchableOpacity
+                                className="bg-[#1C3E23] rounded-xl px-3 py-2"
+                                onPress={() => setEditVisible(true)}
+                            >
+                                <Text className="text-[#A8D5A2] text-sm font-bold">Edit</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
+                    {/* Member hero */}
+                    <View className="flex-row gap-4 items-center">
+                        <View
+                            className="w-16 h-16 rounded-2xl items-center justify-center"
+                            style={{ backgroundColor: '#1C3E23' }}
+                        >
+                            <Text className="text-2xl font-extrabold text-[#A8D5A2]">
+                                {member.name.charAt(0).toUpperCase()}
+                            </Text>
+                        </View>
+                        <View className="flex-1">
+                            <Text className="text-white font-extrabold text-lg leading-6">{member.name}</Text>
+                            <Text className="text-[#A8D5A2] text-sm mt-0.5">ID: {member.id_number}</Text>
+                            <View className="flex-row gap-2 mt-2 flex-wrap">
+                                <View className="rounded-md px-2 py-0.5 bg-[#1C3E23]">
+                                    <Text className="text-[11px] font-bold uppercase text-[#A8D5A2]">{member.role}</Text>
+                                </View>
+                                {member.user_type && (
+                                    <View className="rounded-md px-2 py-0.5 bg-[#1C3E23]">
+                                        <Text className="text-[11px] font-bold uppercase text-[#A8D5A2]">{member.user_type}</Text>
+                                    </View>
+                                )}
+                                <View className={`rounded-md px-2 py-0.5 ${member.is_active ? 'bg-[#DCFCE7]' : 'bg-[#FEE2E2]'}`}>
+                                    <Text className={`text-[11px] font-bold ${member.is_active ? 'text-[#16A34A]' : 'text-[#DC2626]'}`}>
+                                        {member.is_active ? 'Active' : 'Inactive'}
+                                    </Text>
+                                </View>
+                            </View>
+                            {member.department ? (
+                                <Text className="text-[#7A9A7E] text-xs mt-1">{member.department}</Text>
+                            ) : null}
+                        </View>
                         {isAdmin && (
-                            <TouchableOpacity className='bg-[#F1F5F9] rounded-lg px-3 py-[6px]' onPress={() => setPinVisible(true)}>
-                                <Text className='text-[13px] font-semibold text-[#374151]'>Reset PIN</Text>
+                            <TouchableOpacity
+                                className={`rounded-xl px-3 py-2 ${member.is_active ? 'bg-[#FEE2E2]' : 'bg-[#DCFCE7]'}`}
+                                onPress={handleToggleStatus}
+                            >
+                                <Text className={`text-xs font-bold ${member.is_active ? 'text-[#DC2626]' : 'text-[#16A34A]'}`}>
+                                    {member.is_active ? 'Deactivate' : 'Reactivate'}
+                                </Text>
                             </TouchableOpacity>
                         )}
-                        <TouchableOpacity className='bg-[#F1F5F9] rounded-lg px-3 py-[6px]' onPress={() => setEditVisible(true)}>
-                            <Text className='text-[13px] font-semibold text-[#374151]'>Edit</Text>
-                        </TouchableOpacity>
                     </View>
                 </View>
 
-                <View className='flex-row items-center p-5 bg-white gap-[14px]'>
-                    <View
-                        className='w-[60px] h-[60px] rounded-[30px] items-center justify-center'
-                        style={{ backgroundColor: ROLE_COLOR[member.role] + '20' }}
+                <View className="p-4 gap-3">
+                    {/* Stats */}
+                    <View className="flex-row gap-3">
+                        <StatCard label="Borrowed" value={activeBorrows.length} />
+                        <StatCard label="Total History" value={history.length} />
+                        <StatCard label="Unpaid Fines" value={fines.length} highlight={fines.length > 0 ? 'red' : undefined} />
+                    </View>
+
+                    {/* Member Card */}
+                    <Section
+                        title="Member Card"
+                        action={{ label: printing ? 'Preparing…' : 'Print / Share', onPress: handlePrintCard, disabled: printing }}
                     >
-                        <Text className='text-[26px] font-bold' style={{ color: ROLE_COLOR[member.role] }}>
-                            {member.name.charAt(0).toUpperCase()}
-                        </Text>
-                    </View>
-                    <View className='flex-1 gap-1'>
-                        <Text className='text-[18px] font-bold text-[#1E293B]'>{member.name}</Text>
-                        <Text className='text-[14px] text-[#64748B]'>ID: {member.id_number}</Text>
-                        <View className='flex-row gap-[6px] mt-1'>
-                            <View className='rounded px-2 py-[3px]' style={{ backgroundColor: ROLE_COLOR[member.role] + '20' }}>
-                                <Text className='text-[12px] font-bold uppercase' style={{ color: ROLE_COLOR[member.role] }}>
-                                    {member.role}
-                                </Text>
-                            </View>
-                            {member.user_type && (
-                                <View className='rounded px-2 py-[3px] bg-mint'>
-                                    <Text className='text-[12px] font-bold uppercase text-brand'>{member.user_type}</Text>
-                                </View>
-                            )}
-                            <View className={`rounded px-2 py-[3px] ${member.is_active ? 'bg-[#DCFCE7]' : 'bg-[#FEE2E2]'}`}>
-                                <Text className='text-[12px] font-semibold text-[#374151]'>{member.is_active ? 'Active' : 'Inactive'}</Text>
-                            </View>
-                        </View>
-                        {member.department ? <Text className='text-[12px] text-[#7A9A7E] mt-[2px]'>{member.department}</Text> : null}
-                    </View>
-                    {isAdmin && (
-                        <TouchableOpacity
-                            className={`rounded-lg px-3 py-2 ${member.is_active ? 'bg-[#FEE2E2]' : 'bg-[#DCFCE7]'}`}
-                            onPress={handleToggleStatus}
+                        <MemberCard
+                            name={member.name}
+                            idNumber={member.id_number}
+                            role={member.role}
+                            institutionName={institution?.name ?? 'Library'}
+                            getRef={(ref) => { qrRef.current = ref }}
+                        />
+                    </Section>
+
+                    {/* Outstanding Fines */}
+                    {fines.length > 0 && (
+                        <Section
+                            title="Outstanding Fines"
+                            badge={`₱${totalFines.toFixed(2)}`}
+                            badgeColor="#DC2626"
                         >
-                            <Text className='text-[12px] font-bold text-[#374151]'>{member.is_active ? 'Deactivate' : 'Reactivate'}</Text>
-                        </TouchableOpacity>
-                    )}
-                </View>
-
-                <View className='mx-4 mb-3'>
-                    <View className='flex-row justify-between items-center mb-[10px]'>
-                        <Text className='text-[15px] font-bold text-[#1E293B] mb-3'>Member Card</Text>
-                        <TouchableOpacity
-                            className='bg-[#F1F5F9] rounded-lg px-3 py-[6px]'
-                            style={printing ? { opacity: 0.5 } : undefined}
-                            onPress={handlePrintCard}
-                            disabled={printing}
-                        >
-                            <Text className='text-[13px] font-semibold text-[#374151]'>{printing ? 'Preparing…' : 'Print / Share'}</Text>
-                        </TouchableOpacity>
-                    </View>
-                    <MemberCard
-                        name={member.name}
-                        idNumber={member.id_number}
-                        role={member.role}
-                        institutionName={institution?.name ?? 'Library'}
-                        getRef={(ref) => {
-                            qrRef.current = ref
-                        }}
-                    />
-                </View>
-
-                <View className='flex-row mx-4 my-3 gap-[10px]'>
-                    <StatCard label='Currently Borrowed' value={activeBorrows.length} color='#2563EB' />
-                    <StatCard label='Total Borrows' value={history.length} color='#7C3AED' />
-                    <StatCard label='Unpaid Fines' value={fines.length} color={fines.length > 0 ? '#DC2626' : '#16A34A'} />
-                </View>
-
-                {fines.length > 0 && (
-                    <View className='bg-white mx-4 mb-3 rounded-xl p-4' style={{ elevation: 1 }}>
-                        <View className='flex-row justify-between items-center mb-3'>
-                            <Text className='text-[15px] font-bold text-[#1E293B] mb-3'>Outstanding Fines</Text>
-                            <Text className='text-[14px] font-bold text-[#DC2626]'>Total: ₱{totalFines.toFixed(2)}</Text>
-                        </View>
-                        {fines.map((fine) => (
-                            <View key={fine.id} className='flex-row items-center justify-between py-2 border-t border-[#F1F5F9]'>
-                                <Text className='text-base font-bold text-[#DC2626]'>₱{fine.amount.toFixed(2)}</Text>
-                                <TouchableOpacity className='bg-[#DCFCE7] rounded-lg px-3 py-[6px]' onPress={() => handlePayFine(fine)}>
-                                    <Text className='text-[13px] font-semibold text-[#16A34A]'>Mark Paid</Text>
-                                </TouchableOpacity>
-                            </View>
-                        ))}
-                    </View>
-                )}
-
-                <View className='bg-white mx-4 mb-3 rounded-xl p-4' style={{ elevation: 1 }}>
-                    <Text className='text-[15px] font-bold text-[#1E293B] mb-3'>Currently Borrowed ({activeBorrows.length})</Text>
-                    {activeBorrows.length === 0 ? (
-                        <Text className='text-[14px] text-[#94A3B8] text-center py-2'>No books currently borrowed</Text>
-                    ) : (
-                        activeBorrows.map((b) => (
-                            <View key={b.id} className='flex-row items-center py-[10px] border-t border-[#F1F5F9]'>
-                                <View className='flex-1'>
-                                    <Text className='text-[14px] font-semibold text-[#1E293B]'>{b.book_title}</Text>
-                                    <Text className='text-[12px] text-[#94A3B8] mt-[2px]'>{b.book_author}</Text>
+                            {fines.map((fine) => (
+                                <View key={fine.id} className="flex-row items-center justify-between py-2.5 border-t border-[#F1F5F9]">
+                                    <Text className="text-base font-bold text-[#DC2626]">₱{fine.amount.toFixed(2)}</Text>
+                                    <TouchableOpacity
+                                        className="bg-[#DCFCE7] rounded-xl px-3 py-1.5"
+                                        onPress={() => handlePayFine(fine)}
+                                    >
+                                        <Text className="text-xs font-bold text-[#16A34A]">Mark Paid</Text>
+                                    </TouchableOpacity>
                                 </View>
-                                <View className='items-end'>
-                                    <Text className={`text-[12px] font-semibold ${isOverdue(b.due_date) ? 'text-[#DC2626]' : 'text-[#64748B]'}`}>
-                                        {isOverdue(b.due_date) ? 'OVERDUE' : `Due ${new Date(b.due_date).toLocaleDateString()}`}
-                                    </Text>
-                                </View>
-                            </View>
-                        ))
+                            ))}
+                        </Section>
                     )}
-                </View>
 
-                <View className='bg-white mx-4 mb-3 rounded-xl p-4' style={{ elevation: 1 }}>
-                    <Text className='text-[15px] font-bold text-[#1E293B] mb-3'>Borrow History ({history.length})</Text>
-                    {history.length === 0 ? (
-                        <Text className='text-[14px] text-[#94A3B8] text-center py-2'>No borrow history</Text>
-                    ) : (
-                        history.map((b) => (
-                            <View key={b.id} className='flex-row items-center py-2 border-t border-[#F1F5F9]'>
-                                <View className='flex-1'>
-                                    <Text className='text-[14px] font-semibold text-[#1E293B]'>{b.book_title}</Text>
-                                    <Text className='text-[12px] text-[#94A3B8] mt-[2px]'>{new Date(b.borrowed_at).toLocaleDateString()}</Text>
+                    {/* Currently Borrowed */}
+                    <Section title={`Currently Borrowed (${activeBorrows.length})`}>
+                        {activeBorrows.length === 0 ? (
+                            <Text className="text-sm text-[#94A3B8] text-center py-2">No books currently borrowed</Text>
+                        ) : (
+                            activeBorrows.map((b) => (
+                                <View key={b.id} className="flex-row items-center py-2.5 border-t border-[#F1F5F9]">
+                                    <View className="flex-1">
+                                        <Text className="text-sm font-semibold text-[#1C2B1E]">{b.book_title}</Text>
+                                        <Text className="text-xs text-[#7A9A7E] mt-0.5">{b.book_author}</Text>
+                                    </View>
+                                    <View className="items-end">
+                                        <Text className={`text-xs font-semibold ${isOverdue(b.due_date) ? 'text-[#DC2626]' : 'text-[#5A7A5E]'}`}>
+                                            {isOverdue(b.due_date) ? 'OVERDUE' : `Due ${new Date(b.due_date).toLocaleDateString()}`}
+                                        </Text>
+                                    </View>
                                 </View>
-                                {b.returned_at ? (
-                                    <Text className='text-[12px] font-semibold text-[#16A34A]'>Returned</Text>
-                                ) : (
-                                    <Text className={`text-[12px] font-semibold ${isOverdue(b.due_date) ? 'text-[#DC2626]' : 'text-[#2563EB]'}`}>
-                                        {isOverdue(b.due_date) ? 'Overdue' : 'Active'}
-                                    </Text>
-                                )}
-                            </View>
-                        ))
-                    )}
+                            ))
+                        )}
+                    </Section>
+
+                    {/* Borrow History */}
+                    <Section title={`Borrow History (${history.length})`}>
+                        {history.length === 0 ? (
+                            <Text className="text-sm text-[#94A3B8] text-center py-2">No borrow history</Text>
+                        ) : (
+                            history.map((b) => (
+                                <View key={b.id} className="flex-row items-center py-2.5 border-t border-[#F1F5F9]">
+                                    <View className="flex-1">
+                                        <Text className="text-sm font-semibold text-[#1C2B1E]">{b.book_title}</Text>
+                                        <Text className="text-xs text-[#7A9A7E] mt-0.5">{new Date(b.borrowed_at).toLocaleDateString()}</Text>
+                                    </View>
+                                    {b.returned_at ? (
+                                        <Text className="text-xs font-semibold text-leaf">Returned</Text>
+                                    ) : (
+                                        <Text className={`text-xs font-semibold ${isOverdue(b.due_date) ? 'text-[#DC2626]' : 'text-brand'}`}>
+                                            {isOverdue(b.due_date) ? 'Overdue' : 'Active'}
+                                        </Text>
+                                    )}
+                                </View>
+                            ))
+                        )}
+                    </Section>
                 </View>
             </ScrollView>
 
@@ -292,21 +304,77 @@ export default function MemberDetailScreen() {
                 userId={userId}
             />
 
-            <ResetPinModal visible={pinVisible} member={member} onClose={() => setPinVisible(false)} onSaved={() => setPinVisible(false)} />
+            <ResetPinModal
+                visible={pinVisible}
+                member={member}
+                onClose={() => setPinVisible(false)}
+                onSaved={() => setPinVisible(false)}
+            />
         </>
     )
 }
 
-function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
+function StatCard({ label, value, highlight }: { label: string; value: number; highlight?: 'red' }) {
+    const borderColor = highlight === 'red' ? '#DC2626' : undefined
     return (
-        <View className='flex-1 bg-white rounded-[10px] p-3 items-center border-t-[3px]' style={{ borderTopColor: color, elevation: 1 }}>
-            <Text className='text-[22px] font-bold' style={{ color }}>
-                {value}
-            </Text>
-            <Text className='text-[11px] text-[#64748B] mt-[2px] text-center'>{label}</Text>
+        <View
+            className="flex-1 bg-white rounded-2xl p-3 items-center"
+            style={{
+                elevation: 2,
+                shadowColor: '#2A5C33',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.06,
+                shadowRadius: 4,
+                borderTopWidth: borderColor ? 3 : 0,
+                borderTopColor: borderColor,
+            }}
+        >
+            <Text className="text-2xl font-extrabold text-[#1C2B1E]">{value}</Text>
+            <Text className="text-xs text-[#7A9A7E] mt-0.5 text-center">{label}</Text>
         </View>
     )
 }
+
+function Section({
+    title,
+    children,
+    action,
+    badge,
+    badgeColor,
+}: {
+    title: string
+    children: React.ReactNode
+    action?: { label: string; onPress: () => void; disabled?: boolean }
+    badge?: string
+    badgeColor?: string
+}) {
+    return (
+        <View
+            className="bg-white rounded-2xl p-4"
+            style={{ elevation: 2, shadowColor: '#2A5C33', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4 }}
+        >
+            <View className="flex-row items-center justify-between mb-3">
+                <Text className="text-sm font-bold text-[#1C2B1E]">{title}</Text>
+                {badge && (
+                    <Text className="text-sm font-bold" style={{ color: badgeColor ?? '#1C2B1E' }}>{badge}</Text>
+                )}
+                {action && (
+                    <TouchableOpacity
+                        className="bg-mint rounded-lg px-3 py-1"
+                        onPress={action.onPress}
+                        disabled={action.disabled}
+                        style={action.disabled ? { opacity: 0.5 } : undefined}
+                    >
+                        <Text className="text-xs font-bold text-brand">{action.label}</Text>
+                    </TouchableOpacity>
+                )}
+            </View>
+            {children}
+        </View>
+    )
+}
+
+// ─── Edit Member Modal ────────────────────────────────────────────────────────
 
 interface EditModalProps {
     visible: boolean
@@ -366,88 +434,99 @@ function EditMemberModal({ visible, member, onClose, onSaved, userId }: EditModa
     }
 
     return (
-        <Modal visible={visible} animationType='slide' presentationStyle='pageSheet'>
-            <View className='flex-1 bg-[#F8FAFC]'>
-                <View className='flex-row justify-between items-center p-4 pt-5 bg-white border-b border-[#F1F5F9]'>
+        <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+            <View className="flex-1 bg-bio">
+                <View className="bg-brand flex-row items-center justify-between px-5 pb-4 pt-16 rounded-b-[20px]">
                     <TouchableOpacity onPress={onClose}>
-                        <Text className='text-[15px] text-[#64748B]'>Cancel</Text>
+                        <Text className="text-[#A8D5A2] text-sm font-medium">Cancel</Text>
                     </TouchableOpacity>
-                    <Text className='text-base font-bold text-[#1E293B]'>Edit Member</Text>
+                    <Text className="text-white font-extrabold text-base">Edit Member</Text>
                     <TouchableOpacity onPress={handleSave} disabled={updateMutation.isPending}>
-                        <Text className='text-[15px] font-bold text-[#2563EB]'>{updateMutation.isPending ? 'Saving…' : 'Save'}</Text>
+                        {updateMutation.isPending
+                            ? <ActivityIndicator color="#A8D5A2" size="small" />
+                            : <Text className="text-[#A8D5A2] text-sm font-bold">Save</Text>}
                     </TouchableOpacity>
                 </View>
-                <ScrollView className='p-4'>
-                    <Text className='text-[13px] font-semibold text-[#374151] mb-[6px] mt-[14px]'>Full Name *</Text>
-                    <TextInput
-                        className='bg-white border border-[#E2E8F0] rounded-[10px] px-[14px] py-3 text-[15px]'
-                        value={name}
-                        onChangeText={setName}
-                        placeholder='Full name'
-                    />
 
-                    <Text className='text-[13px] font-semibold text-[#374151] mb-[6px] mt-[14px]'>ID Number *</Text>
-                    <TextInput
-                        className='bg-white border border-[#E2E8F0] rounded-[10px] px-[14px] py-3 text-[15px]'
-                        value={idNumber}
-                        onChangeText={setIdNumber}
-                        placeholder='ID number'
-                        autoCapitalize='none'
-                    />
+                <ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 40 }}>
+                    <FormSection label="Basic Info">
+                        <TextInput
+                            className="bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]"
+                            value={name}
+                            onChangeText={setName}
+                            placeholder="Full name *"
+                            placeholderTextColor="#94A3B8"
+                        />
+                        <TextInput
+                            className="bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]"
+                            value={idNumber}
+                            onChangeText={setIdNumber}
+                            placeholder="ID number *"
+                            placeholderTextColor="#94A3B8"
+                            autoCapitalize="none"
+                        />
+                        <TextInput
+                            className="bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]"
+                            value={department}
+                            onChangeText={setDepartment}
+                            placeholder="Department / Program"
+                            placeholderTextColor="#94A3B8"
+                        />
+                    </FormSection>
 
-                    <Text className='text-[13px] font-semibold text-[#374151] mb-[6px] mt-[14px]'>Role</Text>
-                    <View className='flex-row gap-2 mt-1'>
-                        {ROLES.map((r) => (
-                            <TouchableOpacity
-                                key={r}
-                                className='flex-1 rounded-lg py-[10px] items-center bg-[#F1F5F9]'
-                                style={role === r ? { backgroundColor: ROLE_COLOR[r] } : undefined}
-                                onPress={() => setRole(r)}
-                            >
-                                <Text
-                                    className='text-[13px] font-semibold capitalize text-[#374151]'
-                                    style={role === r ? { color: '#FFFFFF' } : undefined}
-                                >
-                                    {r}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-
-                    <Text className='text-[13px] font-semibold text-[#374151] mb-[6px] mt-[14px]'>Patron Type</Text>
-                    <View className='flex-row gap-2 mt-1'>
-                        {USER_TYPES.map((t) => {
-                            const active = userType === t.value
-                            return (
+                    <FormSection label="Role">
+                        <View className="flex-row gap-2">
+                            {ROLES.map((r) => (
                                 <TouchableOpacity
-                                    key={t.value}
-                                    className='flex-1 rounded-lg py-[10px] items-center bg-[#F1F5F9]'
-                                    style={active ? { backgroundColor: '#2A5C33' } : undefined}
-                                    onPress={() => setUserType(active ? null : t.value)}
+                                    key={r}
+                                    className="flex-1 rounded-xl py-2.5 items-center border"
+                                    style={role === r
+                                        ? { backgroundColor: ROLE_COLOR[r], borderColor: ROLE_COLOR[r] }
+                                        : { backgroundColor: '#FFFFFF', borderColor: '#E2EFE0' }}
+                                    onPress={() => setRole(r)}
                                 >
                                     <Text
-                                        className='text-[13px] font-semibold capitalize text-[#374151]'
-                                        style={active ? { color: '#FFFFFF' } : undefined}
+                                        className="text-xs font-bold capitalize"
+                                        style={{ color: role === r ? '#FFFFFF' : '#2A5C33' }}
                                     >
-                                        {t.label}
+                                        {r}
                                     </Text>
                                 </TouchableOpacity>
-                            )
-                        })}
-                    </View>
+                            ))}
+                        </View>
+                    </FormSection>
 
-                    <Text className='text-[13px] font-semibold text-[#374151] mb-[6px] mt-[14px]'>Department / Program</Text>
-                    <TextInput
-                        className='bg-white border border-[#E2E8F0] rounded-[10px] px-[14px] py-3 text-[15px]'
-                        value={department}
-                        onChangeText={setDepartment}
-                        placeholder='e.g. College of Engineering'
-                    />
+                    <FormSection label="Patron Type">
+                        <View className="flex-row gap-2 flex-wrap">
+                            {USER_TYPES.map((t) => {
+                                const active = userType === t.value
+                                return (
+                                    <TouchableOpacity
+                                        key={t.value}
+                                        className="flex-1 rounded-xl py-2.5 items-center border"
+                                        style={active
+                                            ? { backgroundColor: '#2A5C33', borderColor: '#2A5C33' }
+                                            : { backgroundColor: '#FFFFFF', borderColor: '#E2EFE0' }}
+                                        onPress={() => setUserType(active ? null : t.value)}
+                                    >
+                                        <Text
+                                            className="text-xs font-bold"
+                                            style={{ color: active ? '#FFFFFF' : '#2A5C33' }}
+                                        >
+                                            {t.label}
+                                        </Text>
+                                    </TouchableOpacity>
+                                )
+                            })}
+                        </View>
+                    </FormSection>
                 </ScrollView>
             </View>
         </Modal>
     )
 }
+
+// ─── Reset PIN Modal ──────────────────────────────────────────────────────────
 
 interface PinModalProps {
     visible: boolean
@@ -485,39 +564,63 @@ function ResetPinModal({ visible, member, onClose, onSaved }: PinModalProps) {
     }
 
     return (
-        <Modal visible={visible} animationType='slide' presentationStyle='pageSheet'>
-            <View className='flex-1 bg-[#F8FAFC]'>
-                <View className='flex-row justify-between items-center p-4 pt-5 bg-white border-b border-[#F1F5F9]'>
+        <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+            <View className="flex-1 bg-bio">
+                <View className="bg-brand flex-row items-center justify-between px-5 pb-4 pt-16 rounded-b-[20px]">
                     <TouchableOpacity onPress={onClose}>
-                        <Text className='text-[15px] text-[#64748B]'>Cancel</Text>
+                        <Text className="text-[#A8D5A2] text-sm font-medium">Cancel</Text>
                     </TouchableOpacity>
-                    <Text className='text-base font-bold text-[#1E293B]'>Reset PIN</Text>
+                    <Text className="text-white font-extrabold text-base">Reset PIN</Text>
                     <TouchableOpacity onPress={handleReset} disabled={saving}>
-                        <Text className='text-[15px] font-bold text-[#2563EB]'>{saving ? 'Saving…' : 'Reset'}</Text>
+                        {saving
+                            ? <ActivityIndicator color="#A8D5A2" size="small" />
+                            : <Text className="text-[#A8D5A2] text-sm font-bold">Reset</Text>}
                     </TouchableOpacity>
                 </View>
-                <View className='p-4'>
-                    <Text className='text-[14px] text-[#64748B] mb-4'>Resetting PIN for {member.name}</Text>
-                    <Text className='text-[13px] font-semibold text-[#374151] mb-[6px] mt-[14px]'>New PIN *</Text>
-                    <TextInput
-                        className='bg-white border border-[#E2E8F0] rounded-[10px] px-[14px] py-3 text-[15px]'
-                        value={newPin}
-                        onChangeText={setNewPin}
-                        placeholder='Min 4 digits'
-                        secureTextEntry
-                        keyboardType='numeric'
-                    />
-                    <Text className='text-[13px] font-semibold text-[#374151] mb-[6px] mt-[14px]'>Confirm PIN *</Text>
-                    <TextInput
-                        className='bg-white border border-[#E2E8F0] rounded-[10px] px-[14px] py-3 text-[15px]'
-                        value={confirmPin}
-                        onChangeText={setConfirmPin}
-                        placeholder='Repeat PIN'
-                        secureTextEntry
-                        keyboardType='numeric'
-                    />
+
+                <View style={{ padding: 16, gap: 12 }}>
+                    <View className="bg-mint rounded-2xl px-4 py-3 flex-row items-center gap-3">
+                        <Ionicons name="person-circle-outline" size={24} color="#2A5C33" />
+                        <View>
+                            <Text className="text-xs font-semibold text-[#7A9A7E]">Resetting PIN for</Text>
+                            <Text className="text-sm font-bold text-brand">{member.name}</Text>
+                        </View>
+                    </View>
+
+                    <FormSection label="New PIN">
+                        <TextInput
+                            className="bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]"
+                            value={newPin}
+                            onChangeText={setNewPin}
+                            placeholder="Min 4 digits"
+                            placeholderTextColor="#94A3B8"
+                            secureTextEntry
+                            keyboardType="numeric"
+                        />
+                        <TextInput
+                            className="bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]"
+                            value={confirmPin}
+                            onChangeText={setConfirmPin}
+                            placeholder="Confirm PIN"
+                            placeholderTextColor="#94A3B8"
+                            secureTextEntry
+                            keyboardType="numeric"
+                        />
+                    </FormSection>
                 </View>
             </View>
         </Modal>
+    )
+}
+
+function FormSection({ label, children }: { label: string; children: React.ReactNode }) {
+    return (
+        <View
+            className="bg-white rounded-2xl p-4 gap-3"
+            style={{ elevation: 2, shadowColor: '#2A5C33', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4 }}
+        >
+            <Text className="text-xs font-bold text-brand uppercase tracking-widest">{label}</Text>
+            {children}
+        </View>
     )
 }
