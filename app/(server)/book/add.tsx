@@ -11,6 +11,7 @@ import { useAppStore } from '../../../src/store/appStore'
 import { CallNumberType, MaterialType } from '../../../src/types'
 import { SubjectHeadingsInput } from '../../../src/components/cataloging/SubjectHeadingsInput'
 import { AuthorityPicker } from '../../../src/components/cataloging/AuthorityPicker'
+import { queryKeys } from '../../../src/lib/queryKeys'
 
 const CALL_NUMBER_TYPES: CallNumberType[] = ['DEWEY', 'LC', 'OTHER']
 
@@ -165,8 +166,8 @@ export default function AddResourceScreen() {
                 shelf_location: c.shelf_location.trim() || null,
             })))
         },
-        onSuccess: (resourceId) => {
-            queryClient.invalidateQueries({ queryKey: ['resources'] })
+        onSuccess: async (resourceId) => {
+            await queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(institution!.id) })
             const copyCount = copyDetails.length
             const savedTitle = title.trim()
             resetForm()

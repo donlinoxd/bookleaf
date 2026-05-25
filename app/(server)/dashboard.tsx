@@ -35,7 +35,7 @@ export default function DashboardScreen() {
     const { data: inventoryStats } = useQuery({
         queryKey: queryKeys.dashboard(iid),
         queryFn: () => ReportService.inventorySummary(iid),
-        enabled,
+        enabled,        
     })
 
     const { data: overdueAll = [] } = useQuery({
