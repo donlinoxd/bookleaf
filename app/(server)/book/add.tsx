@@ -31,7 +31,7 @@ export default function AddResourceScreen() {
     const [year, setYear] = useState('')
     const [genre, setGenre] = useState('')
     const [description, setDescription] = useState('')
-    const [copies, setCopies] = useState('1')
+    const [copyDetails, setCopyDetails] = useState([{ accession_number: '', barcode: '', shelf_location: '' }])
     const [isLoanable, setIsLoanable] = useState(true)
 
     // RDA extended fields
@@ -99,7 +99,7 @@ export default function AddResourceScreen() {
         setYear('')
         setGenre('')
         setDescription('')
-        setCopies('1')
+        setCopyDetails([{ accession_number: '', barcode: '', shelf_location: '' }])
         setIsLoanable(true)
         setSubtitle('')
         setEdition('')
@@ -127,7 +127,7 @@ export default function AddResourceScreen() {
 
     const createMutation = useMutation({
         mutationFn: () => {
-            const copyCount = parseInt(copies) || 1
+            const copyCount = copyDetails.length
             return ResourceService.create({
                 institution_id: institution!.id,
                 material_type: materialType,
@@ -159,11 +159,15 @@ export default function AddResourceScreen() {
                 is_loanable: isLoanable,
                 loan_period_days: loanPeriodDays.trim() ? parseInt(loanPeriodDays.trim()) : null,
                 total_copies: copyCount,
-            })
+            }, copyDetails.map(c => ({
+                accession_number: c.accession_number.trim() || null,
+                barcode: c.barcode.trim() || null,
+                shelf_location: c.shelf_location.trim() || null,
+            })))
         },
         onSuccess: (resourceId) => {
             queryClient.invalidateQueries({ queryKey: ['resources'] })
-            const copyCount = parseInt(copies) || 1
+            const copyCount = copyDetails.length
             const savedTitle = title.trim()
             resetForm()
             Alert.alert('Resource Added', `"${savedTitle}" added with ${copyCount} cop${copyCount === 1 ? 'y' : 'ies'}.`, [
@@ -187,7 +191,7 @@ export default function AddResourceScreen() {
             Alert.alert('Error', 'No institution found')
             return
         }
-        const copyCount = parseInt(copies) || 1
+        const copyCount = copyDetails.length
         if (copyCount < 1 || copyCount > 100) {
             Alert.alert('Error', 'Copies must be between 1 and 100')
             return
@@ -582,25 +586,55 @@ export default function AddResourceScreen() {
                     </FormSection>
 
                     {/* Inventory */}
-                    <FormSection label='Inventory'>
-                        <View className='flex-row items-center justify-center gap-6 py-2'>
-                            <TouchableOpacity
-                                className='w-11 h-11 rounded-full bg-mint items-center justify-center'
-                                onPress={() => setCopies(String(Math.max(1, parseInt(copies || '1') - 1)))}
-                            >
-                                <Text className='text-2xl text-brand font-bold leading-7'>−</Text>
-                            </TouchableOpacity>
-                            <View className='items-center'>
-                                <Text className='text-4xl font-extrabold text-brand'>{copies}</Text>
-                                <Text className='text-xs text-[#7A9A7E] font-medium'>copies</Text>
+                    <FormSection label={`Copies (${copyDetails.length})`}>
+                        {copyDetails.map((copy, i) => (
+                            <View key={i} className='gap-2'>
+                                {i > 0 && <View className='border-t border-mint mt-1' />}
+                                <View className='flex-row items-center justify-between'>
+                                    <Text className='text-xs font-bold text-brand'>Copy #{i + 1}</Text>
+                                    {copyDetails.length > 1 && (
+                                        <TouchableOpacity
+                                            onPress={() => setCopyDetails((prev) => prev.filter((_, j) => j !== i))}
+                                        >
+                                            <Ionicons name='close-circle' size={18} color='#DC2626' />
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+                                <TextInput
+                                    className='bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]'
+                                    value={copy.accession_number}
+                                    onChangeText={(v) => setCopyDetails((prev) => prev.map((c, j) => j === i ? { ...c, accession_number: v } : c))}
+                                    placeholder='Accession number (e.g. ACC-2024-001)'
+                                    placeholderTextColor='#94A3B8'
+                                    autoCapitalize='characters'
+                                />
+                                <TextInput
+                                    className='bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]'
+                                    value={copy.barcode}
+                                    onChangeText={(v) => setCopyDetails((prev) => prev.map((c, j) => j === i ? { ...c, barcode: v } : c))}
+                                    placeholder='Barcode'
+                                    placeholderTextColor='#94A3B8'
+                                    autoCapitalize='none'
+                                />
+                                <TextInput
+                                    className='bg-white border border-mint rounded-xl px-4 py-3 text-sm text-[#1C2B1E]'
+                                    value={copy.shelf_location}
+                                    onChangeText={(v) => setCopyDetails((prev) => prev.map((c, j) => j === i ? { ...c, shelf_location: v } : c))}
+                                    placeholder='Shelf location (e.g. A3-Shelf2)'
+                                    placeholderTextColor='#94A3B8'
+                                    autoCapitalize='characters'
+                                />
                             </View>
+                        ))}
+                        {copyDetails.length < 100 && (
                             <TouchableOpacity
-                                className='w-11 h-11 rounded-full bg-mint items-center justify-center'
-                                onPress={() => setCopies(String(Math.min(100, parseInt(copies || '1') + 1)))}
+                                className='flex-row items-center justify-center gap-2 py-2.5 border border-dashed border-mint rounded-xl mt-1'
+                                onPress={() => setCopyDetails((prev) => [...prev, { accession_number: '', barcode: '', shelf_location: '' }])}
                             >
-                                <Text className='text-2xl text-brand font-bold leading-7'>+</Text>
+                                <Ionicons name='add-circle-outline' size={18} color='#2A5C33' />
+                                <Text className='text-sm font-bold text-brand'>Add Another Copy</Text>
                             </TouchableOpacity>
-                        </View>
+                        )}
                     </FormSection>
                 </ScrollView>
             </View>

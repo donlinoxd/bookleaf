@@ -1,14 +1,30 @@
-import { Image, ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAppStore } from '../../src/store/appStore';
+import { clientFetch } from '../../src/services/clientApi';
 import { MemberCard } from '../../src/components/members/MemberCard';
 
 import MASCOT from '../../assets/images/bookleaf-mascot.png';
 
 export default function MyCardScreen() {
-  const { currentUser } = useAppStore();
+  const { currentUser, clearClientSession } = useAppStore();
   const router = useRouter();
+
+  const handleLogout = () => {
+    Alert.alert('Sign Out', 'Sign out of your account?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign Out',
+        style: 'destructive',
+        onPress: async () => {
+          try { await clientFetch('/api/auth/logout', { method: 'POST' }); } catch {}
+          await clearClientSession();
+          router.replace('/(auth)/client-login');
+        },
+      },
+    ]);
+  };
 
   // Guest state — prompt to sign in
   if (!currentUser) {
@@ -54,7 +70,15 @@ export default function MyCardScreen() {
             <Text className="text-2xl font-extrabold text-white">My Library Card</Text>
             <Text className="text-xs text-[#A8D5A2] mt-1">{currentUser.name}</Text>
           </View>
-          <Image source={MASCOT} className="w-16 h-16 -mb-1" resizeMode="contain" />
+          <View className="flex-row items-center gap-2 -mb-1">
+            <Image source={MASCOT} className="w-16 h-16" resizeMode="contain" />
+            <TouchableOpacity
+              className="bg-[#1C3E23] rounded-xl px-3 py-2"
+              onPress={handleLogout}
+            >
+              <Text className="text-[#A8D5A2] text-xs font-bold">Sign Out</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 

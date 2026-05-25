@@ -49,7 +49,10 @@ export const ResourceService = {
     return rows[0] ? mapRow(rows[0]) : null;
   },
 
-  async create(resource: Omit<Resource, 'id' | 'added_at' | 'available_copies'>): Promise<number> {
+  async create(
+    resource: Omit<Resource, 'id' | 'added_at' | 'available_copies'>,
+    copyDetails?: Array<{ accession_number?: string | null; barcode?: string | null; shelf_location?: string | null }>,
+  ): Promise<number> {
     const result = await db.insert(resources).values({
       institution_id: resource.institution_id,
       material_type: resource.material_type,
@@ -89,6 +92,9 @@ export const ResourceService = {
       const copyRows = Array.from({ length: resource.total_copies }, (_, i) => ({
         resource_id: resourceId,
         copy_number: i + 1,
+        accession_number: copyDetails?.[i]?.accession_number ?? null,
+        barcode: copyDetails?.[i]?.barcode ?? null,
+        shelf_location: copyDetails?.[i]?.shelf_location ?? null,
       }));
       await db.insert(resourceCopies).values(copyRows);
     }
