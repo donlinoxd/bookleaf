@@ -151,6 +151,7 @@ export const BorrowService = {
       due_date: borrowingRecords.due_date,
       returned_at: borrowingRecords.returned_at,
       fine_amount: borrowingRecords.fine_amount,
+      renewal_count: borrowingRecords.renewal_count,
       book_title: resources.title,
       member_name: users.name,
       member_id_number: users.id_number,
@@ -174,6 +175,7 @@ export const BorrowService = {
       due_date: borrowingRecords.due_date,
       returned_at: borrowingRecords.returned_at,
       fine_amount: borrowingRecords.fine_amount,
+      renewal_count: borrowingRecords.renewal_count,
       book_title: resources.title,
       member_name: users.name,
     }).from(borrowingRecords)
@@ -212,6 +214,7 @@ export const BorrowService = {
       due_date: borrowingRecords.due_date,
       returned_at: borrowingRecords.returned_at,
       fine_amount: borrowingRecords.fine_amount,
+      renewal_count: borrowingRecords.renewal_count,
       book_title: resources.title,
       book_author: resources.author,
     }).from(borrowingRecords)
@@ -230,6 +233,7 @@ export const BorrowService = {
       due_date: borrowingRecords.due_date,
       returned_at: borrowingRecords.returned_at,
       fine_amount: borrowingRecords.fine_amount,
+      renewal_count: borrowingRecords.renewal_count,
       book_title: resources.title,
       member_name: users.name,
       member_id_number: users.id_number,
@@ -253,6 +257,7 @@ export const BorrowService = {
       due_date: borrowingRecords.due_date,
       returned_at: borrowingRecords.returned_at,
       fine_amount: borrowingRecords.fine_amount,
+      renewal_count: borrowingRecords.renewal_count,
       member_name: users.name,
       member_id_number: users.id_number,
     }).from(borrowingRecords)
