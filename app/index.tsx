@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { db } from '../src/db';
+import { institutions } from '../src/db/schema';
 import { useAppStore } from '../src/store/appStore';
 import { AppMode } from '../src/types';
 
@@ -15,7 +17,10 @@ export default function Index() {
       const savedMode = await AsyncStorage.getItem('app_mode') as AppMode | null;
       if (savedMode === 'server') {
         setMode('server');
-        router.replace('/(auth)/login');
+        // If the user picked "server" but quit before completing registration,
+        // no institution row exists yet — send them back to finish setup.
+        const existing = await db.select({ id: institutions.id }).from(institutions).limit(1);
+        router.replace(existing.length > 0 ? '/(auth)/login' : '/(auth)/register');
       } else if (savedMode === 'client') {
         setMode('client');
         const restored = await hydrateClientSession();
