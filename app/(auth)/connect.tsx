@@ -110,7 +110,7 @@ export default function ConnectScreen() {
               onChangeText={setIp}
               placeholder="e.g. 192.168.1.100"
               placeholderTextColor="#94A3B8"
-              keyboardType="numeric"
+              keyboardType="decimal-pad"
               autoCapitalize="none"
             />
           </View>
