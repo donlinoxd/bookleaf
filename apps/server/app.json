@@ -37,20 +37,7 @@
             "favicon": "./assets/favicon.ico"
         },
         "plugins": [
-            ["expo-router", {
-                "root": "src",
-                "ignoredRouteFiles": [
-                    "./components/**",
-                    "./services/**",
-                    "./lib/**",
-                    "./utils/**",
-                    "./store/**",
-                    "./types/**",
-                    "./polyfills.ts",
-                    "**/*.d.ts",
-                    "**/*.css"
-                ]
-            }],
+            ["expo-router", { "root": "src" }],
             "expo-sqlite",
             [
                 "expo-camera",
