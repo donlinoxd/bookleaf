@@ -12,3 +12,6 @@ export async function seedDefaults(): Promise<void> {
     .values(DEFAULT_SETTINGS.map(s => ({ key: s.key, value: s.value })))
     .onConflictDoNothing();
 }
+
+export * from './schema';
+export * from './database';
