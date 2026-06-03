@@ -2,8 +2,8 @@
 import { ActivityIndicator, Alert, ScrollView, StatusBar, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useAppStore } from '../../src/store/appStore';
-import { MdnsService, type DiscoveredServer } from '../../src/services/MdnsService';
+import { useAppStore } from '../../store/appStore';
+import { MdnsService, type DiscoveredServer } from '../../services/MdnsService';
 
 export default function ConnectScreen() {
   const router = useRouter();

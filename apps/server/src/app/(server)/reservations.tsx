@@ -3,12 +3,12 @@ import { Alert, FlatList, ScrollView, StatusBar, Text, TextInput, TouchableOpaci
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { ReservationService } from '../../src/services/ReservationService';
-import { UserService } from '../../src/services/UserService';
-import { ResourceService } from '../../src/services/ResourceService';
-import { useAppStore } from '../../src/store/appStore';
+import { ReservationService } from '../../services/ReservationService';
+import { UserService } from '../../services/UserService';
+import { ResourceService } from '../../services/ResourceService';
+import { useAppStore } from '../../store/appStore';
 import { User, Resource } from '@bookleaf/types';
-import { queryKeys } from '../../src/lib/queryKeys';
+import { queryKeys } from '../../lib/queryKeys';
 
 export default function ReservationsScreen() {
   const router = useRouter();

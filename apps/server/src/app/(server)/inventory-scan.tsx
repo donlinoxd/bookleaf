@@ -9,9 +9,9 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { InventoryService } from '../../src/services/InventoryService';
-import { useAppStore } from '../../src/store/appStore';
-import { queryKeys } from '../../src/lib/queryKeys';
+import { InventoryService } from '../../services/InventoryService';
+import { useAppStore } from '../../store/appStore';
+import { queryKeys } from '../../lib/queryKeys';
 import { ScanSession } from '@bookleaf/types';
 
 const BRAND = '#2A5C33';

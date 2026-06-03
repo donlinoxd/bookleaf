@@ -5,8 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { useAppStore } from '../../src/store/appStore';
-import { clientFetch } from '../../src/services/clientApi';
+import { useAppStore } from '../../store/appStore';
+import { clientFetch } from '../../services/clientApi';
 import { GateDirection } from '@bookleaf/types';
 
 const BRAND = '#2A5C33';

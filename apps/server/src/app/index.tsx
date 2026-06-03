@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db } from '@bookleaf/db';
 import { institutions } from '@bookleaf/db';
-import { useAppStore } from '../src/store/appStore';
+import { useAppStore } from '../store/appStore';
 import { AppMode } from '@bookleaf/types';
 
 export default function Index() {

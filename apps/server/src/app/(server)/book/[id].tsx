@@ -13,13 +13,13 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
-import { AuthorityPicker } from '../../../src/components/cataloging/AuthorityPicker'
-import { SubjectHeadingsInput } from '../../../src/components/cataloging/SubjectHeadingsInput'
-import { CALL_NUMBER_TYPES, IDENTIFIER_LABEL, MATERIAL_TYPE_META, MATERIAL_TYPES } from '../../../src/lib/materialTypes'
-import { queryKeys } from '../../../src/lib/queryKeys'
-import { BorrowService } from '../../../src/services/BorrowService'
-import { ResourceService } from '../../../src/services/ResourceService'
-import { useAppStore } from '../../../src/store/appStore'
+import { AuthorityPicker } from '../../../components/cataloging/AuthorityPicker'
+import { SubjectHeadingsInput } from '../../../components/cataloging/SubjectHeadingsInput'
+import { CALL_NUMBER_TYPES, IDENTIFIER_LABEL, MATERIAL_TYPE_META, MATERIAL_TYPES } from '../../../lib/materialTypes'
+import { queryKeys } from '../../../lib/queryKeys'
+import { BorrowService } from '../../../services/BorrowService'
+import { ResourceService } from '../../../services/ResourceService'
+import { useAppStore } from '../../../store/appStore'
 import { CallNumberType, MaterialType, Resource } from '@bookleaf/types'
 
 const CONDITION_COLOR: Record<string, string> = {

@@ -2,9 +2,9 @@
 import { useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, Alert, FlatList, ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-native'
-import { HorizontalBookCard } from '../../src/components/books/HorizontalBookCard'
-import type { BookResult } from '../../src/components/books/HorizontalBookCard'
-import { useAppStore } from '../../src/store/appStore'
+import { HorizontalBookCard } from '../../components/books/HorizontalBookCard'
+import type { BookResult } from '../../components/books/HorizontalBookCard'
+import { useAppStore } from '../../store/appStore'
 
 interface BorrowInfo {
     id: number

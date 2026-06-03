@@ -2,10 +2,10 @@
 import { useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, FlatList, Image, Modal, ScrollView, StatusBar, Text, TextInput, TouchableOpacity, View } from 'react-native'
-import MASCOT from '../../assets/images/bookleaf-mascot.png'
-import { HorizontalBookCard } from '../../src/components/books/HorizontalBookCard'
-import type { BookResult } from '../../src/components/books/HorizontalBookCard'
-import { useAppStore } from '../../src/store/appStore'
+import MASCOT from '../../../assets/'images/bookleaf-mascot.png'
+import { HorizontalBookCard } from '../../components/books/HorizontalBookCard'
+import type { BookResult } from '../../components/books/HorizontalBookCard'
+import { useAppStore } from '../../store/appStore'
 
 const MATERIAL_TYPES = ['BOOK', 'SERIAL', 'ARTICLE', 'AUDIOVISUAL', 'MAP', 'MANUSCRIPT', 'DIGITAL', 'THESIS', 'OTHER']
 

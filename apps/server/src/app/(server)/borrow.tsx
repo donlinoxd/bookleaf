@@ -3,14 +3,14 @@ import { Alert, Modal, ScrollView, StatusBar, Text, TextInput, TouchableOpacity,
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { UserService } from '../../src/services/UserService';
-import { ResourceService } from '../../src/services/ResourceService';
-import { BorrowService } from '../../src/services/BorrowService';
-import { ReservationService } from '../../src/services/ReservationService';
-import { NotificationService } from '../../src/services/NotificationService';
-import { useAppStore } from '../../src/store/appStore';
+import { UserService } from '../../services/UserService';
+import { ResourceService } from '../../services/ResourceService';
+import { BorrowService } from '../../services/BorrowService';
+import { ReservationService } from '../../services/ReservationService';
+import { NotificationService } from '../../services/NotificationService';
+import { useAppStore } from '../../store/appStore';
 import { User, Resource } from '@bookleaf/types';
-import { queryKeys } from '../../src/lib/queryKeys';
+import { queryKeys } from '../../lib/queryKeys';
 
 type Mode = 'checkout' | 'return' | 'holds';
 

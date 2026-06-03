@@ -1,10 +1,10 @@
 ﻿import { Ionicons } from '@expo/vector-icons'
 import { Tabs, useRouter } from 'expo-router'
 import { useEffect } from 'react'
-import { CustomTabBar } from '../../src/components/navigation/CustomTabBar'
-import { ErrorBoundary } from '../../src/components/common/ErrorBoundary'
-import { ServerBridge } from '../../src/services/ServerBridge'
-import { useAppStore } from '../../src/store/appStore'
+import { CustomTabBar } from '../../components/navigation/CustomTabBar'
+import { ErrorBoundary } from '../../components/common/ErrorBoundary'
+import { ServerBridge } from '../../services/ServerBridge'
+import { useAppStore } from '../../store/appStore'
 
 export default function ServerLayout() {
     const router = useRouter()

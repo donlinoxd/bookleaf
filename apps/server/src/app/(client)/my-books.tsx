@@ -5,8 +5,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useAppStore } from '../../src/store/appStore';
-import { clientFetch } from '../../src/services/clientApi';
+import { useAppStore } from '../../store/appStore';
+import { clientFetch } from '../../services/clientApi';
 
 interface BorrowInfo {
   id: number;

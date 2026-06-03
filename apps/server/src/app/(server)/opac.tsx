@@ -2,12 +2,12 @@
 import { useRouter } from 'expo-router'
 import { useCallback, useState } from 'react'
 import { FlatList, Image, StatusBar, Text, TextInput, TouchableOpacity, View } from 'react-native'
-import { MATERIAL_TYPE_META } from '../../src/lib/materialTypes'
-import { ResourceService } from '../../src/services/ResourceService'
-import { useAppStore } from '../../src/store/appStore'
+import { MATERIAL_TYPE_META } from '../../lib/materialTypes'
+import { ResourceService } from '../../services/ResourceService'
+import { useAppStore } from '../../store/appStore'
 import { Resource } from '@bookleaf/types'
 
-import MASCOT from '../../assets/images/leaf-searching.png'
+import MASCOT from '../../../assets/'images/leaf-searching.png'
 
 export default function OPACScreen() {
     const router = useRouter()

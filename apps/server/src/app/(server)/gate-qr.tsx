@@ -5,10 +5,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import QRCode from 'react-native-qrcode-svg';
-import { GateService } from '../../src/services/GateService';
-import { useAppStore } from '../../src/store/appStore';
-import { queryKeys } from '../../src/lib/queryKeys';
-import { getLocalIpAddress } from '../../src/utils/networkInfo';
+import { GateService } from '../../services/GateService';
+import { useAppStore } from '../../store/appStore';
+import { queryKeys } from '../../lib/queryKeys';
+import { getLocalIpAddress } from '../../utils/networkInfo';
 import { GateLog } from '@bookleaf/types';
 
 const LEAF = '#5CB85C';

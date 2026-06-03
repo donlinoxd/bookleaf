@@ -1,9 +1,9 @@
 ﻿import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useRouter } from 'expo-router'
 import { Image, StatusBar, Text, TouchableOpacity, View } from 'react-native'
-import { useAppStore } from '../../src/store/appStore'
+import { useAppStore } from '../../store/appStore'
 
-import MASCOT from '../../assets/images/bookleaf-mascot.png'
+import MASCOT from '../../../assets/'images/bookleaf-mascot.png'
 
 export default function SetupScreen() {
     const router = useRouter()

@@ -1,6 +1,6 @@
 ﻿// Polyfill `crypto.getRandomValues` for React Native — must run before any
 // module that imports crypto-js. See src/polyfills.ts for details.
-import '../src/polyfills';
+import '../polyfills';
 import '../global.css';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -12,7 +12,7 @@ import { useEffect } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 import { db, seedDefaults } from '@bookleaf/db';
 import { migrations } from '@bookleaf/db';
-import { ErrorBoundary } from '../src/components/common/ErrorBoundary';
+import { ErrorBoundary } from '../components/common/ErrorBoundary';
 
 SplashScreen.preventAutoHideAsync();
 

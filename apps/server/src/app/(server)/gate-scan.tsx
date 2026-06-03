@@ -6,10 +6,10 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useQueryClient } from '@tanstack/react-query';
-import { GateService } from '../../src/services/GateService';
-import { UserService } from '../../src/services/UserService';
-import { useAppStore } from '../../src/store/appStore';
-import { queryKeys } from '../../src/lib/queryKeys';
+import { GateService } from '../../services/GateService';
+import { UserService } from '../../services/UserService';
+import { useAppStore } from '../../store/appStore';
+import { queryKeys } from '../../lib/queryKeys';
 import { GateDirection } from '@bookleaf/types';
 
 const LEAF = '#5CB85C';

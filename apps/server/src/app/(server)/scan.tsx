@@ -9,10 +9,10 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ResourceService } from '../../src/services/ResourceService';
-import { BorrowService } from '../../src/services/BorrowService';
-import { UserService } from '../../src/services/UserService';
-import { useAppStore } from '../../src/store/appStore';
+import { ResourceService } from '../../services/ResourceService';
+import { BorrowService } from '../../services/BorrowService';
+import { UserService } from '../../services/UserService';
+import { useAppStore } from '../../store/appStore';
 import { BorrowingRecord, Resource, User } from '@bookleaf/types';
 
 const LEAF = '#5CB85C';

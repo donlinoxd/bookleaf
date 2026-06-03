@@ -3,8 +3,8 @@ import { Alert, ScrollView, StatusBar, Text, TextInput, TouchableOpacity, View }
 import { useRouter } from 'expo-router';
 import { db } from '@bookleaf/db';
 import { institutions } from '@bookleaf/db';
-import { UserService } from '../../src/services/UserService';
-import { SettingsService } from '../../src/services/SettingsService';
+import { UserService } from '../../services/UserService';
+import { SettingsService } from '../../services/SettingsService';
 
 export default function RegisterScreen() {
   const router = useRouter();
