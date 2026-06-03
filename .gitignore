@@ -46,3 +46,6 @@ yarn-error.*
 
 bookleaf-release.keystore
 gradle.properties
+
+# pnpm
+pnpm-debug.log*
