@@ -73,7 +73,7 @@ function CheckoutForm() {
       if (!copy) throw new Error('No available copies of this resource');
       const borrowingId = await BorrowService.borrowBook(copy.id, member!.id);
       // schedule due-date notifications
-      const settings = await import('../../src/services/SettingsService').then(m => m.SettingsService.getAll());
+      const settings = await import('../../services/SettingsService').then(m => m.SettingsService.getAll());
       const dueDate = new Date();
       dueDate.setDate(dueDate.getDate() + settings.max_borrow_days);
       await NotificationService.scheduleDueReminder(borrowingId, resource!.title, dueDate).catch(() => {});

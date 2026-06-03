@@ -38,7 +38,7 @@ export default function ResourceDetailScreen() {
   const resourceId = parseInt(id);
 
   const [editVisible, setEditVisible] = useState(false);
-  const [editCopy, setEditCopy] = useState<import('../../../src/types').ResourceCopy | null>(null);
+  const [editCopy, setEditCopy] = useState<import('../../../types').ResourceCopy | null>(null);
 
   const { data: resource, isLoading } = useQuery({
     queryKey: queryKeys.resource(resourceId),
@@ -619,7 +619,7 @@ function EditResourceModal({ visible, resource, onClose, onSaved }: EditModalPro
 const CONDITIONS = ['good', 'damaged', 'lost'] as const;
 const CONDITION_LABEL: Record<string, string> = { good: 'Good', damaged: 'Damaged', lost: 'Lost' };
 
-function EditCopyModal({ copy, onClose, onSaved }: { copy: import('../../../src/types').ResourceCopy | null; onClose: () => void; onSaved: () => void }) {
+function EditCopyModal({ copy, onClose, onSaved }: { copy: import('../../../types').ResourceCopy | null; onClose: () => void; onSaved: () => void }) {
   const [accession, setAccession] = useState('');
   const [barcode, setBarcode] = useState('');
   const [shelfLocation, setShelfLocation] = useState('');
