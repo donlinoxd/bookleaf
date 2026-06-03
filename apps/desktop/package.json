@@ -1,0 +1,6 @@
+{
+  "name": "@bookleaf/desktop-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Desktop librarian app (Tauri) — Phase 4"
+}
