@@ -15,3 +15,4 @@ export async function seedDefaults(): Promise<void> {
 
 export * from './schema';
 export * from './database';
+export { default as migrations } from '../drizzle/migrations';

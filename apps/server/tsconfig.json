@@ -1,8 +1,5 @@
 {
-  "extends": "expo/tsconfig.base",
-  "compilerOptions": {
-    "strict": true
-  },
+  "extends": "@bookleaf/tsconfig/expo.json",
   "include": [
     "**/*.ts",
     "**/*.tsx",
