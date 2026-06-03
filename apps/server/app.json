@@ -37,7 +37,7 @@
             "favicon": "./assets/favicon.ico"
         },
         "plugins": [
-            ["expo-router", { "root": "src" }],
+            ["expo-router", { "root": "src/app" }],
             "expo-sqlite",
             [
                 "expo-camera",
