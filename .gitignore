@@ -39,6 +39,10 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+apps/server/android/
+apps/server/ios/
+apps/client/android/
+apps/client/ios/
 
 # Claude plugin settings
 .claude/settings.local.json
@@ -46,3 +50,6 @@ yarn-error.*
 
 bookleaf-release.keystore
 gradle.properties
+
+# pnpm
+pnpm-debug.log*

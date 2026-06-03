@@ -1,0 +1,9 @@
+{
+  "extends": "@bookleaf/tsconfig/expo.json",
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.d.ts",
+    "nativewind-env.d.ts"
+  ]
+}
