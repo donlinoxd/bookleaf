@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+﻿import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,7 +10,7 @@ import { GateService } from '../../src/services/GateService';
 import { UserService } from '../../src/services/UserService';
 import { useAppStore } from '../../src/store/appStore';
 import { queryKeys } from '../../src/lib/queryKeys';
-import { GateDirection } from '../../src/types';
+import { GateDirection } from '@bookleaf/types';
 
 const LEAF = '#5CB85C';
 

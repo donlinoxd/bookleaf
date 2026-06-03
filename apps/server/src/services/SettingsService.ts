@@ -1,6 +1,6 @@
-import { db } from '../db';
-import { settings } from '../db/schema';
-import { Settings } from '../types';
+﻿import { db } from '@bookleaf/db';
+import { settings } from '@bookleaf/db';
+import { Settings } from '@bookleaf/types';
 
 export const SettingsService = {
   async getAll(): Promise<Settings> {

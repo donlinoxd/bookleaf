@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Alert, FlatList, ScrollView, StatusBar, Text, TextInput, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -7,7 +7,7 @@ import { ReservationService } from '../../src/services/ReservationService';
 import { UserService } from '../../src/services/UserService';
 import { ResourceService } from '../../src/services/ResourceService';
 import { useAppStore } from '../../src/store/appStore';
-import { User, Resource } from '../../src/types';
+import { User, Resource } from '@bookleaf/types';
 import { queryKeys } from '../../src/lib/queryKeys';
 
 export default function ReservationsScreen() {

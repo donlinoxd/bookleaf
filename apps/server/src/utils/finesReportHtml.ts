@@ -1,4 +1,4 @@
-import { FineDetailRow, FineDebtorRow, FineMonthlyRow, FinesSummary } from '../services/FinesReportService';
+﻿import { FineDetailRow, FineDebtorRow, FineMonthlyRow, FinesSummary } from '../services/FinesReportService';
 
 function fmt(n: number): string {
   return n.toFixed(2);

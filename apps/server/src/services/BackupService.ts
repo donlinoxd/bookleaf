@@ -1,12 +1,12 @@
-import * as FileSystem from 'expo-file-system/legacy';
+﻿import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
-import { db } from '../db';
+import { db } from '@bookleaf/db';
 import {
   institutions, users, resources, resourceCopies,
   borrowingRecords, reservations, fines, settings,
   authorityNames, favorites, reviews, gateLogs, scanSessions, scanEntries,
-} from '../db/schema';
+} from '@bookleaf/db';
 import { encryptBackup, decryptBackup, BACKUP_FORMAT, EncryptedBackup } from './backupCrypto';
 
 const BACKUP_VERSION = 4;

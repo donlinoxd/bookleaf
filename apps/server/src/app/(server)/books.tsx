@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons'
+﻿import { Ionicons } from '@expo/vector-icons'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 import { useCallback, useState } from 'react'
@@ -8,7 +8,7 @@ import { queryKeys } from '../../src/lib/queryKeys'
 import { ImportService, BookImportRow } from '../../src/services/ImportService'
 import { ResourceService } from '../../src/services/ResourceService'
 import { useAppStore } from '../../src/store/appStore'
-import { Resource } from '../../src/types'
+import { Resource } from '@bookleaf/types'
 
 export default function CatalogScreen() {
     const router = useRouter()

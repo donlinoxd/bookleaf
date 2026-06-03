@@ -1,4 +1,4 @@
-import * as FileSystem from 'expo-file-system/legacy'
+﻿import * as FileSystem from 'expo-file-system/legacy'
 import { initLlama, LlamaContext } from 'llama.rn'
 import { executeTool, isOffTopic, routeTools, TOOL_DEFINITIONS } from './LibraryTools'
 

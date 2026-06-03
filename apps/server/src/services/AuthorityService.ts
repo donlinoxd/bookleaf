@@ -1,7 +1,7 @@
-import { and, asc, eq, like, or } from 'drizzle-orm';
-import { db } from '../db';
-import { authorityNames } from '../db/schema';
-import { AuthorityName, AuthorityNameType } from '../types';
+﻿import { and, asc, eq, like, or } from 'drizzle-orm';
+import { db } from '@bookleaf/db';
+import { authorityNames } from '@bookleaf/db';
+import { AuthorityName, AuthorityNameType } from '@bookleaf/types';
 
 export const AuthorityService = {
   async search(institutionId: number, query: string): Promise<AuthorityName[]> {

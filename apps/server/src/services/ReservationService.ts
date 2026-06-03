@@ -1,7 +1,7 @@
-import { eq, and, asc, count } from 'drizzle-orm';
-import { db } from '../db';
-import { reservations, resources, users } from '../db/schema';
-import { Reservation } from '../types';
+﻿import { eq, and, asc, count } from 'drizzle-orm';
+import { db } from '@bookleaf/db';
+import { reservations, resources, users } from '@bookleaf/db';
+import { Reservation } from '@bookleaf/types';
 
 export const ReservationService = {
   async reserve(resourceId: number, userId: number): Promise<number> {

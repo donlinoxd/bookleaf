@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons'
+﻿import { Ionicons } from '@expo/vector-icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
@@ -8,7 +8,7 @@ import { queryKeys } from '../../../src/lib/queryKeys'
 import { BorrowService } from '../../../src/services/BorrowService'
 import { UserService } from '../../../src/services/UserService'
 import { useAppStore } from '../../../src/store/appStore'
-import { Fine, User, UserRole, UserType } from '../../../src/types'
+import { Fine, User, UserRole, UserType } from '@bookleaf/types'
 import { printMemberCard } from '../../../src/utils/printMemberCard'
 
 const ROLE_COLOR: Record<UserRole, string> = {

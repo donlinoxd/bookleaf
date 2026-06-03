@@ -1,11 +1,11 @@
-import { useEffect } from 'react';
+﻿import { useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { db } from '../src/db';
-import { institutions } from '../src/db/schema';
+import { db } from '@bookleaf/db';
+import { institutions } from '@bookleaf/db';
 import { useAppStore } from '../src/store/appStore';
-import { AppMode } from '../src/types';
+import { AppMode } from '@bookleaf/types';
 
 export default function Index() {
   const router = useRouter();

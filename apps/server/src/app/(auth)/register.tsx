@@ -1,8 +1,8 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Alert, ScrollView, StatusBar, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { db } from '../../src/db';
-import { institutions } from '../../src/db/schema';
+import { db } from '@bookleaf/db';
+import { institutions } from '@bookleaf/db';
 import { UserService } from '../../src/services/UserService';
 import { SettingsService } from '../../src/services/SettingsService';
 

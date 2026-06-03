@@ -1,7 +1,7 @@
-import { eq, and, count, desc } from 'drizzle-orm';
-import { db } from '../db';
-import { scanSessions, scanEntries, resources } from '../db/schema';
-import { DiscrepancyReport, ExtraCopy, GhostCopy, PhantomReturn, ScanSession, UnknownScan } from '../types';
+﻿import { eq, and, count, desc } from 'drizzle-orm';
+import { db } from '@bookleaf/db';
+import { scanSessions, scanEntries, resources } from '@bookleaf/db';
+import { DiscrepancyReport, ExtraCopy, GhostCopy, PhantomReturn, ScanSession, UnknownScan } from '@bookleaf/types';
 
 export const InventoryService = {
   async getActiveSession(institutionId: number): Promise<ScanSession | null> {

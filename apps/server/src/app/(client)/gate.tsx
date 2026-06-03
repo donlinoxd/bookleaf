@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+﻿import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,7 +7,7 @@ import { useRouter } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useAppStore } from '../../src/store/appStore';
 import { clientFetch } from '../../src/services/clientApi';
-import { GateDirection } from '../../src/types';
+import { GateDirection } from '@bookleaf/types';
 
 const BRAND = '#2A5C33';
 const LEAF = '#5CB85C';

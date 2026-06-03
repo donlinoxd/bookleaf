@@ -1,4 +1,4 @@
-import * as Print from 'expo-print';
+﻿import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 
 interface Params {

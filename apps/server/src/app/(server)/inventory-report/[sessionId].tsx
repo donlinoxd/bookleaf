@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons'
+﻿import { Ionicons } from '@expo/vector-icons'
 import * as Print from 'expo-print'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import * as Sharing from 'expo-sharing'
@@ -7,7 +7,7 @@ import { ActivityIndicator, Alert, ScrollView, StatusBar, Text, TouchableOpacity
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { InventoryService } from '../../../src/services/InventoryService'
 import { useAppStore } from '../../../src/store/appStore'
-import { DiscrepancyReport, ExtraCopy, GhostCopy, PhantomReturn, UnknownScan } from '../../../src/types'
+import { DiscrepancyReport, ExtraCopy, GhostCopy, PhantomReturn, UnknownScan } from '@bookleaf/types'
 
 const BRAND = '#2A5C33'
 const LEAF = '#5CB85C'

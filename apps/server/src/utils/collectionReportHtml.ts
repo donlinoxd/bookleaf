@@ -1,4 +1,4 @@
-import {
+﻿import {
   CollectionOverview,
   MaterialTypeRow,
   YearBucketRow,

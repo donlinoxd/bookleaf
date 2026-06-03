@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+﻿import { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator, Alert, Modal, ScrollView, StatusBar,
   Text, TextInput, TouchableOpacity, View,
@@ -13,7 +13,7 @@ import { ResourceService } from '../../src/services/ResourceService';
 import { BorrowService } from '../../src/services/BorrowService';
 import { UserService } from '../../src/services/UserService';
 import { useAppStore } from '../../src/store/appStore';
-import { BorrowingRecord, Resource, User } from '../../src/types';
+import { BorrowingRecord, Resource, User } from '@bookleaf/types';
 
 const LEAF = '#5CB85C';
 const INACTIVE = '#94A3B8';

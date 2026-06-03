@@ -1,4 +1,4 @@
-// Polyfill `crypto.getRandomValues` for React Native using expo-crypto's
+﻿// Polyfill `crypto.getRandomValues` for React Native using expo-crypto's
 // native module (which is already linked because other parts of the app
 // import expo-crypto). This is what crypto-js's `cryptoSecureRandomInt`
 // looks for when it tries to source entropy for WordArray.random(), which

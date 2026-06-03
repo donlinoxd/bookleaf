@@ -1,11 +1,11 @@
-import { Ionicons } from '@expo/vector-icons'
+﻿import { Ionicons } from '@expo/vector-icons'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ActivityIndicator, Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { UserService } from '../../../src/services/UserService'
 import { useAppStore } from '../../../src/store/appStore'
-import { UserRole, UserType } from '../../../src/types'
+import { UserRole, UserType } from '@bookleaf/types'
 
 const ROLES: UserRole[] = ['member', 'librarian', 'admin']
 

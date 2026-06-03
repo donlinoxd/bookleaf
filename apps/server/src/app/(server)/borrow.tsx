@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Alert, Modal, ScrollView, StatusBar, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -9,7 +9,7 @@ import { BorrowService } from '../../src/services/BorrowService';
 import { ReservationService } from '../../src/services/ReservationService';
 import { NotificationService } from '../../src/services/NotificationService';
 import { useAppStore } from '../../src/store/appStore';
-import { User, Resource } from '../../src/types';
+import { User, Resource } from '@bookleaf/types';
 import { queryKeys } from '../../src/lib/queryKeys';
 
 type Mode = 'checkout' | 'return' | 'holds';

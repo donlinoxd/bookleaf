@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons'
+﻿import { Ionicons } from '@expo/vector-icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
@@ -20,7 +20,7 @@ import { queryKeys } from '../../../src/lib/queryKeys'
 import { BorrowService } from '../../../src/services/BorrowService'
 import { ResourceService } from '../../../src/services/ResourceService'
 import { useAppStore } from '../../../src/store/appStore'
-import { CallNumberType, MaterialType, Resource } from '../../../src/types'
+import { CallNumberType, MaterialType, Resource } from '@bookleaf/types'
 
 const CONDITION_COLOR: Record<string, string> = {
   good: '#16A34A', damaged: '#D97706', lost: '#DC2626',

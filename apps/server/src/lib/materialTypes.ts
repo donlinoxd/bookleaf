@@ -1,4 +1,4 @@
-import { MaterialType, CallNumberType } from '../types';
+﻿import { MaterialType, CallNumberType } from '@bookleaf/types';
 
 export const MATERIAL_TYPE_META: Record<MaterialType, { label: string; icon: string }> = {
   BOOK:        { label: 'Book',        icon: 'book-outline' },

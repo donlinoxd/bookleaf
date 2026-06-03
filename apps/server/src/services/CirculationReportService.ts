@@ -1,6 +1,6 @@
-import { eq, and, isNull, isNotNull, lt, sql, count, desc } from 'drizzle-orm';
-import { db } from '../db';
-import { borrowingRecords, resourceCopies, resources, users } from '../db/schema';
+﻿import { eq, and, isNull, isNotNull, lt, sql, count, desc } from 'drizzle-orm';
+import { db } from '@bookleaf/db';
+import { borrowingRecords, resourceCopies, resources, users } from '@bookleaf/db';
 
 export interface CirculationOverview {
   total_borrows: number;

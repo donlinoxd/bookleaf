@@ -1,4 +1,4 @@
-import { View, Text } from 'react-native';
+﻿import { View, Text } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
 const ROLE_COLOR: Record<string, string> = {

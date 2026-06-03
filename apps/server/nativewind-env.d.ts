@@ -1,4 +1,4 @@
-/// <reference path="./node_modules/react-native-css-interop/types.d.ts" />
+﻿/// <reference path="./node_modules/react-native-css-interop/types.d.ts" />
 
 declare module '*.png' {
   const value: number;

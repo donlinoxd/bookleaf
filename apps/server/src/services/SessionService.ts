@@ -1,8 +1,8 @@
-import { eq, lt } from 'drizzle-orm';
+﻿import { eq, lt } from 'drizzle-orm';
 import * as Crypto from 'expo-crypto';
-import { db } from '../db';
-import { sessions, users } from '../db/schema';
-import { UserRole } from '../types';
+import { db } from '@bookleaf/db';
+import { sessions, users } from '@bookleaf/db';
+import { UserRole } from '@bookleaf/types';
 
 const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 

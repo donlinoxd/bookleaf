@@ -1,4 +1,4 @@
-declare module 'nodejs-mobile-react-native' {
+﻿declare module 'nodejs-mobile-react-native' {
   const nodejs: {
     start: (scriptFileName: string) => void;
     channel: {

@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons'
+﻿import { Ionicons } from '@expo/vector-icons'
 import { Tabs, useRouter } from 'expo-router'
 import { useEffect } from 'react'
 import { CustomTabBar } from '../../src/components/navigation/CustomTabBar'

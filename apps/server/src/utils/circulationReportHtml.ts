@@ -1,10 +1,10 @@
-import {
+﻿import {
   CirculationOverview,
   MonthlyTrendRow,
   TopBorrowerRow,
   MostBorrowedRow,
 } from '../services/CirculationReportService';
-import { BorrowingRecord } from '../types';
+import { BorrowingRecord } from '@bookleaf/types';
 
 function th(...cells: string[]): string {
   return `<tr>${cells.map((c) => `<th>${c}</th>`).join('')}</tr>`;

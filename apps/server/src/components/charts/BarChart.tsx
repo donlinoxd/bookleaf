@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import Svg, { G, Rect, Text as SvgText } from 'react-native-svg'
 
 export interface BarItem {

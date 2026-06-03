@@ -1,6 +1,6 @@
-import { eq, desc, count, sql, and, gte, lte } from 'drizzle-orm';
-import { db } from '../db';
-import { resources, resourceCopies, borrowingRecords, fines } from '../db/schema';
+﻿import { eq, desc, count, sql, and, gte, lte } from 'drizzle-orm';
+import { db } from '@bookleaf/db';
+import { resources, resourceCopies, borrowingRecords, fines } from '@bookleaf/db';
 
 export interface ResourceReport {
   resource_id: number;

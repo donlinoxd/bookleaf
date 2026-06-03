@@ -1,4 +1,4 @@
-import { AccessionRow, ConditionByMaterialRow, LatestSessionSummary } from '../services/InventoryAuditService';
+﻿import { AccessionRow, ConditionByMaterialRow, LatestSessionSummary } from '../services/InventoryAuditService';
 
 const MATERIAL_LABEL: Record<string, string> = {
   BOOK: 'Book', THESIS: 'Thesis / Dissertation', SERIAL: 'Serial / Journal',

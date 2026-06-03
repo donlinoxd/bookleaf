@@ -1,7 +1,7 @@
-import { eq, ne, asc, and, like, or, max, sql } from 'drizzle-orm';
-import { db } from '../db';
-import { resources, resourceCopies } from '../db/schema';
-import { Resource, ResourceCopy } from '../types';
+﻿import { eq, ne, asc, and, like, or, max, sql } from 'drizzle-orm';
+import { db } from '@bookleaf/db';
+import { resources, resourceCopies } from '@bookleaf/db';
+import { Resource, ResourceCopy } from '@bookleaf/types';
 
 function serializeSubjectHeadings(headings: string[] | null | undefined): string | null {
   if (!headings || headings.length === 0) return null;

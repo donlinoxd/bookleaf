@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons'
+﻿import { Ionicons } from '@expo/vector-icons'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import Constants from 'expo-constants'
 import { useEffect, useState } from 'react'
@@ -6,10 +6,10 @@ import { ActivityIndicator, Alert, Modal, ScrollView, StatusBar, Text, TextInput
 import { ServerStatusCard } from '../../src/components/common/ServerStatusCard'
 import { queryKeys } from '../../src/lib/queryKeys'
 import { BackupService } from '../../src/services/BackupService'
-import { seedDummyData } from '../../src/db/seedDummy'
+import { seedDummyData } from '../../utils/seedDummy'
 import { SettingsService } from '../../src/services/SettingsService'
 import { useAppStore } from '../../src/store/appStore'
-import { Settings } from '../../src/types'
+import { Settings } from '@bookleaf/types'
 
 export default function SettingsScreen() {
     const queryClient = useQueryClient()

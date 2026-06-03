@@ -1,7 +1,7 @@
-import { eq, and } from 'drizzle-orm';
-import { db } from '../db';
-import { favorites, resources } from '../db/schema';
-import { Favorite } from '../types';
+﻿import { eq, and } from 'drizzle-orm';
+import { db } from '@bookleaf/db';
+import { favorites, resources } from '@bookleaf/db';
+import { Favorite } from '@bookleaf/types';
 
 export const FavoritesService = {
   async toggle(userId: number, resourceId: number): Promise<{ favorited: boolean }> {

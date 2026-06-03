@@ -1,7 +1,7 @@
-import { eq, ne, and, isNull, asc, desc, sql, count } from 'drizzle-orm';
-import { db } from '../db';
-import { borrowingRecords, resourceCopies, resources, users, fines, reservations } from '../db/schema';
-import { BorrowingRecord, Fine } from '../types';
+﻿import { eq, ne, and, isNull, asc, desc, sql, count } from 'drizzle-orm';
+import { db } from '@bookleaf/db';
+import { borrowingRecords, resourceCopies, resources, users, fines, reservations } from '@bookleaf/db';
+import { BorrowingRecord, Fine } from '@bookleaf/types';
 import { SettingsService } from './SettingsService';
 
 export const BorrowService = {

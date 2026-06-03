@@ -1,4 +1,4 @@
-export const queryKeys = {
+﻿export const queryKeys = {
   dashboard: (institutionId: number) => ['dashboard', institutionId] as const,
   overdue: () => ['overdue'] as const,
   resources: (institutionId: number, query: string) => ['resources', institutionId, query] as const,

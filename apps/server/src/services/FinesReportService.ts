@@ -1,6 +1,6 @@
-import { eq, and, desc, sql, count } from 'drizzle-orm';
-import { db } from '../db';
-import { fines, borrowingRecords, resourceCopies, resources, users } from '../db/schema';
+﻿import { eq, and, desc, sql, count } from 'drizzle-orm';
+import { db } from '@bookleaf/db';
+import { fines, borrowingRecords, resourceCopies, resources, users } from '@bookleaf/db';
 
 export interface FinesSummary {
   total_fines: number;

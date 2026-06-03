@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import Svg, { Circle, Text as SvgText } from 'react-native-svg'
 
 interface Props {

@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, Modal,
   FlatList, ActivityIndicator, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthorityService } from '../../services/AuthorityService';
-import { AuthorityName, AuthorityNameType } from '../../types';
+import { AuthorityName, AuthorityNameType } from '@bookleaf/types';
 
 interface Props {
   institutionId: number;

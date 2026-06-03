@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons'
+﻿import { Ionicons } from '@expo/vector-icons'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 import { Image, ScrollView, StatusBar, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native'

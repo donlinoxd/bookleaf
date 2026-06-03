@@ -1,11 +1,11 @@
-import { Ionicons } from '@expo/vector-icons'
+﻿import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { useCallback, useState } from 'react'
 import { FlatList, Image, StatusBar, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { MATERIAL_TYPE_META } from '../../src/lib/materialTypes'
 import { ResourceService } from '../../src/services/ResourceService'
 import { useAppStore } from '../../src/store/appStore'
-import { Resource } from '../../src/types'
+import { Resource } from '@bookleaf/types'
 
 import MASCOT from '../../assets/images/leaf-searching.png'
 

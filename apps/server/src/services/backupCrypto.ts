@@ -1,6 +1,6 @@
-import CryptoJS from 'crypto-js';
+﻿import CryptoJS from 'crypto-js';
 import * as ExpoCrypto from 'expo-crypto';
-import { bytesToWordArray } from '../db/database';
+import { bytesToWordArray } from '@bookleaf/db';
 
 /**
  * Passphrase-based backup encryption: PBKDF2-SHA256 → AES-256-CBC + HMAC-SHA256.

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import {
   ActivityIndicator, Alert, ScrollView, StatusBar,
   Text, TouchableOpacity, View,

@@ -1,7 +1,7 @@
-import * as DocumentPicker from 'expo-document-picker';
+﻿import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
-import { MaterialType, UserRole, UserType } from '../types';
+import { MaterialType, UserRole, UserType } from '@bookleaf/types';
 import { ResourceService } from './ResourceService';
 import { UserService } from './UserService';
 

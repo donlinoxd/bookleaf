@@ -1,4 +1,4 @@
-import { Alert, Image, ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-native';
+﻿import { Alert, Image, ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAppStore } from '../../src/store/appStore';

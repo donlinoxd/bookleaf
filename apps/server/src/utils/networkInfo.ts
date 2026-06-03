@@ -1,4 +1,4 @@
-import * as Network from 'expo-network';
+﻿import * as Network from 'expo-network';
 
 /**
  * Returns the device's local Wi-Fi IPv4 address, or '0.0.0.0' if unavailable.

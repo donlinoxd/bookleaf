@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,7 +9,7 @@ import { GateService } from '../../src/services/GateService';
 import { useAppStore } from '../../src/store/appStore';
 import { queryKeys } from '../../src/lib/queryKeys';
 import { getLocalIpAddress } from '../../src/utils/networkInfo';
-import { GateLog } from '../../src/types';
+import { GateLog } from '@bookleaf/types';
 
 const LEAF = '#5CB85C';
 const PORT = 3000;

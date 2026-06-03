@@ -1,4 +1,4 @@
-import { useAppStore } from '../store/appStore';
+﻿import { useAppStore } from '../store/appStore';
 
 /**
  * fetch wrapper for client-mode (patron) screens.

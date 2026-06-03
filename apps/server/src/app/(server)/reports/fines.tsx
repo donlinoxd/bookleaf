@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons'
+﻿import { Ionicons } from '@expo/vector-icons'
 import { useQuery } from '@tanstack/react-query'
 import * as Print from 'expo-print'
 import { useRouter } from 'expo-router'

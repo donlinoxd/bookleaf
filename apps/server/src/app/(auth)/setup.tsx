@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage'
+﻿import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useRouter } from 'expo-router'
 import { Image, StatusBar, Text, TouchableOpacity, View } from 'react-native'
 import { useAppStore } from '../../src/store/appStore'

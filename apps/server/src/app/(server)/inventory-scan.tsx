@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+﻿import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator, Alert, ScrollView, StatusBar,
   Text, TouchableOpacity, View,
@@ -12,7 +12,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { InventoryService } from '../../src/services/InventoryService';
 import { useAppStore } from '../../src/store/appStore';
 import { queryKeys } from '../../src/lib/queryKeys';
-import { ScanSession } from '../../src/types';
+import { ScanSession } from '@bookleaf/types';
 
 const BRAND = '#2A5C33';
 const LEAF = '#5CB85C';

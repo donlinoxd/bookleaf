@@ -1,7 +1,7 @@
-import { eq, and, desc, avg } from 'drizzle-orm';
-import { db } from '../db';
-import { reviews, borrowingRecords, resourceCopies, users } from '../db/schema';
-import { Review } from '../types';
+﻿import { eq, and, desc, avg } from 'drizzle-orm';
+import { db } from '@bookleaf/db';
+import { reviews, borrowingRecords, resourceCopies, users } from '@bookleaf/db';
+import { Review } from '@bookleaf/types';
 
 export const ReviewService = {
   async canReview(userId: number, resourceId: number): Promise<boolean> {

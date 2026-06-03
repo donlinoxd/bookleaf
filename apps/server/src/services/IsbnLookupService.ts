@@ -1,4 +1,4 @@
-import { CallNumberType } from '../types';
+﻿import { CallNumberType } from '@bookleaf/types';
 
 const TIMEOUT_MS = 6000;
 

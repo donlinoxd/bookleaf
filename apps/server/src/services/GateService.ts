@@ -1,7 +1,7 @@
-import { eq, desc, and, sql } from 'drizzle-orm';
-import { db } from '../db';
-import { gateLogs, users } from '../db/schema';
-import { GateDirection, GateMethod, GateLog } from '../types';
+﻿import { eq, desc, and, sql } from 'drizzle-orm';
+import { db } from '@bookleaf/db';
+import { gateLogs, users } from '@bookleaf/db';
+import { GateDirection, GateMethod, GateLog } from '@bookleaf/types';
 
 export const GateService = {
   async getLastDirection(userId: number): Promise<GateDirection | null> {

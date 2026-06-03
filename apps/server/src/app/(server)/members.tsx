@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons'
+﻿import { Ionicons } from '@expo/vector-icons'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'expo-router'
 import { useCallback, useState } from 'react'
@@ -7,7 +7,7 @@ import { queryKeys } from '../../src/lib/queryKeys'
 import { ImportService, MemberImportRow } from '../../src/services/ImportService'
 import { UserService } from '../../src/services/UserService'
 import { useAppStore } from '../../src/store/appStore'
-import { User } from '../../src/types'
+import { User } from '@bookleaf/types'
 
 const ROLE_STYLE: Record<string, { bg: string; text: string; dot: string }> = {
     admin: { bg: '#EDE9FE', text: '#7C3AED', dot: '#7C3AED' },

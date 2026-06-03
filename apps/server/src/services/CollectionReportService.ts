@@ -1,6 +1,6 @@
-import { eq, sql, count, and, isNotNull } from 'drizzle-orm';
-import { db } from '../db';
-import { resources, resourceCopies, users } from '../db/schema';
+﻿import { eq, sql, count, and, isNotNull } from 'drizzle-orm';
+import { db } from '@bookleaf/db';
+import { resources, resourceCopies, users } from '@bookleaf/db';
 
 export interface CollectionOverview {
   total_titles: number;

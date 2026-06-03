@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router'
+﻿import { useRouter } from 'expo-router'
 import { Image, Text, TouchableOpacity, View } from 'react-native'
 
 export interface BookResult {

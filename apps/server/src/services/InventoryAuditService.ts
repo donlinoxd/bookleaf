@@ -1,7 +1,7 @@
-import { eq, and, desc, sql } from 'drizzle-orm';
-import { db } from '../db';
-import { resources, resourceCopies, scanSessions, scanEntries } from '../db/schema';
-import { ScanSession } from '../types';
+﻿import { eq, and, desc, sql } from 'drizzle-orm';
+import { db } from '@bookleaf/db';
+import { resources, resourceCopies, scanSessions, scanEntries } from '@bookleaf/db';
+import { ScanSession } from '@bookleaf/types';
 
 export interface AccessionRow {
   id: number;
