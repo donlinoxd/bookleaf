@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Alert, Image, KeyboardAvoidingView, Platform, ScrollView, StatusBar, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { useAppStore } from '../../store/appStore'
 
-import MASCOT from '../../../assets/'images/bookleaf-mascot.png'
+import MASCOT from '../../../assets/images/bookleaf-mascot.png'
 
 export default function ClientLoginScreen() {
     const router = useRouter()

@@ -2,7 +2,7 @@
 import { useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, FlatList, Image, Modal, ScrollView, StatusBar, Text, TextInput, TouchableOpacity, View } from 'react-native'
-import MASCOT from '../../../assets/'images/bookleaf-mascot.png'
+import MASCOT from '../../../assets/images/bookleaf-mascot.png'
 import { HorizontalBookCard } from '../../components/books/HorizontalBookCard'
 import type { BookResult } from '../../components/books/HorizontalBookCard'
 import { useAppStore } from '../../store/appStore'

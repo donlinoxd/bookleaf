@@ -8,7 +8,7 @@ import { SettingsService } from '../../services/SettingsService'
 import { UserService } from '../../services/UserService'
 import { useAppStore } from '../../store/appStore'
 
-import MASCOT from '../../../assets/'images/bookleaf-mascot.png'
+import MASCOT from '../../../assets/images/bookleaf-mascot.png'
 
 export default function LoginScreen() {
     const router = useRouter()

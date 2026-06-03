@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router'
 import { Image, StatusBar, Text, TouchableOpacity, View } from 'react-native'
 import { useAppStore } from '../../store/appStore'
 
-import MASCOT from '../../../assets/'images/bookleaf-mascot.png'
+import MASCOT from '../../../assets/images/bookleaf-mascot.png'
 
 export default function SetupScreen() {
     const router = useRouter()

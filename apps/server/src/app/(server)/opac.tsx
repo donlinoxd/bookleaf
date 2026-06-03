@@ -7,7 +7,7 @@ import { ResourceService } from '../../services/ResourceService'
 import { useAppStore } from '../../store/appStore'
 import { Resource } from '@bookleaf/types'
 
-import MASCOT from '../../../assets/'images/leaf-searching.png'
+import MASCOT from '../../../assets/images/leaf-searching.png'
 
 export default function OPACScreen() {
     const router = useRouter()

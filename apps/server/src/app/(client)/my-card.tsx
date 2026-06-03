@@ -5,7 +5,7 @@ import { useAppStore } from '../../store/appStore';
 import { clientFetch } from '../../services/clientApi';
 import { MemberCard } from '../../components/members/MemberCard';
 
-import MASCOT from '../../../assets/'images/bookleaf-mascot.png';
+import MASCOT from '../../../assets/images/bookleaf-mascot.png';
 
 export default function MyCardScreen() {
   const { currentUser, clearClientSession } = useAppStore();

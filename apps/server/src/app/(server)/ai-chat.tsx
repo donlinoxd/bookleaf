@@ -18,8 +18,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ChatMessage, LlmService, SYSTEM_PROMPT, TOOL_LABELS } from '../../services/LlmService'
 import { useAppStore } from '../../store/appStore'
 
-import MASCOT from '../../../assets/'images/leaf-listening.png'
-import MASCOT_PUSH_UP from '../../../assets/'images/leaf-pushing-up.png'
+import MASCOT from '../../../assets/images/leaf-listening.png'
+import MASCOT_PUSH_UP from '../../../assets/images/leaf-pushing-up.png'
 
 const LOADING_WORDS = ['Thinking', 'Reading', 'Searching', 'Leafing', 'Browsing', 'Scanning', 'Checking', 'Indexing', 'Sorting', 'Fetching']
 

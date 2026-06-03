@@ -13,7 +13,7 @@ import { PatronReportService } from '../../services/PatronReportService'
 import { ReportService } from '../../services/ReportService'
 import { useAppStore } from '../../store/appStore'
 
-import MASCOT from '../../../assets/'images/leaf-welcome.png'
+import MASCOT from '../../../assets/images/leaf-welcome.png'
 
 const CARD_SHADOW = {
     elevation: 2,
