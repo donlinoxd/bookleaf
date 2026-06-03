@@ -172,7 +172,7 @@ export const AdminBridgeHandler = {
           id: reservations.id,
           resource_id: reservations.resource_id,
           user_id: reservations.user_id,
-          created_at: reservations.created_at,
+          reserved_at: reservations.reserved_at,
           book_title: resources.title,
           user_name: users.name,
           user_id_number: users.id_number,
