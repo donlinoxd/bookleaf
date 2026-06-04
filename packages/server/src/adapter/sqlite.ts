@@ -47,12 +47,34 @@ function monthLabel(yyyymm: string): string {
 function runMigrations(rawDb: Database.Database, ...sqlFiles: string[]): void {
   rawDb.pragma('journal_mode = WAL');
   rawDb.pragma('foreign_keys = ON');
-  for (const sqlFile of sqlFiles) {
+  // Create a migration tracking table so we only run each file once.
+  rawDb.exec(`
+    CREATE TABLE IF NOT EXISTS _bookleaf_migrations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      applied_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+  for (let i = 0; i < sqlFiles.length; i++) {
+    const migrationName = `migration_${String(i).padStart(4, '0')}`;
+    const already = rawDb.prepare('SELECT 1 FROM _bookleaf_migrations WHERE name = ?').get(migrationName);
+    if (already) continue;
+    const sqlFile = sqlFiles[i];
     const statements = sqlFile.split('--> statement-breakpoint');
     for (const stmt of statements) {
       const trimmed = stmt.trim();
-      if (trimmed) rawDb.exec(trimmed);
+      if (!trimmed) continue;
+      try {
+        rawDb.exec(trimmed);
+      } catch (err: unknown) {
+        // Tolerate "already exists" errors so this migration can be applied
+        // to an existing database that was created before migration tracking
+        // was introduced.
+        const msg = err instanceof Error ? err.message : String(err);
+        if (!msg.includes('already exists')) throw err;
+      }
     }
+    rawDb.prepare('INSERT INTO _bookleaf_migrations (name) VALUES (?)').run(migrationName);
   }
 }
 
