@@ -1,0 +1,57 @@
+{
+    "expo": {
+        "name": "Bookleaf Client",
+        "slug": "bookleaf-client",
+        "version": "1.0.0",
+        "orientation": "portrait",
+        "icon": "./assets/icon.png",
+        "userInterfaceStyle": "light",
+        "newArchEnabled": true,
+        "scheme": "bookleaf-client",
+        "splash": {
+            "image": "./assets/splash-icon.png",
+            "resizeMode": "cover",
+            "backgroundColor": "#2A5C33"
+        },
+        "ios": {
+            "supportsTablet": true,
+            "bundleIdentifier": "com.bookleaf.client"
+        },
+        "android": {
+            "adaptiveIcon": {
+                "foregroundImage": "./assets/adaptive-icon.png",
+                "backgroundColor": "#2A5C33"
+            },
+            "edgeToEdgeEnabled": true,
+            "predictiveBackGestureEnabled": false,
+            "versionCode": 1,
+            "package": "com.bookleaf.client",
+            "permissions": [
+                "android.permission.CAMERA",
+                "android.permission.ACCESS_WIFI_STATE",
+                "android.permission.ACCESS_NETWORK_STATE",
+                "android.permission.INTERNET"
+            ]
+        },
+        "web": {
+            "favicon": "./assets/favicon.ico"
+        },
+        "plugins": [
+            ["expo-router", { "root": "src/app" }],
+            [
+                "expo-camera",
+                {
+                    "cameraPermission": "Allow Bookleaf Client to access the camera for gate check-in."
+                }
+            ],
+            [
+                "expo-build-properties",
+                {
+                    "android": {
+                        "usesCleartextTraffic": true
+                    }
+                }
+            ]
+        ]
+    }
+}
