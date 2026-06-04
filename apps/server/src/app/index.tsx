@@ -1,30 +1,22 @@
-﻿import { useEffect } from 'react';
+import { useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db } from '@bookleaf/db';
 import { institutions } from '@bookleaf/db';
 import { useAppStore } from '../store/appStore';
-import { AppMode } from '@bookleaf/types';
 
 export default function Index() {
   const router = useRouter();
   const setMode = useAppStore((s) => s.setMode);
-  const hydrateClientSession = useAppStore((s) => s.hydrateClientSession);
 
   useEffect(() => {
     (async () => {
-      const savedMode = await AsyncStorage.getItem('app_mode') as AppMode | null;
+      const savedMode = await AsyncStorage.getItem('app_mode');
       if (savedMode === 'server') {
         setMode('server');
-        // If the user picked "server" but quit before completing registration,
-        // no institution row exists yet — send them back to finish setup.
         const existing = await db.select({ id: institutions.id }).from(institutions).limit(1);
         router.replace(existing.length > 0 ? '/(auth)/login' : '/(auth)/register');
-      } else if (savedMode === 'client') {
-        setMode('client');
-        const restored = await hydrateClientSession();
-        router.replace(restored ? '/(client)/home' : '/(auth)/connect');
       } else {
         router.replace('/(auth)/setup');
       }

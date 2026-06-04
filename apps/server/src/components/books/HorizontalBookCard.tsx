@@ -20,7 +20,7 @@ export function HorizontalBookCard({ item }: { item: BookResult }) {
         <TouchableOpacity
             className='bg-white rounded-2xl p-3 w-36 mr-3'
             style={{ elevation: 2, shadowColor: '#2A5C33', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4 }}
-            onPress={() => router.push(`/(client)/book/${item.id}`)}
+            onPress={() => router.push(`/(server)/book/${item.id}`)}
         >
             {item.cover_uri ? (
                 <Image source={{ uri: item.cover_uri }} className='w-full h-16 rounded-xl mb-2' resizeMode='cover' />
