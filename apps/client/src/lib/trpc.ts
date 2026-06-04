@@ -6,12 +6,13 @@ import { useAppStore } from '../store/appStore';
 // Creates TRPCProvider and useTRPC hook — both exported for use throughout the app
 export const { TRPCProvider, useTRPC } = createTRPCContext<AppRouter>();
 
-// Call once in _layout.tsx via useState — reads serverUrl and token dynamically per request
-export function createTrpcClient() {
+// Pass serverUrl explicitly — tRPC v11's httpLink resolves url via .toString() at link creation,
+// so a function would be serialized as source code, not called. Recreate the client when serverUrl changes.
+export function createTrpcClient(serverUrl: string) {
   return createTRPCClient<AppRouter>({
     links: [
       httpLink({
-        url: () => `${useAppStore.getState().serverUrl ?? ''}/trpc`,
+        url: `${serverUrl}/trpc`,
         headers: () => {
           const token = useAppStore.getState().sessionToken;
           return token ? { Authorization: `Bearer ${token}` } : {};
