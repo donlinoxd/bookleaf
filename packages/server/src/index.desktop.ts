@@ -44,8 +44,8 @@ const server = createServer(async (req, res) => {
   res.end(Buffer.from(buf));
 });
 
-server.listen(PORT, '127.0.0.1', () => {
-  console.log(`[bookleaf-server] listening on http://127.0.0.1:${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`[bookleaf-server] listening on http://0.0.0.0:${PORT}`);
   startBeacon(PORT);
 });
 

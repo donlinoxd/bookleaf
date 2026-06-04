@@ -22856,8 +22856,8 @@ var server = (0, import_node_http.createServer)(async (req, res) => {
   const buf = await fetchRes.arrayBuffer();
   res.end(Buffer.from(buf));
 });
-server.listen(PORT, "127.0.0.1", () => {
-  console.log(`[bookleaf-server] listening on http://127.0.0.1:${PORT}`);
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`[bookleaf-server] listening on http://0.0.0.0:${PORT}`);
   startBeacon(PORT);
 });
 server.on("error", (err) => {
