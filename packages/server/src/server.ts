@@ -38,6 +38,11 @@ export function initApp({ db }: { db: DbAdapter }): Hono {
 
   app.get('/ping', (c) => c.json({ ok: true, timestamp: new Date().toISOString() }));
 
+  app.get('/info', async (c) => {
+    const info = await db.getInstitutionInfo();
+    return c.json(info);
+  });
+
   // Browser gate page (served as HTML to patron's mobile browser)
   app.get('/gate', (c) => c.html(GATE_HTML));
 

@@ -12,6 +12,7 @@ export interface DbAdapter {
   ): Promise<{ user: Record<string, unknown>; token: string; expires_at: string } | null>;
   validateSession(token: string): Promise<SessionPrincipal | null>;
   logout(token: string): Promise<{ ok: true }>;
+  getInstitutionInfo(): Promise<{ institutionId: number; institutionName: string }>;
 
   // ── Catalog (public) ──────────────────────────────────────────────────────
   searchBooks(institutionId: number, query: string): Promise<unknown[]>;

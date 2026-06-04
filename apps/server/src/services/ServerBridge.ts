@@ -394,6 +394,19 @@ async function handlePatronAction(action: string, params: Record<string, unknown
       return { ok: true };
     }
 
+    case 'getInstitutionInfo': {
+      const { eq } = await import('drizzle-orm');
+      const { institutions } = await import('@bookleaf/db');
+      const iid = requireInstitution();
+      const row = await db
+        .select({ id: institutions.id, name: institutions.name })
+        .from(institutions)
+        .where(eq(institutions.id, iid))
+        .limit(1)
+        .then((r) => r[0] ?? null);
+      return { institutionId: iid, institutionName: row?.name ?? 'Library' };
+    }
+
     default:
       return { error: `Unknown action: ${action}` };
   }

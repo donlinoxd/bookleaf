@@ -9358,6 +9358,10 @@ function initApp({ db: db2 }) {
     })
   );
   app2.get("/ping", (c) => c.json({ ok: true, timestamp: (/* @__PURE__ */ new Date()).toISOString() }));
+  app2.get("/info", async (c) => {
+    const info = await db2.getInstitutionInfo();
+    return c.json(info);
+  });
   app2.get("/gate", (c) => c.html(GATE_HTML));
   app2.post("/gate/login", async (c) => {
     let body;
@@ -9402,6 +9406,7 @@ function createBridgeAdapter(queryRN2) {
     authenticateMember: (idNumber, pin) => q("authenticateMember", { idNumber, pin }),
     validateSession: (token) => q("validateSession", { token }),
     logout: (token) => q("logout", { token }),
+    getInstitutionInfo: () => q("getInstitutionInfo", {}),
     // ── Catalog ─────────────────────────────────────────────────────────────
     searchBooks: (institutionId, query) => q("searchBooks", { institutionId, q: query }),
     searchBooksFiltered: (institutionId, query, filters) => q("searchBooksFiltered", {

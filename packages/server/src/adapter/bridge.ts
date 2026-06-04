@@ -18,6 +18,9 @@ export function createBridgeAdapter(queryRN: QueryFn): DbAdapter {
     logout: (token) =>
       q('logout', { token }) as Promise<{ ok: true }>,
 
+    getInstitutionInfo: () =>
+      q('getInstitutionInfo', {}) as Promise<{ institutionId: number; institutionName: string }>,
+
     // ── Catalog ─────────────────────────────────────────────────────────────
     searchBooks: (institutionId, query) =>
       q('searchBooks', { institutionId, q: query }) as Promise<unknown[]>,
