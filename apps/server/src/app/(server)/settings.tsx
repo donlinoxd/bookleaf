@@ -1,6 +1,8 @@
 ﻿import { Ionicons } from '@expo/vector-icons'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import Constants from 'expo-constants'
+import * as FileSystem from 'expo-file-system/legacy'
+import * as Sharing from 'expo-sharing'
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, Alert, Modal, ScrollView, StatusBar, Text, TextInput, TouchableOpacity, View } from 'react-native'
 import { ServerStatusCard } from '../../components/common/ServerStatusCard'
@@ -17,6 +19,7 @@ export default function SettingsScreen() {
     const { data: saved } = useQuery({ queryKey: queryKeys.settings(), queryFn: () => SettingsService.getAll() })
     const [form, setForm] = useState<Partial<Settings>>({})
     const [saving, setSaving] = useState(false)
+    const [exportingDb, setExportingDb] = useState(false)
     const [exporting, setExporting] = useState(false)
     const [importing, setImporting] = useState(false)
     const [seeding, setSeeding] = useState(false)
@@ -113,6 +116,32 @@ export default function SettingsScreen() {
     const handleExport = () => {
         setExporting(true)
         openPwModal('export')
+    }
+
+    const handleExportDatabase = async () => {
+        setExportingDb(true)
+        try {
+            const dbPath = `${FileSystem.documentDirectory}SQLite/library.db`
+            const fileInfo = await FileSystem.getInfoAsync(dbPath)
+            if (!fileInfo.exists) {
+                Alert.alert('Export Failed', 'Database file not found. Make sure the library has been used at least once.')
+                return
+            }
+            const canShare = await Sharing.isAvailableAsync()
+            if (!canShare) {
+                Alert.alert('Export Failed', 'Sharing is not available on this device.')
+                return
+            }
+            await Sharing.shareAsync(dbPath, {
+                mimeType: 'application/x-sqlite3',
+                dialogTitle: 'Export Library Database',
+                UTI: 'public.database',
+            })
+        } catch (e) {
+            Alert.alert('Export Failed', e instanceof Error ? e.message : 'An error occurred.')
+        } finally {
+            setExportingDb(false)
+        }
     }
 
     const handleSeedDummy = () => {
@@ -287,6 +316,29 @@ export default function SettingsScreen() {
                             <Text className='text-violet-700 font-bold'>{seeding ? 'Loading…' : 'Load Demo Data (dev only)'}</Text>
                         </TouchableOpacity>
                     )}
+                </View>
+
+                {/* Database Export */}
+                <View
+                    className='bg-white rounded-2xl px-4 py-4 gap-3'
+                    style={{ elevation: 2, shadowColor: '#2A5C33', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4 }}
+                >
+                    <Text className='text-sm font-bold text-[#1C2B1E]'>Database Export</Text>
+                    <Text className='text-xs text-[#7A9A7E] leading-4'>
+                        Export the raw SQLite database file to migrate your library data to the Bookleaf Desktop app.
+                    </Text>
+                    <TouchableOpacity
+                        className='bg-mint rounded-xl py-3 flex-row items-center justify-center gap-2'
+                        onPress={handleExportDatabase}
+                        disabled={exportingDb}
+                    >
+                        {exportingDb
+                            ? <ActivityIndicator size='small' color='#2A5C33' />
+                            : <Ionicons name='archive-outline' size={18} color='#2A5C33' />}
+                        <Text className='text-brand font-bold text-sm'>
+                            {exportingDb ? 'Exporting…' : 'Export Database (.db)'}
+                        </Text>
+                    </TouchableOpacity>
                 </View>
 
                 {/* About / version footer */}
