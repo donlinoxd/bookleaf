@@ -53,3 +53,9 @@ gradle.properties
 
 # pnpm
 pnpm-debug.log*
+
+# Rust
+src-tauri/target/
+
+# Tauri bundles
+src-tauri/gen/

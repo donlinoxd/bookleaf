@@ -6,16 +6,22 @@
   "types": "./src/types.ts",
   "scripts": {
     "build": "node build.mjs",
+    "build:android": "node build.mjs --target android",
+    "build:desktop": "node build.mjs --target desktop",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@bookleaf/db": "workspace:*",
     "@trpc/server": "^11.0.0",
+    "better-sqlite3": "^11.10.0",
     "hono": "^4.7.11",
     "zod": "^3.25.23"
   },
   "devDependencies": {
     "@bookleaf/tsconfig": "workspace:*",
     "@bookleaf/types": "workspace:*",
+    "@types/better-sqlite3": "^7.6.13",
+    "@yao-pkg/pkg": "^5.12.0",
     "esbuild": "^0.25.4",
     "typescript": "~5.9.2"
   }

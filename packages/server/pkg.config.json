@@ -1,0 +1,18 @@
+{
+  "pkg": {
+    "assets": [
+      "../../node_modules/better-sqlite3/build/Release/better_sqlite3.node",
+      "../../node_modules/better-sqlite3/build/**",
+      "../../node_modules/better-sqlite3/prebuilds/**"
+    ],
+    "scripts": [
+      "packages/server/dist/desktop/server.js"
+    ],
+    "targets": [
+      "node22-win-x64",
+      "node22-linux-x64",
+      "node22-macos-arm64"
+    ],
+    "outputPath": "packages/server/dist/desktop/bin"
+  }
+}
