@@ -1,6 +1,6 @@
 import '../polyfills';
 import '../../global.css';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -11,6 +11,10 @@ import { TRPCProvider, createTrpcClient } from '../lib/trpc';
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  useEffect(() => {
+    SplashScreen.hideAsync();
+  }, []);
+
   const [queryClient] = useState(
     () =>
       new QueryClient({
