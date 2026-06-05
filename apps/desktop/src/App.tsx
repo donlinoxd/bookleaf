@@ -6,6 +6,7 @@ import Dashboard from '@/pages/Dashboard';
 import Books from '@/pages/Books';
 import Members from '@/pages/Members';
 import Circulation from '@/pages/Circulation';
+import Settings from '@/pages/Settings';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token);
@@ -24,7 +25,7 @@ const router = createHashRouter([
       { path: 'books', element: <Books /> },
       { path: 'members', element: <Members /> },
       { path: 'circulation', element: <Circulation /> },
-      { path: 'settings', element: <div className="p-6"><h1 className="text-2xl font-bold">Settings</h1><p className="text-muted-foreground mt-2">Coming in Task 10</p></div> },
+      { path: 'settings', element: <Settings /> },
     ],
   },
   { path: '*', element: <Navigate to="/login" replace /> },
