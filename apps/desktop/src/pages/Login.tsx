@@ -51,7 +51,10 @@ export default function Login() {
     loginMutation.mutate({ idNumber: data.idNumber, pin: data.pin });
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* drag strip for decoration-less window */}
+      <div data-tauri-drag-region className="h-8 w-full shrink-0" />
+      <div className="flex-1 flex items-center justify-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="space-y-1">
           <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center mb-2">
@@ -81,6 +84,7 @@ export default function Login() {
           </form>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }
