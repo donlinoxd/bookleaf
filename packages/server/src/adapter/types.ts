@@ -120,4 +120,5 @@ export interface DbAdapter {
     encryptedData: string,
     passphrase: string,
   ): Promise<{ ok: true; imported: number }>;
+  adminImportSQLite(filePath: string): Promise<{ ok: true; tablesImported: number; rowsImported: number }>;
 }

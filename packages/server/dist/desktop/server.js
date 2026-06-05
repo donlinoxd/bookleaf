@@ -15837,6 +15837,16 @@ var adminBackupRouter = router({
         message: e instanceof Error ? e.message : "Import failed"
       });
     }
+  }),
+  importSQLite: librarianProcedure.input(external_exports.object({ filePath: external_exports.string().min(1) })).mutation(async ({ input, ctx }) => {
+    try {
+      return await ctx.db.adminImportSQLite(input.filePath);
+    } catch (e) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: e instanceof Error ? e.message : "Import failed"
+      });
+    }
   })
 });
 
@@ -22790,6 +22800,55 @@ function createSqliteAdapter(dbPath2, ...sqlFiles) {
     },
     async adminImportBackup(_institutionId, _encryptedData, _passphrase) {
       throw new Error("Not implemented in Phase 4");
+    },
+    async adminImportSQLite(filePath) {
+      const tables = [
+        "institutions",
+        "authority_names",
+        "users",
+        "resources",
+        "resource_copies",
+        "borrowing_records",
+        "reservations",
+        "fines",
+        "favorites",
+        "reviews",
+        "gate_logs",
+        "scan_sessions",
+        "scan_entries",
+        "settings"
+      ];
+      const source = new import_better_sqlite32.default(filePath, { readonly: true });
+      let rowsImported = 0;
+      let tablesImported = 0;
+      try {
+        for (const table of tables) {
+          let rows;
+          try {
+            rows = source.prepare(`SELECT * FROM "${table}"`).all();
+          } catch {
+            continue;
+          }
+          if (rows.length === 0) continue;
+          const cols = Object.keys(rows[0]);
+          const placeholders = cols.map(() => "?").join(", ");
+          const colNames = cols.map((c) => `"${c}"`).join(", ");
+          const insertStmt = rawDb.prepare(
+            `INSERT OR IGNORE INTO "${table}" (${colNames}) VALUES (${placeholders})`
+          );
+          const insertBatch = rawDb.transaction((batch) => {
+            for (const row of batch) {
+              insertStmt.run(...cols.map((c) => row[c]));
+            }
+          });
+          insertBatch(rows);
+          rowsImported += rows.length;
+          tablesImported += 1;
+        }
+      } finally {
+        source.close();
+      }
+      return { ok: true, tablesImported, rowsImported };
     }
   };
 }

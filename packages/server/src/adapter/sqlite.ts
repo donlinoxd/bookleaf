@@ -1553,5 +1553,52 @@ export function createSqliteAdapter(
     async adminImportBackup(_institutionId, _encryptedData, _passphrase) {
       throw new Error('Not implemented in Phase 4');
     },
+
+    async adminImportSQLite(filePath) {
+      const tables = [
+        'institutions', 'authority_names', 'users', 'resources',
+        'resource_copies', 'borrowing_records', 'reservations',
+        'fines', 'favorites', 'reviews', 'gate_logs',
+        'scan_sessions', 'scan_entries', 'settings',
+      ];
+
+      const source = new Database(filePath, { readonly: true });
+      let rowsImported = 0;
+      let tablesImported = 0;
+
+      try {
+        for (const table of tables) {
+          let rows: unknown[];
+          try {
+            rows = source.prepare(`SELECT * FROM "${table}"`).all();
+          } catch {
+            continue;
+          }
+          if (rows.length === 0) continue;
+
+          const cols = Object.keys(rows[0] as Record<string, unknown>);
+          const placeholders = cols.map(() => '?').join(', ');
+          const colNames = cols.map((c) => `"${c}"`).join(', ');
+
+          const insertStmt = rawDb.prepare(
+            `INSERT OR IGNORE INTO "${table}" (${colNames}) VALUES (${placeholders})`,
+          );
+
+          const insertBatch = rawDb.transaction((batch: unknown[]) => {
+            for (const row of batch) {
+              insertStmt.run(...cols.map((c) => (row as Record<string, unknown>)[c]));
+            }
+          });
+
+          insertBatch(rows);
+          rowsImported += rows.length;
+          tablesImported += 1;
+        }
+      } finally {
+        source.close();
+      }
+
+      return { ok: true as const, tablesImported, rowsImported };
+    },
   };
 }
