@@ -54,6 +54,9 @@ gradle.properties
 # pnpm
 pnpm-debug.log*
 
+# Turborepo
+.turbo/
+
 # Rust
 src-tauri/target/
 

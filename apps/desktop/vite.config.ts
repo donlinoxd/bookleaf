@@ -9,11 +9,17 @@ export default defineConfig(async () => ({
   plugins: [react()],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@/": path.resolve(__dirname, "./src") + "/",
     },
   },
   clearScreen: false,
   server: {
+    headers: {
+      'Cache-Control': 'no-store',
+    },
+    fs: {
+      strict: false,
+    },
     port: 1420,
     strictPort: true,
     host: host || false,
