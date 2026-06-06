@@ -1521,6 +1521,22 @@ export function createSqliteAdapter(
       };
     },
 
+    async adminGateRecentLogs(institutionId, limit = 50) {
+      return db.select({
+        id: gateLogs.id,
+        user_name: users.name,
+        user_id_number: users.id_number,
+        direction: gateLogs.direction,
+        method: gateLogs.method,
+        logged_at: gateLogs.logged_at,
+      })
+        .from(gateLogs)
+        .innerJoin(users, eq(gateLogs.user_id, users.id))
+        .where(eq(gateLogs.institution_id, institutionId))
+        .orderBy(desc(gateLogs.logged_at))
+        .limit(limit);
+    },
+
     // ── Admin: Settings ──────────────────────────────────────────────────────
 
     async adminGetSettings(_institutionId) {

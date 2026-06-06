@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, Users, ArrowLeftRight, Settings } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Users, ArrowLeftRight, Settings, BookMarked, BarChart2, DoorOpen, ClipboardList } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
@@ -7,7 +7,11 @@ const navItems = [
   { to: '/books', icon: BookOpen, label: 'Books' },
   { to: '/members', icon: Users, label: 'Members' },
   { to: '/circulation', icon: ArrowLeftRight, label: 'Circulation' },
-  { to: '/settings', icon: Settings, label: 'Settings' },
+  { to: '/reservations', icon: BookMarked,    label: 'Reservations' },
+  { to: '/reports',      icon: BarChart2,     label: 'Reports' },
+  { to: '/gate',         icon: DoorOpen,      label: 'Gate' },
+  { to: '/inventory',    icon: ClipboardList, label: 'Inventory' },
+  { to: '/settings',     icon: Settings,      label: 'Settings' },
 ];
 
 export default function Sidebar() {

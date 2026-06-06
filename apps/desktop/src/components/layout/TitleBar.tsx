@@ -13,6 +13,10 @@ const ROUTE_TITLES: Record<string, string> = {
   '/members': 'Members',
   '/circulation': 'Circulation',
   '/settings': 'Settings',
+  '/reservations': 'Reservations',
+  '/reports':      'Reports',
+  '/gate':         'Gate',
+  '/inventory':    'Inventory',
 };
 
 function useServerStatus() {

@@ -1,6 +1,7 @@
 import { build } from 'esbuild';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execSync } from 'node:child_process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const target = process.argv.includes('--target')
@@ -61,4 +62,22 @@ module.exports = { getRandomBytes, getRandomBytesAsync };
     plugins: [expoCryptoShimPlugin],
   });
   console.log('✓ packages/server desktop bundle → dist/desktop/server.js');
+
+  // pkg must run from the monorepo root so snapshot paths match what the
+  // compiled binary expects (C:\snapshot\bookleaf\...). The --config flag
+  // ensures pkg reads pkg.assets from packages/server/package.json.
+  const monorepoRoot = resolve(__dirname, '../..');
+  const serverPkg = resolve(__dirname, 'package.json');
+  const entryJs = resolve(__dirname, 'dist/desktop/server.js');
+  const outExe = resolve(
+    __dirname,
+    '../../apps/desktop/src-tauri/binaries/bookleaf-server-x86_64-pc-windows-msvc.exe',
+  );
+
+  console.log('→ packaging with pkg...');
+  execSync(
+    `node node_modules/@yao-pkg/pkg/lib-es5/bin.js --config "${serverPkg}" -t node22-win-x64 "${entryJs}" -o "${outExe}"`,
+    { cwd: monorepoRoot, stdio: 'inherit' },
+  );
+  console.log('✓ binary → apps/desktop/src-tauri/binaries/bookleaf-server-x86_64-pc-windows-msvc.exe');
 }

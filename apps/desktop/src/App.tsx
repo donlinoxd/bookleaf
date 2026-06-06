@@ -7,6 +7,10 @@ import Books from '@/pages/Books';
 import Members from '@/pages/Members';
 import Circulation from '@/pages/Circulation';
 import Settings from '@/pages/Settings';
+import Reservations from '@/pages/Reservations';
+import Reports      from '@/pages/Reports';
+import Gate         from '@/pages/Gate';
+import Inventory    from '@/pages/Inventory';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token);
@@ -25,7 +29,11 @@ const router = createHashRouter([
       { path: 'books', element: <Books /> },
       { path: 'members', element: <Members /> },
       { path: 'circulation', element: <Circulation /> },
-      { path: 'settings', element: <Settings /> },
+      { path: 'settings',      element: <Settings /> },
+      { path: 'reservations',  element: <Reservations /> },
+      { path: 'reports',       element: <Reports /> },
+      { path: 'gate',          element: <Gate /> },
+      { path: 'inventory',     element: <Inventory /> },
     ],
   },
   { path: '*', element: <Navigate to="/login" replace /> },
