@@ -1238,9 +1238,10 @@ export function createSqliteAdapter(
         .innerJoin(users, eq(borrowingRecords.user_id, users.id))
         .innerJoin(resourceCopies, eq(borrowingRecords.copy_id, resourceCopies.id))
         .innerJoin(resources, eq(resourceCopies.resource_id, resources.id))
-        .where(and(eq(resources.institution_id, institutionId), eq(fines.paid, false)))
+        .where(eq(resources.institution_id, institutionId))
         .groupBy(users.id)
-        .orderBy(desc(sql`SUM(${fines.amount})`))
+        .having(sql`SUM(CASE WHEN ${fines.paid} = 0 THEN ${fines.amount} ELSE 0 END) > 0`)
+        .orderBy(desc(sql`SUM(CASE WHEN ${fines.paid} = 0 THEN ${fines.amount} ELSE 0 END)`))
         .limit(10);
 
       const topDebtors = topDebtorsRaw.map(r => ({

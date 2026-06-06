@@ -1,11 +1,21 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
+import { networkInterfaces } from 'os';
 import { appRouter } from './router';
 import type { DbAdapter } from './adapter/types';
 import type { TRPCContext } from './trpc';
 import { GATE_HTML } from './gate-html';
 import { rateLimitCheck, rateLimitRecordFailure, rateLimitRecordSuccess } from './middleware/rateLimit';
+
+function getLanIp(): string | null {
+  for (const ifaces of Object.values(networkInterfaces())) {
+    for (const iface of ifaces ?? []) {
+      if (iface.family === 'IPv4' && !iface.internal) return iface.address;
+    }
+  }
+  return null;
+}
 
 async function createContext(
   req: Request,
@@ -40,7 +50,8 @@ export function initApp({ db }: { db: DbAdapter }): Hono {
 
   app.get('/info', async (c) => {
     const info = await db.getInstitutionInfo();
-    return c.json(info);
+    const lanIp = getLanIp();
+    return c.json({ ...info, serverUrl: lanIp ? `http://${lanIp}:3000` : null });
   });
 
   // Browser gate page (served as HTML to patron's mobile browser)

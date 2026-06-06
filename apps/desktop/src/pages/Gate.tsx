@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import QRCode from 'react-qr-code';
 import { Copy, Check } from 'lucide-react';
@@ -33,8 +33,17 @@ export default function Gate() {
   const { user } = useAuthStore();
   const iid = user?.institution_id ?? 1;
 
-  const [serverUrl, setServerUrl] = useState('http://localhost:3000');
+  const [serverUrl, setServerUrl] = useState('');
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    fetch('http://localhost:3000/info')
+      .then(r => r.json())
+      .then((d: { serverUrl?: string | null }) => {
+        if (d.serverUrl) setServerUrl(d.serverUrl);
+      })
+      .catch(() => {});
+  }, []);
 
   const { data: logs = [], isLoading } = useQuery({
     ...trpc.admin.gate.recentLogs.queryOptions({ institutionId: iid, limit: 50 }),
