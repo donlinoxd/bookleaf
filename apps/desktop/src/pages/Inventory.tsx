@@ -1,9 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
+﻿import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTRPC, getTRPCErrorMessage } from '@/lib/trpc';
 import { useAuthStore } from '@/store/useAuthStore';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Button } from '@bookleaf/ui/components/button';
+import { Input } from '@bookleaf/ui/components/input';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -13,7 +13,7 @@ import {
   AlertDialogDescription,
   AlertDialogAction,
   AlertDialogCancel,
-} from '@/components/ui/alert-dialog';
+} from '@bookleaf/ui/components/alert-dialog';
 
 // ── Types matching actual server return shapes ────────────────────────────────
 

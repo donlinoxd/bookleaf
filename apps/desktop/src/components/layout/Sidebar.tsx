@@ -1,6 +1,6 @@
-import { NavLink } from 'react-router-dom';
+﻿import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, BookOpen, Users, ArrowLeftRight, Settings, BookMarked, BarChart2, DoorOpen, ClipboardList } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@bookleaf/ui/lib/utils';
 
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },

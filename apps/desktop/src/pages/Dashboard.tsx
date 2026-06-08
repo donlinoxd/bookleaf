@@ -1,7 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
+﻿import { useQuery } from '@tanstack/react-query';
 import { useTRPC } from '@/lib/trpc';
 import { useAuthStore } from '@/store/useAuthStore';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@bookleaf/ui/components/card';
 import { BookOpen, Users, AlertTriangle, ArrowLeftRight } from 'lucide-react';
 
 export default function Dashboard() {

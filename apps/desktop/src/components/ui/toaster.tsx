@@ -1,6 +1,6 @@
-"use client"
+﻿"use client"
 
-import { useToast } from "@/hooks/use-toast"
+import { useToast } from "@bookleaf/ui/hooks/use-toast"
 import {
   Toast,
   ToastClose,
@@ -8,7 +8,7 @@ import {
   ToastProvider,
   ToastTitle,
   ToastViewport,
-} from "@/components/ui/toast"
+} from "@bookleaf/ui/components/toast"
 
 export function Toaster() {
   const { toasts } = useToast()

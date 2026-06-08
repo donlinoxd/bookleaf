@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import QRCode from 'react-qr-code';
 import { Copy, Check } from 'lucide-react';
 import { useTRPC } from '@/lib/trpc';
 import { useAuthStore } from '@/store/useAuthStore';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@bookleaf/ui/components/button';
+import { Input } from '@bookleaf/ui/components/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@bookleaf/ui/components/card';
+import { Badge } from '@bookleaf/ui/components/badge';
 
 type GateLog = {
   id: number;

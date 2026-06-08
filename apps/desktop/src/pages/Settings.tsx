@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -6,11 +6,11 @@ import { useState, useEffect } from 'react';
 import { open } from '@tauri-apps/plugin-dialog';
 import { useTRPC, getTRPCErrorMessage } from '@/lib/trpc';
 import { useAuthStore } from '@/store/useAuthStore';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+import { Button } from '@bookleaf/ui/components/button';
+import { Input } from '@bookleaf/ui/components/input';
+import { Label } from '@bookleaf/ui/components/label';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@bookleaf/ui/components/card';
+import { Separator } from '@bookleaf/ui/components/separator';
 import { Upload, CheckCircle2 } from 'lucide-react';
 
 const settingsSchema = z.object({

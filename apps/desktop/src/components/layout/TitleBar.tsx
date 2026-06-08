@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Search, Bell, LogOut, ChevronDown, BookOpen, Users, Minus, Square, X } from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useTRPC } from '@/lib/trpc';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { cn } from '@/lib/utils';
+import { cn } from '@bookleaf/ui/lib/utils';
 
 const ROUTE_TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard',

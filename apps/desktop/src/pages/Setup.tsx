@@ -1,10 +1,10 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { open } from '@tauri-apps/plugin-dialog';
 import { useTRPC, getTRPCErrorMessage } from '@/lib/trpc';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@bookleaf/ui/components/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@bookleaf/ui/components/card';
 import { Upload, CheckCircle2, ArrowLeft } from 'lucide-react';
 
 export default function Setup() {
