@@ -9,7 +9,8 @@
   },
   "exports": {
     ".": "./src/index.ts",
-    "./styles": "./src/styles/globals.css"
+    "./styles": "./src/styles/globals.css",
+    "./*": "./src/*"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -29,7 +30,8 @@
   },
   "peerDependencies": {
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-hook-form": "^7.0.0"
   },
   "devDependencies": {
     "@bookleaf/tailwind-config": "workspace:*",
