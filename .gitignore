@@ -51,8 +51,16 @@ apps/client/ios/
 bookleaf-release.keystore
 gradle.properties
 
+# SQLite database files
+*.db
+*.db-shm
+*.db-wal
+
 # pnpm
 pnpm-debug.log*
+
+# Turborepo
+.turbo/
 
 # Rust
 src-tauri/target/

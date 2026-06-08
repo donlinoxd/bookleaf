@@ -106,6 +106,12 @@ export interface DbAdapter {
   ): Promise<unknown>;
   adminFinishInventorySession(sessionId: number): Promise<unknown>;
 
+  // ── Admin: Gate ───────────────────────────────────────────────────────────
+  adminGateRecentLogs(institutionId: number, limit?: number): Promise<{
+    id: number; user_name: string; user_id_number: string;
+    direction: string; method: string; logged_at: string;
+  }[]>;
+
   // ── Admin: Settings ───────────────────────────────────────────────────────
   adminGetSettings(institutionId: number): Promise<unknown>;
   adminUpdateSettings(institutionId: number, data: Record<string, unknown>): Promise<void>;
@@ -120,4 +126,5 @@ export interface DbAdapter {
     encryptedData: string,
     passphrase: string,
   ): Promise<{ ok: true; imported: number }>;
+  adminImportSQLite(filePath: string): Promise<{ ok: true; tablesImported: number; rowsImported: number }>;
 }

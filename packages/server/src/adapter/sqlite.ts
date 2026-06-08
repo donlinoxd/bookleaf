@@ -1238,9 +1238,10 @@ export function createSqliteAdapter(
         .innerJoin(users, eq(borrowingRecords.user_id, users.id))
         .innerJoin(resourceCopies, eq(borrowingRecords.copy_id, resourceCopies.id))
         .innerJoin(resources, eq(resourceCopies.resource_id, resources.id))
-        .where(and(eq(resources.institution_id, institutionId), eq(fines.paid, false)))
+        .where(eq(resources.institution_id, institutionId))
         .groupBy(users.id)
-        .orderBy(desc(sql`SUM(${fines.amount})`))
+        .having(sql`SUM(CASE WHEN ${fines.paid} = 0 THEN ${fines.amount} ELSE 0 END) > 0`)
+        .orderBy(desc(sql`SUM(CASE WHEN ${fines.paid} = 0 THEN ${fines.amount} ELSE 0 END)`))
         .limit(10);
 
       const topDebtors = topDebtorsRaw.map(r => ({
@@ -1521,6 +1522,22 @@ export function createSqliteAdapter(
       };
     },
 
+    async adminGateRecentLogs(institutionId, limit = 50) {
+      return db.select({
+        id: gateLogs.id,
+        user_name: users.name,
+        user_id_number: users.id_number,
+        direction: gateLogs.direction,
+        method: gateLogs.method,
+        logged_at: gateLogs.logged_at,
+      })
+        .from(gateLogs)
+        .innerJoin(users, eq(gateLogs.user_id, users.id))
+        .where(eq(gateLogs.institution_id, institutionId))
+        .orderBy(desc(gateLogs.logged_at))
+        .limit(limit);
+    },
+
     // ── Admin: Settings ──────────────────────────────────────────────────────
 
     async adminGetSettings(_institutionId) {
@@ -1552,6 +1569,53 @@ export function createSqliteAdapter(
 
     async adminImportBackup(_institutionId, _encryptedData, _passphrase) {
       throw new Error('Not implemented in Phase 4');
+    },
+
+    async adminImportSQLite(filePath) {
+      const tables = [
+        'institutions', 'authority_names', 'users', 'resources',
+        'resource_copies', 'borrowing_records', 'reservations',
+        'fines', 'favorites', 'reviews', 'gate_logs',
+        'scan_sessions', 'scan_entries', 'settings',
+      ];
+
+      const source = new Database(filePath, { readonly: true });
+      let rowsImported = 0;
+      let tablesImported = 0;
+
+      try {
+        for (const table of tables) {
+          let rows: unknown[];
+          try {
+            rows = source.prepare(`SELECT * FROM "${table}"`).all();
+          } catch {
+            continue;
+          }
+          if (rows.length === 0) continue;
+
+          const cols = Object.keys(rows[0] as Record<string, unknown>);
+          const placeholders = cols.map(() => '?').join(', ');
+          const colNames = cols.map((c) => `"${c}"`).join(', ');
+
+          const insertStmt = rawDb.prepare(
+            `INSERT OR IGNORE INTO "${table}" (${colNames}) VALUES (${placeholders})`,
+          );
+
+          const insertBatch = rawDb.transaction((batch: unknown[]) => {
+            for (const row of batch) {
+              insertStmt.run(...cols.map((c) => (row as Record<string, unknown>)[c]));
+            }
+          });
+
+          insertBatch(rows);
+          rowsImported += rows.length;
+          tablesImported += 1;
+        }
+      } finally {
+        source.close();
+      }
+
+      return { ok: true as const, tablesImported, rowsImported };
     },
   };
 }

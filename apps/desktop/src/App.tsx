@@ -1,51 +1,46 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
-import "./App.css";
+import { createHashRouter, RouterProvider, Navigate } from 'react-router-dom';
+import { useAuthStore } from '@/store/useAuthStore';
+import Login from '@/pages/Login';
+import AppShell from '@/components/layout/AppShell';
+import Dashboard from '@/pages/Dashboard';
+import Books from '@/pages/Books';
+import Members from '@/pages/Members';
+import Circulation from '@/pages/Circulation';
+import Settings from '@/pages/Settings';
+import Setup from '@/pages/Setup';
+import Reservations from '@/pages/Reservations';
+import Reports      from '@/pages/Reports';
+import Gate         from '@/pages/Gate';
+import Inventory    from '@/pages/Inventory';
 
-function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
-
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
-
-  return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
-
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
-  );
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  const token = useAuthStore((s) => s.token);
+  if (!token) return <Navigate to="/login" replace />;
+  return <>{children}</>;
 }
 
-export default App;
+const router = createHashRouter([
+  { path: '/login', element: <Login /> },
+  { path: '/setup', element: <Setup /> },
+  {
+    path: '/',
+    element: <RequireAuth><AppShell /></RequireAuth>,
+    children: [
+      { index: true, element: <Navigate to="/dashboard" replace /> },
+      { path: 'dashboard', element: <Dashboard /> },
+      { path: 'books', element: <Books /> },
+      { path: 'members', element: <Members /> },
+      { path: 'circulation', element: <Circulation /> },
+      { path: 'settings',      element: <Settings /> },
+      { path: 'reservations',  element: <Reservations /> },
+      { path: 'reports',       element: <Reports /> },
+      { path: 'gate',          element: <Gate /> },
+      { path: 'inventory',     element: <Inventory /> },
+    ],
+  },
+  { path: '*', element: <Navigate to="/login" replace /> },
+]);
+
+export default function App() {
+  return <RouterProvider router={router} />;
+}

@@ -38,4 +38,17 @@ export const adminBackupRouter = router({
         });
       }
     }),
+
+  importSQLite: librarianProcedure
+    .input(z.object({ filePath: z.string().min(1) }))
+    .mutation(async ({ input, ctx }) => {
+      try {
+        return await ctx.db.adminImportSQLite(input.filePath);
+      } catch (e) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: e instanceof Error ? e.message : 'Import failed',
+        });
+      }
+    }),
 });

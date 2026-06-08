@@ -17,6 +17,9 @@
     "hono": "^4.7.11",
     "zod": "^3.25.23"
   },
+  "pkg": {
+    "assets": ["../../node_modules/better-sqlite3/build/Release/better_sqlite3.node"]
+  },
   "devDependencies": {
     "@bookleaf/tsconfig": "workspace:*",
     "@bookleaf/types": "workspace:*",
