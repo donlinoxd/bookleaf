@@ -17,7 +17,9 @@
     /* Path aliases */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@bookleaf/ui": ["../../packages/ui/src/index.ts"],
+      "@bookleaf/ui/*": ["../../packages/ui/src/*"]
     },
 
     /* Linting */
