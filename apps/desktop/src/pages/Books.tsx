@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   useReactTable, getCoreRowModel, getFilteredRowModel,
@@ -109,6 +109,7 @@ export default function Books() {
 
 function BookDialog({ open, onClose, defaultValues, onSubmit, isPending, error, title }: { open: boolean; onClose: () => void; defaultValues?: Partial<BookForm>; onSubmit: (d: BookForm) => void; isPending: boolean; error: unknown; title: string }) {
   const { register, handleSubmit, reset, formState: { errors } } = useForm<BookForm>({ resolver: zodResolver(bookSchema), defaultValues: defaultValues ?? { total_copies: 1, material_type: 'BOOK', is_loanable: true } });
+  useEffect(() => { if (open) reset(defaultValues ?? { total_copies: 1, material_type: 'BOOK', is_loanable: true }); }, [open]);
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) { onClose(); reset(); } }}>
       <DialogContent className="max-w-lg">

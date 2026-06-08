@@ -2,7 +2,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useTRPC, getTRPCErrorMessage } from '@/lib/trpc';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Button } from '@/components/ui/button';
@@ -82,6 +82,12 @@ export default function Login() {
               {loginMutation.isPending ? 'Signing in…' : 'Sign In'}
             </Button>
           </form>
+          <p className="mt-4 text-center text-xs text-muted-foreground">
+            New installation?{' '}
+            <Link to="/setup" className="underline hover:text-foreground transition-colors">
+              Import library data
+            </Link>
+          </p>
         </CardContent>
       </Card>
       </div>

@@ -7,6 +7,7 @@ import Books from '@/pages/Books';
 import Members from '@/pages/Members';
 import Circulation from '@/pages/Circulation';
 import Settings from '@/pages/Settings';
+import Setup from '@/pages/Setup';
 import Reservations from '@/pages/Reservations';
 import Reports      from '@/pages/Reports';
 import Gate         from '@/pages/Gate';
@@ -20,6 +21,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 
 const router = createHashRouter([
   { path: '/login', element: <Login /> },
+  { path: '/setup', element: <Setup /> },
   {
     path: '/',
     element: <RequireAuth><AppShell /></RequireAuth>,
