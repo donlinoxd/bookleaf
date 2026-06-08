@@ -1,0 +1,21 @@
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "default",
+  "rsc": false,
+  "tsx": true,
+  "tailwind": {
+    "config": "../../tooling/tailwind/index.js",
+    "css": "src/styles/globals.css",
+    "baseColor": "neutral",
+    "cssVariables": true,
+    "prefix": ""
+  },
+  "iconLibrary": "lucide",
+  "aliases": {
+    "components": "@bookleaf/ui/components",
+    "utils": "@bookleaf/ui/lib/utils",
+    "ui": "@bookleaf/ui/components",
+    "lib": "@bookleaf/ui/lib",
+    "hooks": "@bookleaf/ui/hooks"
+  }
+}
