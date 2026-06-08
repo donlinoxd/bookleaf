@@ -93,9 +93,6 @@ export default function LoginScreen() {
                     </TouchableOpacity>
                 </View>
 
-                <TouchableOpacity className='mt-6 items-center' onPress={() => router.push('/(auth)/guest')}>
-                    <Text className='text-brand font-semibold text-sm'>Browse catalog as guest</Text>
-                </TouchableOpacity>
             </View>
         </KeyboardAvoidingView>
     )
