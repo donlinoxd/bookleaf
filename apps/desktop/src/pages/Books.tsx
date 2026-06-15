@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   useReactTable, getCoreRowModel, getFilteredRowModel,
@@ -36,6 +37,7 @@ type Book = { id: number; title: string; author: string | null; genre: string | 
 export default function Books() {
   const trpc = useTRPC();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const { user } = useAuthStore();
   const iid = user?.institution_id ?? 1;
   const [search, setSearch] = useState('');
@@ -70,7 +72,10 @@ export default function Books() {
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
         <div><h1 className="text-2xl font-bold">Books</h1><p className="text-muted-foreground text-sm mt-1">{(books as Book[]).length} items</p></div>
-        <Button onClick={() => setIsAddOpen(true)} size="sm"><Plus size={15} className="mr-1.5" />Add Book</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => navigate('/books/import')}>Import from file</Button>
+          <Button onClick={() => setIsAddOpen(true)} size="sm"><Plus size={15} className="mr-1.5" />Add Book</Button>
+        </div>
       </div>
       <div className="relative max-w-xs">
         <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
