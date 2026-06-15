@@ -8,7 +8,9 @@
     "build": "node build.mjs",
     "build:android": "node build.mjs --target android",
     "build:desktop": "node build.mjs --target desktop",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@bookleaf/db": "workspace:*",
@@ -26,6 +28,7 @@
     "@types/better-sqlite3": "^7.6.13",
     "@yao-pkg/pkg": "^5.12.0",
     "esbuild": "^0.25.4",
-    "typescript": "~5.9.2"
+    "typescript": "~5.9.2",
+    "vitest": "^2.1.0"
   }
 }
