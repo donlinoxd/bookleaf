@@ -1,4 +1,7 @@
+/** Name authorities (people/orgs/places). Kept for backward compatibility. */
 export type AuthorityNameType = 'personal' | 'corporate' | 'geographic';
+/** All authority record types in the unified authority table. */
+export type AuthorityType = AuthorityNameType | 'subject' | 'publisher';
 export type UserRole = 'admin' | 'librarian' | 'member';
 export type UserType = 'student' | 'faculty' | 'alumni' | 'external';
 export type GateDirection = 'in' | 'out';
@@ -17,9 +20,20 @@ export interface AuthorityName {
   id: number;
   institution_id: number;
   name: string;
-  name_type: AuthorityNameType;
+  name_type: AuthorityType;
   variants: string | null;
+  normalized_name: string | null;
   created_at: string;
+}
+
+/** An authority row plus how many resources reference it. */
+export interface AuthorityWithUsage extends AuthorityName {
+  usage_count: number;
+}
+
+export interface MergeAuthoritiesInput {
+  survivorId: number;
+  loserIds: number[];
 }
 
 export interface Institution {
