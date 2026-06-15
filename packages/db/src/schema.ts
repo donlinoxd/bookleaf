@@ -85,6 +85,20 @@ export const resourceCopies = sqliteTable('resource_copies', {
   accession_number: text('accession_number'),
 });
 
+export const importJobs = sqliteTable('import_jobs', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  institution_id: integer('institution_id').notNull().references(() => institutions.id),
+  imported_by_user_id: integer('imported_by_user_id').notNull().references(() => users.id),
+  filename: text('filename').notNull(),
+  duplicate_strategy: text('duplicate_strategy').notNull(),
+  row_count: integer('row_count').notNull(),
+  created_count: integer('created_count').notNull(),
+  copies_added_count: integer('copies_added_count').notNull(),
+  skipped_count: integer('skipped_count').notNull(),
+  started_at: text('started_at').notNull().default(sql`(datetime('now'))`),
+  completed_at: text('completed_at'),
+});
+
 export const borrowingRecords = sqliteTable('borrowing_records', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   copy_id: integer('copy_id').notNull().references(() => resourceCopies.id),

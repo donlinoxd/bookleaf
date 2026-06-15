@@ -1,0 +1,541 @@
+{
+  "version": "6",
+  "dialect": "sqlite",
+  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567892",
+  "prevId": "a1b2c3d4-e5f6-7890-abcd-ef1234567891",
+  "tables": {
+    "institutions": {
+      "name": "institutions",
+      "columns": {
+        "id": { "name": "id", "type": "integer", "primaryKey": true, "notNull": true, "autoincrement": true },
+        "name": { "name": "name", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "address": { "name": "address", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false, "default": "''" },
+        "logo_uri": { "name": "logo_uri", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "created_at": { "name": "created_at", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false, "default": "(datetime('now'))" }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "users": {
+      "name": "users",
+      "columns": {
+        "id": { "name": "id", "type": "integer", "primaryKey": true, "notNull": true, "autoincrement": true },
+        "institution_id": { "name": "institution_id", "type": "integer", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "name": { "name": "name", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "id_number": { "name": "id_number", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "role": { "name": "role", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "pin_hash": { "name": "pin_hash", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "photo_uri": { "name": "photo_uri", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "is_active": { "name": "is_active", "type": "integer", "primaryKey": false, "notNull": true, "autoincrement": false, "default": true },
+        "created_at": { "name": "created_at", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false, "default": "(datetime('now'))" },
+        "department": { "name": "department", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "user_type": { "name": "user_type", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false }
+      },
+      "indexes": {
+        "users_id_number_unique": { "name": "users_id_number_unique", "columns": ["id_number"], "isUnique": true }
+      },
+      "foreignKeys": {
+        "users_institution_id_institutions_id_fk": {
+          "name": "users_institution_id_institutions_id_fk",
+          "tableFrom": "users",
+          "tableTo": "institutions",
+          "columnsFrom": ["institution_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "authority_names": {
+      "name": "authority_names",
+      "columns": {
+        "id": { "name": "id", "type": "integer", "primaryKey": true, "notNull": true, "autoincrement": true },
+        "institution_id": { "name": "institution_id", "type": "integer", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "name": { "name": "name", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "name_type": { "name": "name_type", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false, "default": "'personal'" },
+        "variants": { "name": "variants", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "created_at": { "name": "created_at", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false, "default": "(datetime('now'))" }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "authority_names_institution_id_institutions_id_fk": {
+          "name": "authority_names_institution_id_institutions_id_fk",
+          "tableFrom": "authority_names",
+          "tableTo": "institutions",
+          "columnsFrom": ["institution_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "resources": {
+      "name": "resources",
+      "columns": {
+        "id": { "name": "id", "type": "integer", "primaryKey": true, "notNull": true, "autoincrement": true },
+        "institution_id": { "name": "institution_id", "type": "integer", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "material_type": { "name": "material_type", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false, "default": "'BOOK'" },
+        "isbn": { "name": "isbn", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "issn": { "name": "issn", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "title": { "name": "title", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "author": { "name": "author", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "publisher": { "name": "publisher", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "year": { "name": "year", "type": "integer", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "genre": { "name": "genre", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "description": { "name": "description", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "cover_uri": { "name": "cover_uri", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "subtitle": { "name": "subtitle", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "edition": { "name": "edition", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "volume": { "name": "volume", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "issue_number": { "name": "issue_number", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "series_title": { "name": "series_title", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "doi": { "name": "doi", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "url": { "name": "url", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "duration": { "name": "duration", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "language": { "name": "language", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "call_number": { "name": "call_number", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "call_number_type": { "name": "call_number_type", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "content_type": { "name": "content_type", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "media_type": { "name": "media_type", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "carrier_type": { "name": "carrier_type", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "subject_headings": { "name": "subject_headings", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "author_authority_id": { "name": "author_authority_id", "type": "integer", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "is_loanable": { "name": "is_loanable", "type": "integer", "primaryKey": false, "notNull": true, "autoincrement": false, "default": true },
+        "loan_period_days": { "name": "loan_period_days", "type": "integer", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "total_copies": { "name": "total_copies", "type": "integer", "primaryKey": false, "notNull": true, "autoincrement": false, "default": 1 },
+        "available_copies": { "name": "available_copies", "type": "integer", "primaryKey": false, "notNull": true, "autoincrement": false, "default": 1 },
+        "added_at": { "name": "added_at", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false, "default": "(datetime('now'))" }
+      },
+      "indexes": {
+        "resources_institution_id_idx": { "name": "resources_institution_id_idx", "columns": ["institution_id"], "isUnique": false },
+        "resources_isbn_idx": { "name": "resources_isbn_idx", "columns": ["isbn"], "isUnique": false }
+      },
+      "foreignKeys": {
+        "resources_institution_id_institutions_id_fk": {
+          "name": "resources_institution_id_institutions_id_fk",
+          "tableFrom": "resources",
+          "tableTo": "institutions",
+          "columnsFrom": ["institution_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "resources_author_authority_id_authority_names_id_fk": {
+          "name": "resources_author_authority_id_authority_names_id_fk",
+          "tableFrom": "resources",
+          "tableTo": "authority_names",
+          "columnsFrom": ["author_authority_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "resource_copies": {
+      "name": "resource_copies",
+      "columns": {
+        "id": { "name": "id", "type": "integer", "primaryKey": true, "notNull": true, "autoincrement": true },
+        "resource_id": { "name": "resource_id", "type": "integer", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "copy_number": { "name": "copy_number", "type": "integer", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "condition": { "name": "condition", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false, "default": "'good'" },
+        "status": { "name": "status", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false, "default": "'available'" },
+        "barcode": { "name": "barcode", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "shelf_location": { "name": "shelf_location", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "accession_number": { "name": "accession_number", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false }
+      },
+      "indexes": {
+        "resource_copies_resource_id_idx": { "name": "resource_copies_resource_id_idx", "columns": ["resource_id"], "isUnique": false },
+        "resource_copies_status_idx": { "name": "resource_copies_status_idx", "columns": ["status"], "isUnique": false }
+      },
+      "foreignKeys": {
+        "resource_copies_resource_id_resources_id_fk": {
+          "name": "resource_copies_resource_id_resources_id_fk",
+          "tableFrom": "resource_copies",
+          "tableTo": "resources",
+          "columnsFrom": ["resource_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "import_jobs": {
+      "name": "import_jobs",
+      "columns": {
+        "id": { "name": "id", "type": "integer", "primaryKey": true, "notNull": true, "autoincrement": true },
+        "institution_id": { "name": "institution_id", "type": "integer", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "imported_by_user_id": { "name": "imported_by_user_id", "type": "integer", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "filename": { "name": "filename", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "duplicate_strategy": { "name": "duplicate_strategy", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "row_count": { "name": "row_count", "type": "integer", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "created_count": { "name": "created_count", "type": "integer", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "copies_added_count": { "name": "copies_added_count", "type": "integer", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "skipped_count": { "name": "skipped_count", "type": "integer", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "started_at": { "name": "started_at", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false, "default": "(datetime('now'))" },
+        "completed_at": { "name": "completed_at", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "import_jobs_institution_id_institutions_id_fk": {
+          "name": "import_jobs_institution_id_institutions_id_fk",
+          "tableFrom": "import_jobs",
+          "tableTo": "institutions",
+          "columnsFrom": ["institution_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "import_jobs_imported_by_user_id_users_id_fk": {
+          "name": "import_jobs_imported_by_user_id_users_id_fk",
+          "tableFrom": "import_jobs",
+          "tableTo": "users",
+          "columnsFrom": ["imported_by_user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "borrowing_records": {
+      "name": "borrowing_records",
+      "columns": {
+        "id": { "name": "id", "type": "integer", "primaryKey": true, "notNull": true, "autoincrement": true },
+        "copy_id": { "name": "copy_id", "type": "integer", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "user_id": { "name": "user_id", "type": "integer", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "borrowed_at": { "name": "borrowed_at", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false, "default": "(datetime('now'))" },
+        "due_date": { "name": "due_date", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "returned_at": { "name": "returned_at", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "fine_amount": { "name": "fine_amount", "type": "real", "primaryKey": false, "notNull": true, "autoincrement": false, "default": 0 },
+        "renewal_count": { "name": "renewal_count", "type": "integer", "primaryKey": false, "notNull": true, "autoincrement": false, "default": 0 }
+      },
+      "indexes": {
+        "borrowing_records_user_id_idx": { "name": "borrowing_records_user_id_idx", "columns": ["user_id"], "isUnique": false },
+        "borrowing_records_copy_id_idx": { "name": "borrowing_records_copy_id_idx", "columns": ["copy_id"], "isUnique": false },
+        "borrowing_records_returned_at_idx": { "name": "borrowing_records_returned_at_idx", "columns": ["returned_at"], "isUnique": false }
+      },
+      "foreignKeys": {
+        "borrowing_records_copy_id_resource_copies_id_fk": {
+          "name": "borrowing_records_copy_id_resource_copies_id_fk",
+          "tableFrom": "borrowing_records",
+          "tableTo": "resource_copies",
+          "columnsFrom": ["copy_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "borrowing_records_user_id_users_id_fk": {
+          "name": "borrowing_records_user_id_users_id_fk",
+          "tableFrom": "borrowing_records",
+          "tableTo": "users",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "reservations": {
+      "name": "reservations",
+      "columns": {
+        "id": { "name": "id", "type": "integer", "primaryKey": true, "notNull": true, "autoincrement": true },
+        "resource_id": { "name": "resource_id", "type": "integer", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "user_id": { "name": "user_id", "type": "integer", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "reserved_at": { "name": "reserved_at", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false, "default": "(datetime('now'))" },
+        "status": { "name": "status", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false, "default": "'active'" }
+      },
+      "indexes": {
+        "reservations_resource_id_idx": { "name": "reservations_resource_id_idx", "columns": ["resource_id"], "isUnique": false },
+        "reservations_user_id_idx": { "name": "reservations_user_id_idx", "columns": ["user_id"], "isUnique": false }
+      },
+      "foreignKeys": {
+        "reservations_resource_id_resources_id_fk": {
+          "name": "reservations_resource_id_resources_id_fk",
+          "tableFrom": "reservations",
+          "tableTo": "resources",
+          "columnsFrom": ["resource_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "reservations_user_id_users_id_fk": {
+          "name": "reservations_user_id_users_id_fk",
+          "tableFrom": "reservations",
+          "tableTo": "users",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "fines": {
+      "name": "fines",
+      "columns": {
+        "id": { "name": "id", "type": "integer", "primaryKey": true, "notNull": true, "autoincrement": true },
+        "borrowing_id": { "name": "borrowing_id", "type": "integer", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "amount": { "name": "amount", "type": "real", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "paid": { "name": "paid", "type": "integer", "primaryKey": false, "notNull": true, "autoincrement": false, "default": false },
+        "paid_at": { "name": "paid_at", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "fines_borrowing_id_borrowing_records_id_fk": {
+          "name": "fines_borrowing_id_borrowing_records_id_fk",
+          "tableFrom": "fines",
+          "tableTo": "borrowing_records",
+          "columnsFrom": ["borrowing_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "scan_sessions": {
+      "name": "scan_sessions",
+      "columns": {
+        "id": { "name": "id", "type": "integer", "primaryKey": true, "notNull": true, "autoincrement": true },
+        "institution_id": { "name": "institution_id", "type": "integer", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "started_at": { "name": "started_at", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false, "default": "(datetime('now'))" },
+        "ended_at": { "name": "ended_at", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "status": { "name": "status", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false, "default": "'in_progress'" }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "scan_sessions_institution_id_institutions_id_fk": {
+          "name": "scan_sessions_institution_id_institutions_id_fk",
+          "tableFrom": "scan_sessions",
+          "tableTo": "institutions",
+          "columnsFrom": ["institution_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "scan_entries": {
+      "name": "scan_entries",
+      "columns": {
+        "id": { "name": "id", "type": "integer", "primaryKey": true, "notNull": true, "autoincrement": true },
+        "session_id": { "name": "session_id", "type": "integer", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "isbn": { "name": "isbn", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "resource_id": { "name": "resource_id", "type": "integer", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "scanned_at": { "name": "scanned_at", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false, "default": "(datetime('now'))" }
+      },
+      "indexes": {
+        "scan_entries_session_id_idx": { "name": "scan_entries_session_id_idx", "columns": ["session_id"], "isUnique": false }
+      },
+      "foreignKeys": {
+        "scan_entries_session_id_scan_sessions_id_fk": {
+          "name": "scan_entries_session_id_scan_sessions_id_fk",
+          "tableFrom": "scan_entries",
+          "tableTo": "scan_sessions",
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "scan_entries_resource_id_resources_id_fk": {
+          "name": "scan_entries_resource_id_resources_id_fk",
+          "tableFrom": "scan_entries",
+          "tableTo": "resources",
+          "columnsFrom": ["resource_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "gate_logs": {
+      "name": "gate_logs",
+      "columns": {
+        "id": { "name": "id", "type": "integer", "primaryKey": true, "notNull": true, "autoincrement": true },
+        "institution_id": { "name": "institution_id", "type": "integer", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "user_id": { "name": "user_id", "type": "integer", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "direction": { "name": "direction", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "method": { "name": "method", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "logged_at": { "name": "logged_at", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false, "default": "(datetime('now'))" }
+      },
+      "indexes": {
+        "gate_logs_institution_id_idx": { "name": "gate_logs_institution_id_idx", "columns": ["institution_id"], "isUnique": false },
+        "gate_logs_user_id_idx": { "name": "gate_logs_user_id_idx", "columns": ["user_id"], "isUnique": false }
+      },
+      "foreignKeys": {
+        "gate_logs_institution_id_institutions_id_fk": {
+          "name": "gate_logs_institution_id_institutions_id_fk",
+          "tableFrom": "gate_logs",
+          "tableTo": "institutions",
+          "columnsFrom": ["institution_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "gate_logs_user_id_users_id_fk": {
+          "name": "gate_logs_user_id_users_id_fk",
+          "tableFrom": "gate_logs",
+          "tableTo": "users",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "favorites": {
+      "name": "favorites",
+      "columns": {
+        "id": { "name": "id", "type": "integer", "primaryKey": true, "notNull": true, "autoincrement": true },
+        "user_id": { "name": "user_id", "type": "integer", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "resource_id": { "name": "resource_id", "type": "integer", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "created_at": { "name": "created_at", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false, "default": "(datetime('now'))" }
+      },
+      "indexes": {
+        "favorites_user_id_idx": { "name": "favorites_user_id_idx", "columns": ["user_id"], "isUnique": false }
+      },
+      "foreignKeys": {
+        "favorites_user_id_users_id_fk": {
+          "name": "favorites_user_id_users_id_fk",
+          "tableFrom": "favorites",
+          "tableTo": "users",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "favorites_resource_id_resources_id_fk": {
+          "name": "favorites_resource_id_resources_id_fk",
+          "tableFrom": "favorites",
+          "tableTo": "resources",
+          "columnsFrom": ["resource_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "reviews": {
+      "name": "reviews",
+      "columns": {
+        "id": { "name": "id", "type": "integer", "primaryKey": true, "notNull": true, "autoincrement": true },
+        "user_id": { "name": "user_id", "type": "integer", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "resource_id": { "name": "resource_id", "type": "integer", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "rating": { "name": "rating", "type": "integer", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "comment": { "name": "comment", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "created_at": { "name": "created_at", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false, "default": "(datetime('now'))" }
+      },
+      "indexes": {
+        "reviews_resource_id_idx": { "name": "reviews_resource_id_idx", "columns": ["resource_id"], "isUnique": false }
+      },
+      "foreignKeys": {
+        "reviews_user_id_users_id_fk": {
+          "name": "reviews_user_id_users_id_fk",
+          "tableFrom": "reviews",
+          "tableTo": "users",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "reviews_resource_id_resources_id_fk": {
+          "name": "reviews_resource_id_resources_id_fk",
+          "tableFrom": "reviews",
+          "tableTo": "resources",
+          "columnsFrom": ["resource_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "settings": {
+      "name": "settings",
+      "columns": {
+        "key": { "name": "key", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
+        "value": { "name": "value", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "sessions": {
+      "name": "sessions",
+      "columns": {
+        "token": { "name": "token", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
+        "user_id": { "name": "user_id", "type": "integer", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "expires_at": { "name": "expires_at", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "created_at": { "name": "created_at", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false, "default": "(datetime('now'))" }
+      },
+      "indexes": {
+        "sessions_user_id_idx": { "name": "sessions_user_id_idx", "columns": ["user_id"], "isUnique": false },
+        "sessions_expires_at_idx": { "name": "sessions_expires_at_idx", "columns": ["expires_at"], "isUnique": false }
+      },
+      "foreignKeys": {
+        "sessions_user_id_users_id_fk": {
+          "name": "sessions_user_id_users_id_fk",
+          "tableFrom": "sessions",
+          "tableTo": "users",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    }
+  },
+  "views": {},
+  "enums": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "indexes": {}
+  }
+}

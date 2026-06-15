@@ -10,6 +10,8 @@ import { startBeacon, stopBeacon } from './beacon';
 import sql_0000 from '../../../packages/db/drizzle/0000_init.sql';
 // @ts-expect-error
 import sql_0001 from '../../../packages/db/drizzle/0001_sessions.sql';
+// @ts-expect-error — imported as plain text by esbuild
+import sql_0002 from '../../../packages/db/drizzle/0002_import_jobs.sql';
 
 const PORT = 3000;
 
@@ -20,7 +22,7 @@ const dbPath = process.env.BOOKLEAF_DB_PATH ?? './library.db';
 // Ensure the parent directory exists
 mkdirSync(dirname(dbPath), { recursive: true });
 
-const db = createSqliteAdapter(dbPath, sql_0000 as string, sql_0001 as string);
+const db = createSqliteAdapter(dbPath, sql_0000 as string, sql_0001 as string, sql_0002 as string);
 const app = initApp({ db });
 
 const server = createServer(async (req, res) => {
