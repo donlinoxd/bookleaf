@@ -936,7 +936,65 @@ export function createSqliteAdapter(
       await db.delete(authorityNames).where(eq(authorityNames.id, id));
     },
 
-    async adminMergeAuthorities(_survivorId, _loserIds) { throw new Error('not implemented'); }, // TODO(task 8): implement
+    async adminMergeAuthorities(survivorId, loserIds) {
+      const losers = loserIds.filter(id => id !== survivorId);
+      if (losers.length === 0) return;
+
+      const tx = rawDb.transaction(() => {
+        const survivor = rawDb.prepare('SELECT id, name, variants FROM authority_names WHERE id = ?').get(survivorId) as
+          { id: number; name: string; variants: string | null } | undefined;
+        if (!survivor) throw new Error('Survivor authority not found');
+
+        const placeholders = losers.map(() => '?').join(',');
+        const loserRows = rawDb.prepare(
+          `SELECT id, name, variants FROM authority_names WHERE id IN (${placeholders})`,
+        ).all(...losers) as { id: number; name: string; variants: string | null }[];
+
+        // 1. Repoint author + publisher FKs.
+        rawDb.prepare(`UPDATE resources SET author_authority_id = ? WHERE author_authority_id IN (${placeholders})`).run(survivorId, ...losers);
+        rawDb.prepare(`UPDATE resources SET publisher_authority_id = ? WHERE publisher_authority_id IN (${placeholders})`).run(survivorId, ...losers);
+
+        // 2. Repoint subject links, dropping rows that would collide with an
+        //    existing survivor link on the same resource (UNIQUE(resource_id, authority_id)).
+        rawDb.prepare(
+          `DELETE FROM resource_subjects
+            WHERE authority_id IN (${placeholders})
+              AND resource_id IN (SELECT resource_id FROM resource_subjects WHERE authority_id = ?)`,
+        ).run(...losers, survivorId);
+        rawDb.prepare(`UPDATE resource_subjects SET authority_id = ? WHERE authority_id IN (${placeholders})`).run(survivorId, ...losers);
+
+        // 3. Fold loser names + variants into survivor variants (deduped).
+        const folded = new Set(parseVariants(survivor.variants));
+        for (const l of loserRows) {
+          folded.add(l.name);
+          for (const v of parseVariants(l.variants)) folded.add(v);
+        }
+        folded.delete(survivor.name);
+        rawDb.prepare('UPDATE authority_names SET variants = ? WHERE id = ?')
+          .run(serializeVariants([...folded]), survivorId);
+
+        // 4. Re-sync denormalized text on resources now pointing at the survivor.
+        rawDb.prepare('UPDATE resources SET author = ? WHERE author_authority_id = ?').run(survivor.name, survivorId);
+        rawDb.prepare('UPDATE resources SET publisher = ? WHERE publisher_authority_id = ?').run(survivor.name, survivorId);
+
+        // 5. Re-derive subject_headings JSON for every resource touched.
+        const affected = rawDb.prepare('SELECT DISTINCT resource_id FROM resource_subjects WHERE authority_id = ?').all(survivorId) as { resource_id: number }[];
+        const subjNames = rawDb.prepare(
+          `SELECT an.name AS name FROM resource_subjects rs
+             JOIN authority_names an ON an.id = rs.authority_id
+            WHERE rs.resource_id = ? ORDER BY an.name`,
+        );
+        const setSubjects = rawDb.prepare('UPDATE resources SET subject_headings = ? WHERE id = ?');
+        for (const a of affected) {
+          const names = (subjNames.all(a.resource_id) as { name: string }[]).map(n => n.name);
+          setSubjects.run(names.length ? JSON.stringify(names) : null, a.resource_id);
+        }
+
+        // 6. Delete losers.
+        rawDb.prepare(`DELETE FROM authority_names WHERE id IN (${placeholders})`).run(...losers);
+      });
+      tx();
+    },
 
     // ── Admin: Members ───────────────────────────────────────────────────────
 

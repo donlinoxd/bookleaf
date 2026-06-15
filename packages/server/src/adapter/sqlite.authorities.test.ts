@@ -78,3 +78,31 @@ describe('adminDeleteAuthority', () => {
     await expect(db.adminDeleteAuthority(id)).rejects.toThrow(/in use/i);
   });
 });
+
+describe('adminMergeAuthorities', () => {
+  it('repoints author links, folds loser names into survivor variants, deletes losers, and re-syncs denormalized author text', async () => {
+    const survivor = await db.adminCreateAuthority({ institutionId: iid, name: 'Twain, Mark', type: 'personal' });
+    const loser = await db.adminCreateAuthority({ institutionId: iid, name: 'Clemens, Samuel', type: 'personal' });
+    const { id: bookId } = await db.adminCreateBook(iid, { title: 'Tom Sawyer', author: 'Clemens, Samuel', author_authority_id: loser.id }, []);
+
+    await db.adminMergeAuthorities(survivor.id, [loser.id]);
+
+    expect(await db.adminGetAuthority(loser.id)).toBeNull();
+    const merged = await db.adminGetAuthority(survivor.id);
+    expect(merged?.variants).toContain('Clemens, Samuel');
+    const book = await db.adminGetBook(bookId) as { author_authority_id: number; author: string };
+    expect(book.author_authority_id).toBe(survivor.id);
+    expect(book.author).toBe('Twain, Mark'); // denormalized text re-synced
+  });
+
+  it('drops redundant subject links when both survivor and loser are attached to the same resource', async () => {
+    const survivor = await db.adminCreateAuthority({ institutionId: iid, name: 'WWII', type: 'subject' });
+    const loser = await db.adminCreateAuthority({ institutionId: iid, name: 'World War 2', type: 'subject' });
+    await db.adminCreateBook(iid, { title: 'History', author: 'A', subject_authority_ids: [survivor.id, loser.id] }, []);
+
+    await db.adminMergeAuthorities(survivor.id, [loser.id]);
+
+    const merged = await db.adminGetAuthority(survivor.id);
+    expect(merged?.usage_count).toBe(1); // single subject link remains after dedupe
+  });
+});
