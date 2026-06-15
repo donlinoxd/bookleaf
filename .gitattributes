@@ -1,0 +1,10 @@
+# Default: normalize to LF on commit, checkout as-is
+* text=auto eol=lf
+
+# Rust/Cargo files: always LF
+*.toml text eol=lf
+*.rs   text eol=lf
+
+# Windows scripts: CRLF
+*.bat  text eol=crlf
+*.cmd  text eol=crlf

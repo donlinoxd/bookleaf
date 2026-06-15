@@ -193,5 +193,23 @@ export function createBridgeAdapter(queryRN: QueryFn): DbAdapter {
         ok: true;
         imported: number;
       }>,
+
+    adminGateRecentLogs: (institutionId, limit) =>
+      q('adminGateRecentLogs', { institutionId, limit }) as Promise<{
+        id: number; user_name: string; user_id_number: string;
+        direction: string; method: string; logged_at: string;
+      }[]>,
+
+    adminImportSQLite: (filePath) =>
+      q('adminImportSQLite', { filePath }) as Promise<{
+        ok: true; tablesImported: number; rowsImported: number;
+      }>,
+
+    adminLoadImportContext: () => {
+      throw new Error('Bulk import is not supported on mobile');
+    },
+    adminBulkImport: () => {
+      throw new Error('Bulk import is not supported on mobile');
+    },
   };
 }

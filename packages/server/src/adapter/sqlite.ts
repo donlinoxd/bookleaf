@@ -126,7 +126,7 @@ export function createSqliteAdapter(
   const db = drizzle(rawDb);
   seedDefaultsIfEmpty(rawDb);
 
-  return {
+  const adapterImpl: DbAdapter = {
     // ── Auth ────────────────────────────────────────────────────────────────
 
     async authenticateMember(idNumber, pin) {
@@ -604,6 +604,92 @@ export function createSqliteAdapter(
     },
 
     // ── Admin: Books ─────────────────────────────────────────────────────────
+
+    async adminLoadImportContext(institutionId) {
+      const catalog = rawDb.prepare(
+        'SELECT id, isbn, title, author FROM resources WHERE institution_id = ?',
+      ).all(institutionId) as { id: number; isbn: string | null; title: string; author: string }[];
+      const codes = rawDb.prepare(
+        'SELECT rc.barcode AS barcode, rc.accession_number AS accession ' +
+        'FROM resource_copies rc JOIN resources r ON r.id = rc.resource_id ' +
+        'WHERE r.institution_id = ?',
+      ).all(institutionId) as { barcode: string | null; accession: string | null }[];
+      return {
+        catalog,
+        barcodes: codes.map(c => c.barcode).filter((b): b is string => !!b),
+        accessions: codes.map(c => c.accession).filter((a): a is string => !!a),
+      };
+    },
+
+    async adminBulkImport(institutionId, plan, job) {
+      const tx = rawDb.transaction(() => {
+        let created = 0;
+        let copiesAdded = 0;
+
+        const insertResource = rawDb.prepare(
+          `INSERT INTO resources
+            (institution_id, material_type, isbn, issn, title, author, publisher, year, genre,
+             description, subtitle, edition, volume, series_title, language, call_number,
+             call_number_type, subject_headings, total_copies, available_copies)
+           VALUES (@institution_id, @material_type, @isbn, @issn, @title, @author, @publisher,
+             @year, @genre, @description, @subtitle, @edition, @volume, @series_title, @language,
+             @call_number, @call_number_type, @subject_headings, @total_copies, @available_copies)`,
+        );
+        const insertCopy = rawDb.prepare(
+          `INSERT INTO resource_copies (resource_id, copy_number, barcode, accession_number, shelf_location)
+           VALUES (?, ?, ?, ?, ?)`,
+        );
+        const maxCopyNo = rawDb.prepare(
+          'SELECT COALESCE(MAX(copy_number), 0) AS m FROM resource_copies WHERE resource_id = ?',
+        );
+        const bumpCopies = rawDb.prepare(
+          'UPDATE resources SET total_copies = total_copies + ?, available_copies = available_copies + ? WHERE id = ?',
+        );
+
+        for (const n of plan.creates) {
+          const r = insertResource.run({
+            institution_id: institutionId,
+            material_type: n.material_type,
+            isbn: n.isbn, issn: n.issn, title: n.title, author: n.author, publisher: n.publisher,
+            year: n.year, genre: n.genre, description: n.description, subtitle: n.subtitle,
+            edition: n.edition, volume: n.volume, series_title: n.series_title, language: n.language,
+            call_number: n.call_number, call_number_type: n.call_number_type,
+            subject_headings: serializeSubjectHeadings(n.subject_headings),
+            total_copies: n.copies, available_copies: n.copies,
+          });
+          const resourceId = Number(r.lastInsertRowid);
+          for (let i = 0; i < n.copies; i++) {
+            const bc = i === 0 ? n.barcode : null;
+            const ac = i === 0 ? n.accession_number : null;
+            insertCopy.run(resourceId, i + 1, bc, ac, n.shelf_location);
+          }
+          created += 1;
+        }
+
+        for (const add of plan.copyAdds) {
+          const startNo = (maxCopyNo.get(add.resourceId) as { m: number }).m;
+          for (let i = 0; i < add.copies; i++) {
+            insertCopy.run(add.resourceId, startNo + i + 1, null, null, null);
+          }
+          bumpCopies.run(add.copies, add.copies, add.resourceId);
+          copiesAdded += add.copies;
+        }
+
+        const j = rawDb.prepare(
+          `INSERT INTO import_jobs
+            (institution_id, imported_by_user_id, filename, duplicate_strategy, row_count,
+             created_count, copies_added_count, skipped_count, completed_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+        ).run(
+          institutionId, job.importedByUserId, job.filename, job.duplicateStrategy,
+          job.rowCount, created, copiesAdded, job.skippedCount,
+        );
+
+        return { created, copiesAdded, jobId: Number(j.lastInsertRowid) };
+      });
+
+      return tx();
+    },
 
     async adminListBooks(institutionId, q) {
       if (q) {
@@ -1618,4 +1704,21 @@ export function createSqliteAdapter(
       return { ok: true as const, tablesImported, rowsImported };
     },
   };
+
+  // Test-only helper attached outside the typed object literal so it doesn't
+  // violate the DbAdapter excess-property check. Cast it off in tests via:
+  //   (adapter as unknown as { __seedTestInstitution(): number }).__seedTestInstitution()
+  return Object.assign(adapterImpl, {
+    __seedTestInstitution(): number {
+      const inst = rawDb.prepare(
+        "INSERT INTO institutions (name) VALUES ('Test Inst')",
+      ).run();
+      const institutionId = Number(inst.lastInsertRowid);
+      rawDb.prepare(
+        "INSERT INTO users (institution_id, name, role, id_number, pin_hash, user_type) " +
+        "VALUES (?, 'Lib', 'librarian', 'L1', 'x', 'faculty')",
+      ).run(institutionId);
+      return institutionId;
+    },
+  }) as unknown as DbAdapter;
 }
