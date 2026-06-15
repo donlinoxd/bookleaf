@@ -109,23 +109,27 @@ export function createBridgeAdapter(queryRN: QueryFn): DbAdapter {
       q('adminAddCopy', { resourceId }).then(() => undefined),
 
     // ── Admin: Authorities ───────────────────────────────────────────────────
-    adminListAuthorities: (institutionId, filter) =>
-      q('adminListAuthorities', { institutionId, ...filter }) as Promise<Array<Record<string, unknown> & { usage_count: number }>>,
-
-    adminGetAuthority: (id) =>
-      q('adminGetAuthority', { id }) as Promise<(Record<string, unknown> & { usage_count: number }) | null>,
-
-    adminCreateAuthority: (input) =>
-      q('adminCreateAuthority', input) as Promise<{ id: number }>,
-
-    adminUpdateAuthority: (id, data) =>
-      q('adminUpdateAuthority', { id, data }).then(() => undefined),
-
-    adminDeleteAuthority: (id) =>
-      q('adminDeleteAuthority', { id }).then(() => undefined),
-
-    adminMergeAuthorities: (survivorId, loserIds) =>
-      q('adminMergeAuthorities', { survivorId, loserIds }).then(() => undefined),
+    // Authority management is a desktop-only feature (like bulk import). The
+    // mobile bridge has no handlers for these actions, so fail loudly rather
+    // than forward a call that would never resolve.
+    adminListAuthorities: () => {
+      throw new Error('Authority management is not supported on mobile');
+    },
+    adminGetAuthority: () => {
+      throw new Error('Authority management is not supported on mobile');
+    },
+    adminCreateAuthority: () => {
+      throw new Error('Authority management is not supported on mobile');
+    },
+    adminUpdateAuthority: () => {
+      throw new Error('Authority management is not supported on mobile');
+    },
+    adminDeleteAuthority: () => {
+      throw new Error('Authority management is not supported on mobile');
+    },
+    adminMergeAuthorities: () => {
+      throw new Error('Authority management is not supported on mobile');
+    },
 
     // ── Admin: Members ───────────────────────────────────────────────────────
     adminListMembers: (institutionId, q2) =>
