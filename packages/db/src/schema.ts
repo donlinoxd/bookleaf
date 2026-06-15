@@ -27,8 +27,13 @@ export const authorityNames = sqliteTable('authority_names', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   institution_id: integer('institution_id').notNull().references(() => institutions.id),
   name: text('name').notNull(),
-  name_type: text('name_type', { enum: ['personal', 'corporate', 'geographic'] }).notNull().default('personal'),
+  name_type: text('name_type', {
+    enum: ['personal', 'corporate', 'geographic', 'subject', 'publisher'],
+  }).notNull().default('personal'),
   variants: text('variants'),
+  // Lowercased, whitespace-collapsed, NFC dedupe key. Nullable so mobile-created
+  // rows (which never set it) stay valid and bypass the desktop unique index.
+  normalized_name: text('normalized_name'),
   created_at: text('created_at').notNull().default(sql`(datetime('now'))`),
 });
 
@@ -65,6 +70,7 @@ export const resources = sqliteTable('resources', {
   carrier_type: text('carrier_type'),
   subject_headings: text('subject_headings'),
   author_authority_id: integer('author_authority_id').references(() => authorityNames.id),
+  publisher_authority_id: integer('publisher_authority_id').references(() => authorityNames.id),
   // Lending rules
   is_loanable: integer('is_loanable', { mode: 'boolean' }).notNull().default(true),
   loan_period_days: integer('loan_period_days'),
@@ -83,6 +89,12 @@ export const resourceCopies = sqliteTable('resource_copies', {
   barcode: text('barcode'),
   shelf_location: text('shelf_location'),
   accession_number: text('accession_number'),
+});
+
+export const resourceSubjects = sqliteTable('resource_subjects', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  resource_id: integer('resource_id').notNull().references(() => resources.id),
+  authority_id: integer('authority_id').notNull().references(() => authorityNames.id),
 });
 
 export const importJobs = sqliteTable('import_jobs', {
