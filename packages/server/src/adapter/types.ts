@@ -1,3 +1,5 @@
+import type { NormalizedRow, ImportJobInput } from '../import/types';
+
 export interface SessionPrincipal {
   user_id: number;
   institution_id: number;
@@ -61,6 +63,19 @@ export interface DbAdapter {
   ): Promise<unknown | null>;
 
   // ── Admin: Books ──────────────────────────────────────────────────────────
+  adminLoadImportContext(institutionId: number): Promise<{
+    catalog: { id: number; isbn: string | null; title: string; author: string }[];
+    barcodes: string[];
+    accessions: string[];
+  }>;
+  adminBulkImport(
+    institutionId: number,
+    plan: {
+      creates: NormalizedRow[];
+      copyAdds: { resourceId: number; copies: number }[];
+    },
+    job: ImportJobInput,
+  ): Promise<{ created: number; copiesAdded: number; jobId: number }>;
   adminListBooks(institutionId: number, q?: string): Promise<unknown[]>;
   adminGetBook(id: number): Promise<unknown | null>;
   adminGetBookWithCopies(id: number): Promise<unknown | null>;
