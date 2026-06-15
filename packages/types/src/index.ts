@@ -247,3 +247,5 @@ export interface DiscrepancyReport {
   unknown_scans: UnknownScan[];
   extra_copies: ExtraCopy[];
 }
+
+export * from './import';
