@@ -143,6 +143,30 @@ export function createSqliteAdapter(
   const db = drizzle(rawDb);
   seedDefaultsIfEmpty(rawDb);
 
+  // Replace a resource's subject links and re-derive its denormalized
+  // subject_headings JSON from the linked authorities' preferred names.
+  function syncResourceSubjects(resourceId: number, authorityIds: number[] | undefined): void {
+    if (authorityIds === undefined) return; // caller didn't touch subjects
+    const unique = [...new Set(authorityIds)];
+    rawDb.prepare('DELETE FROM resource_subjects WHERE resource_id = ?').run(resourceId);
+    const insert = rawDb.prepare('INSERT OR IGNORE INTO resource_subjects (resource_id, authority_id) VALUES (?, ?)');
+    for (const aid of unique) insert.run(resourceId, aid);
+    const names = unique.length
+      ? (rawDb.prepare(
+          `SELECT name FROM authority_names WHERE id IN (${unique.map(() => '?').join(',')}) ORDER BY name`,
+        ).all(...unique) as { name: string }[]).map(n => n.name)
+      : [];
+    rawDb.prepare('UPDATE resources SET subject_headings = ? WHERE id = ?')
+      .run(names.length ? JSON.stringify(names) : null, resourceId);
+  }
+
+  // If a publisher/author authority is linked, force the denormalized text to its name.
+  function authorityNameFor(authorityId: number | null | undefined): string | undefined {
+    if (authorityId == null) return undefined;
+    const row = rawDb.prepare('SELECT name FROM authority_names WHERE id = ?').get(authorityId) as { name: string } | undefined;
+    return row?.name;
+  }
+
   const adapterImpl: DbAdapter = {
     // ── Auth ────────────────────────────────────────────────────────────────
 
@@ -755,8 +779,8 @@ export function createSqliteAdapter(
         isbn: d.isbn ?? null,
         issn: d.issn ?? null,
         title: d.title,
-        author: d.author,
-        publisher: d.publisher ?? null,
+        author: authorityNameFor(d.author_authority_id) ?? d.author,
+        publisher: authorityNameFor(d.publisher_authority_id) ?? d.publisher ?? null,
         year: d.year ?? null,
         genre: d.genre ?? null,
         description: d.description ?? null,
@@ -777,6 +801,7 @@ export function createSqliteAdapter(
         carrier_type: d.carrier_type ?? null,
         subject_headings: serializeSubjectHeadings(d.subject_headings),
         author_authority_id: d.author_authority_id ?? null,
+        publisher_authority_id: d.publisher_authority_id ?? null,
         is_loanable: d.is_loanable ?? true,
         loan_period_days: d.loan_period_days ?? null,
         total_copies: d.total_copies ?? 1,
@@ -795,6 +820,7 @@ export function createSqliteAdapter(
         }));
         await db.insert(resourceCopies).values(copyRows);
       }
+      syncResourceSubjects(resourceId, d.subject_authority_ids as number[] | undefined);
       return { id: resourceId };
     },
 
@@ -803,8 +829,8 @@ export function createSqliteAdapter(
       await db.update(resources).set({
         material_type: d.material_type,
         title: d.title,
-        author: d.author,
-        publisher: d.publisher ?? null,
+        author: authorityNameFor(d.author_authority_id) ?? d.author,
+        publisher: authorityNameFor(d.publisher_authority_id) ?? d.publisher ?? null,
         year: d.year ?? null,
         genre: d.genre ?? null,
         description: d.description ?? null,
@@ -827,9 +853,11 @@ export function createSqliteAdapter(
         carrier_type: d.carrier_type ?? null,
         subject_headings: serializeSubjectHeadings(d.subject_headings),
         author_authority_id: d.author_authority_id ?? null,
+        publisher_authority_id: d.publisher_authority_id ?? null,
         is_loanable: d.is_loanable,
         loan_period_days: d.loan_period_days ?? null,
       }).where(eq(resources.id, id));
+      syncResourceSubjects(id, d.subject_authority_ids as number[] | undefined);
     },
 
     async adminDeleteBook(id) {
