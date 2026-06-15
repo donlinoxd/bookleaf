@@ -74,6 +74,11 @@ export function createImportService(repo: ImportRepo, sessions: SessionStore): I
       const payload = sessions.get(sessionId);
       if (!payload) throw new Error('Import session not found or expired. Please re-run the preview.');
 
+      // Re-derive verdicts against a freshly-loaded context using the cached
+      // normalized rows. This repeats the full dedup (in-file + existing-catalog +
+      // barcode/accession collisions) so codes/ISBNs that appeared since the preview
+      // cannot slip through; row validation/coercion is NOT repeated (the cached
+      // normalized rows are the source of truth).
       const ctx = await repo.loadContext(payload.institutionId);
       const recheck = reverify(payload.verdicts, payload.norms, ctx);
 
@@ -101,9 +106,10 @@ export function createImportService(repo: ImportRepo, sessions: SessionStore): I
 }
 
 /**
- * Re-derive verdicts at commit time using the cached normalized rows and the
- * freshly-loaded context. Reuses the same dedup engine by reconstructing
- * minimal validations from the cached normalized rows.
+ * Re-derive verdicts at commit time by running the full dedup engine over the
+ * cached normalized rows against a freshly-loaded context. Validation/coercion
+ * is not re-run: each cached normalized row is wrapped back into a passing
+ * RowValidation (rows with no cached norm stay invalid).
  */
 function reverify(
   prior: RowVerdict[],

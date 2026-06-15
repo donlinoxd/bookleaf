@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import type { RowVerdict } from '@bookleaf/types';
 import type { NormalizedRow } from './types';
 
@@ -24,10 +25,8 @@ export interface SessionStore {
   evict(id: string): void;
 }
 
-let counter = 0;
 function defaultId(): string {
-  counter += 1;
-  return `imp_${counter.toString(36)}_${counter}`;
+  return `imp_${randomBytes(16).toString('hex')}`;
 }
 
 export function createSessionStore(opts: SessionStoreOptions = {}): SessionStore {

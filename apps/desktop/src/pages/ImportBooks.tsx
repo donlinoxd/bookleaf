@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTRPC, getTRPCErrorMessage } from '@/lib/trpc';
 import { useAuthStore } from '@/store/useAuthStore';
 import { parseSpreadsheet } from '@/lib/importParse';
@@ -16,6 +16,7 @@ export default function ImportBooks() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const institutionId = user?.institution_id ?? 1;
+  const qc = useQueryClient();
 
   const [step, setStep] = useState<Step>('upload');
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +71,7 @@ export default function ImportBooks() {
     setError(null);
     try {
       await commitMut.mutateAsync({ sessionId, duplicateStrategy: strategy, filename });
+      qc.invalidateQueries({ queryKey: trpc.admin.books.list.queryKey({ institutionId }) });
       setStep('result');
     } catch (e) {
       setError(getTRPCErrorMessage(e));
