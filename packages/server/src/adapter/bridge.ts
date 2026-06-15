@@ -108,6 +108,25 @@ export function createBridgeAdapter(queryRN: QueryFn): DbAdapter {
     adminAddCopy: (resourceId) =>
       q('adminAddCopy', { resourceId }).then(() => undefined),
 
+    // ── Admin: Authorities ───────────────────────────────────────────────────
+    adminListAuthorities: (institutionId, filter) =>
+      q('adminListAuthorities', { institutionId, ...filter }) as Promise<Array<Record<string, unknown> & { usage_count: number }>>,
+
+    adminGetAuthority: (id) =>
+      q('adminGetAuthority', { id }) as Promise<(Record<string, unknown> & { usage_count: number }) | null>,
+
+    adminCreateAuthority: (input) =>
+      q('adminCreateAuthority', input) as Promise<{ id: number }>,
+
+    adminUpdateAuthority: (id, data) =>
+      q('adminUpdateAuthority', { id, data }).then(() => undefined),
+
+    adminDeleteAuthority: (id) =>
+      q('adminDeleteAuthority', { id }).then(() => undefined),
+
+    adminMergeAuthorities: (survivorId, loserIds) =>
+      q('adminMergeAuthorities', { survivorId, loserIds }).then(() => undefined),
+
     // ── Admin: Members ───────────────────────────────────────────────────────
     adminListMembers: (institutionId, q2) =>
       q('adminListMembers', { institutionId, q: q2 }) as Promise<unknown[]>,

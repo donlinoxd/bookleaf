@@ -6,12 +6,13 @@ import {
 } from 'drizzle-orm';
 import * as schema from '@bookleaf/db/schema';
 import { hashPin, verifyPin, isLegacyHash } from '@bookleaf/db/database';
+import { normalizeAuthorityName } from '../authorities/normalize';
 import type { DbAdapter, SessionPrincipal } from './types';
 
 const {
   institutions, users, resources, resourceCopies, borrowingRecords,
   reservations, fines, favorites, reviews, gateLogs, settings,
-  authorityNames, scanSessions, scanEntries, sessions,
+  authorityNames, resourceSubjects, scanSessions, scanEntries, sessions,
   DEFAULT_SETTINGS,
 } = schema;
 
@@ -25,6 +26,22 @@ function serializeSubjectHeadings(headings: string[] | null | undefined): string
 function parseSubjectHeadings(raw: string | null | undefined): string[] | null {
   if (!raw) return null;
   try { return JSON.parse(raw) as string[]; } catch { return null; }
+}
+
+function serializeVariants(variants: string[] | null | undefined): string | null {
+  if (!variants || variants.length === 0) return null;
+  return JSON.stringify(variants);
+}
+
+function parseVariants(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  try {
+    const v = JSON.parse(raw);
+    return Array.isArray(v) ? (v as string[]) : [];
+  } catch {
+    // Legacy non-JSON variants (mobile stored comma-or-free text); treat as single.
+    return [raw];
+  }
 }
 
 function mapResourceRow(row: Record<string, unknown>): Record<string, unknown> {
@@ -830,6 +847,74 @@ export function createSqliteAdapter(
         available_copies: sql`${resources.available_copies} + 1`,
       }).where(eq(resources.id, resourceId));
     },
+
+    // ── Admin: Authorities ─────────────────────────────────────────────────
+
+    async adminCreateAuthority(input) {
+      const name = input.name.trim();
+      const normalized = normalizeAuthorityName(name);
+      const existing = await db.select({ id: authorityNames.id })
+        .from(authorityNames)
+        .where(and(
+          eq(authorityNames.institution_id, input.institutionId),
+          eq(authorityNames.name_type, input.type as any),
+          eq(authorityNames.normalized_name, normalized),
+        ))
+        .limit(1)
+        .then(r => r[0] ?? null);
+      if (existing) return { id: existing.id };
+
+      const result = await db.insert(authorityNames).values({
+        institution_id: input.institutionId,
+        name,
+        name_type: input.type as any,
+        variants: serializeVariants(input.variants),
+        normalized_name: normalized,
+      }).returning({ id: authorityNames.id });
+      return { id: result[0].id };
+    },
+
+    async adminListAuthorities(institutionId, filter) {
+      const conditions: any[] = [eq(authorityNames.institution_id, institutionId)];
+      if (filter.type) conditions.push(eq(authorityNames.name_type, filter.type as any));
+      if (filter.q) {
+        const qp = `%${filter.q}%`;
+        conditions.push(or(like(authorityNames.name, qp), like(authorityNames.variants, qp)));
+      }
+      const rows = await db.select().from(authorityNames)
+        .where(and(...conditions))
+        .orderBy(asc(authorityNames.name));
+
+      const usage = rawDb.prepare(
+        `SELECT a.id AS id,
+           (SELECT COUNT(*) FROM resources r WHERE r.author_authority_id = a.id)
+         + (SELECT COUNT(*) FROM resources r WHERE r.publisher_authority_id = a.id)
+         + (SELECT COUNT(*) FROM resource_subjects rs WHERE rs.authority_id = a.id) AS usage_count
+         FROM authority_names a WHERE a.institution_id = ?`,
+      ).all(institutionId) as { id: number; usage_count: number }[];
+      const usageMap = new Map(usage.map(u => [u.id, u.usage_count]));
+
+      return rows.map(r => ({
+        ...r,
+        variants: parseVariants(r.variants),
+        usage_count: usageMap.get(r.id) ?? 0,
+      }));
+    },
+
+    async adminGetAuthority(id) {
+      const row = await db.select().from(authorityNames).where(eq(authorityNames.id, id)).limit(1).then(r => r[0] ?? null);
+      if (!row) return null;
+      const usageRow = rawDb.prepare(
+        `SELECT (SELECT COUNT(*) FROM resources r WHERE r.author_authority_id = ?)
+              + (SELECT COUNT(*) FROM resources r WHERE r.publisher_authority_id = ?)
+              + (SELECT COUNT(*) FROM resource_subjects rs WHERE rs.authority_id = ?) AS usage_count`,
+      ).get(id, id, id) as { usage_count: number };
+      return { ...row, variants: parseVariants(row.variants), usage_count: usageRow.usage_count };
+    },
+
+    async adminUpdateAuthority(_id, _data) { throw new Error('not implemented'); }, // TODO(task 7): implement
+    async adminDeleteAuthority(_id) { throw new Error('not implemented'); }, // TODO(task 7): implement
+    async adminMergeAuthorities(_survivorId, _loserIds) { throw new Error('not implemented'); }, // TODO(task 8): implement
 
     // ── Admin: Members ───────────────────────────────────────────────────────
 
