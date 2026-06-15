@@ -1,6 +1,13 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, librarianProcedure } from '../../trpc';
+import { importPreviewInput, importCommitInput } from '@bookleaf/types';
+import { createImportService } from '../../import/service';
+import { createSessionStore } from '../../import/session';
+import type { ImportRepo } from '../../import/types';
+
+// Process-wide session store (desktop server is single-process).
+const importSessions = createSessionStore();
 
 export const adminBooksRouter = router({
   list: librarianProcedure
@@ -61,5 +68,39 @@ export const adminBooksRouter = router({
     .mutation(async ({ input, ctx }) => {
       await ctx.db.adminAddCopy(input.resourceId);
       return { ok: true as const };
+    }),
+
+  importPreview: librarianProcedure
+    .input(importPreviewInput)
+    .mutation(async ({ input, ctx }) => {
+      const repo: ImportRepo = {
+        loadContext: (iid) => ctx.db.adminLoadImportContext(iid),
+        commit: (iid, plan, job) => ctx.db.adminBulkImport(iid, plan, job),
+      };
+      const svc = createImportService(repo, importSessions);
+      try {
+        return await svc.preview(input.institutionId, input.rows);
+      } catch (e) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: e instanceof Error ? e.message : 'Preview failed' });
+      }
+    }),
+
+  importCommit: librarianProcedure
+    .input(importCommitInput)
+    .mutation(async ({ input, ctx }) => {
+      const userId = ctx.principal.user_id;
+      const repo: ImportRepo = {
+        loadContext: (iid) => ctx.db.adminLoadImportContext(iid),
+        // Inject the authenticated user as the importer.
+        commit: (iid, plan, job) => ctx.db.adminBulkImport(iid, plan, { ...job, importedByUserId: userId }),
+      };
+      const svc = createImportService(repo, importSessions);
+      try {
+        const { _institutionId, ...result } = await svc.commit(input.sessionId, input.duplicateStrategy, input.filename);
+        void _institutionId;
+        return result;
+      } catch (e) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: e instanceof Error ? e.message : 'Import failed' });
+      }
     }),
 });
