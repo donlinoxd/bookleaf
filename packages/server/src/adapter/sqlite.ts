@@ -912,8 +912,30 @@ export function createSqliteAdapter(
       return { ...row, variants: parseVariants(row.variants), usage_count: usageRow.usage_count };
     },
 
-    async adminUpdateAuthority(_id, _data) { throw new Error('not implemented'); }, // TODO(task 7): implement
-    async adminDeleteAuthority(_id) { throw new Error('not implemented'); }, // TODO(task 7): implement
+    async adminUpdateAuthority(id, data) {
+      const patch: Record<string, unknown> = {};
+      if (data.name !== undefined) {
+        patch.name = data.name.trim();
+        patch.normalized_name = normalizeAuthorityName(data.name);
+      }
+      if (data.type !== undefined) patch.name_type = data.type;
+      if (data.variants !== undefined) patch.variants = serializeVariants(data.variants);
+      if (Object.keys(patch).length === 0) return;
+      await db.update(authorityNames).set(patch as any).where(eq(authorityNames.id, id));
+    },
+
+    async adminDeleteAuthority(id) {
+      const usage = rawDb.prepare(
+        `SELECT (SELECT COUNT(*) FROM resources r WHERE r.author_authority_id = ?)
+              + (SELECT COUNT(*) FROM resources r WHERE r.publisher_authority_id = ?)
+              + (SELECT COUNT(*) FROM resource_subjects rs WHERE rs.authority_id = ?) AS c`,
+      ).get(id, id, id) as { c: number };
+      if (usage.c > 0) {
+        throw new Error(`This authority is in use by ${usage.c} record(s). Merge it into another authority or unlink it first.`);
+      }
+      await db.delete(authorityNames).where(eq(authorityNames.id, id));
+    },
+
     async adminMergeAuthorities(_survivorId, _loserIds) { throw new Error('not implemented'); }, // TODO(task 8): implement
 
     // ── Admin: Members ───────────────────────────────────────────────────────

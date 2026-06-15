@@ -54,3 +54,27 @@ describe('adminListAuthorities', () => {
     expect(byVariant.map(a => a.name)).toContain('Twain, Mark');
   });
 });
+
+describe('adminUpdateAuthority', () => {
+  it('updates name and recomputes the dedupe key', async () => {
+    const { id } = await db.adminCreateAuthority({ institutionId: iid, name: 'Old Name', type: 'subject' });
+    await db.adminUpdateAuthority(id, { name: 'New Name' });
+    const got = await db.adminGetAuthority(id);
+    expect(got?.name).toBe('New Name');
+    expect(got?.normalized_name).toBe('new name');
+  });
+});
+
+describe('adminDeleteAuthority', () => {
+  it('deletes an unreferenced authority', async () => {
+    const { id } = await db.adminCreateAuthority({ institutionId: iid, name: 'Orphan', type: 'subject' });
+    await db.adminDeleteAuthority(id);
+    expect(await db.adminGetAuthority(id)).toBeNull();
+  });
+
+  it('refuses to delete an authority still in use', async () => {
+    const { id } = await db.adminCreateAuthority({ institutionId: iid, name: 'Used Subject', type: 'subject' });
+    await db.adminCreateBook(iid, { title: 'T', author: 'A', subject_authority_ids: [id] }, []);
+    await expect(db.adminDeleteAuthority(id)).rejects.toThrow(/in use/i);
+  });
+});
