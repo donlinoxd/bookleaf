@@ -8,7 +8,7 @@ import { Input } from '@bookleaf/ui/components/input';
 import { Label } from '@bookleaf/ui/components/label';
 import { Badge } from '@bookleaf/ui/components/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@bookleaf/ui/components/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@bookleaf/ui/components/alert-dialog';
+import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@bookleaf/ui/components/alert-dialog';
 import { Plus, Pencil, Trash2, Merge, Search } from 'lucide-react';
 
 const TABS = [
@@ -102,7 +102,7 @@ export default function Authorities() {
                 <td className="px-3 py-2">
                   <div className="flex gap-1 justify-end">
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditing(r)}><Pencil size={13} /></Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteId(r.id)}><Trash2 size={13} /></Button>
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => { deleteMut.reset(); setDeleteId(r.id); }}><Trash2 size={13} /></Button>
                   </div>
                 </td>
               </tr>
@@ -128,14 +128,16 @@ export default function Authorities() {
         error={createMut.error || updateMut.error}
       />
 
-      <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+      <AlertDialog open={!!deleteId} onOpenChange={(o) => { if (!o) { setDeleteId(null); deleteMut.reset(); } }}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>Delete authority?</AlertDialogTitle>
             <AlertDialogDescription>In-use authorities cannot be deleted — merge or unlink them first.{deleteMut.error ? ` ${getTRPCErrorMessage(deleteMut.error)}` : ''}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => deleteId && deleteMut.mutate({ id: deleteId })}>Delete</AlertDialogAction>
+            <Button variant="destructive" disabled={deleteMut.isPending} onClick={() => { if (deleteId) deleteMut.mutate({ id: deleteId }); }}>
+              {deleteMut.isPending ? 'Deleting…' : 'Delete'}
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
