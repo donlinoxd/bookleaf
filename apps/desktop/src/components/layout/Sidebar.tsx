@@ -1,5 +1,5 @@
 ﻿import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, Users, ArrowLeftRight, Settings, BookMarked, BarChart2, DoorOpen, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Users, ArrowLeftRight, Settings, BookMarked, BarChart2, DoorOpen, ClipboardList, Tags } from 'lucide-react';
 import { cn } from '@bookleaf/ui/lib/utils';
 
 const navItems = [
@@ -11,6 +11,7 @@ const navItems = [
   { to: '/reports',      icon: BarChart2,     label: 'Reports' },
   { to: '/gate',         icon: DoorOpen,      label: 'Gate' },
   { to: '/inventory',    icon: ClipboardList, label: 'Inventory' },
+  { to: '/authorities',  icon: Tags,          label: 'Authorities' },
   { to: '/settings',     icon: Settings,      label: 'Settings' },
 ];
 
