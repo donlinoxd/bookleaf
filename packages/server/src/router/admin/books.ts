@@ -134,4 +134,22 @@ export const adminBooksRouter = router({
         throw new TRPCError({ code: 'BAD_REQUEST', message: e instanceof Error ? e.message : 'Import failed' });
       }
     }),
+
+  marcImportCommit: librarianProcedure
+    .input(importCommitInput)
+    .mutation(async ({ input, ctx }) => {
+      const userId = ctx.principal.user_id;
+      const repo: ImportRepo = {
+        loadContext: (iid) => ctx.db.adminLoadImportContext(iid),
+        commit: (iid, plan, job) => ctx.db.adminBulkImport(iid, plan, { ...job, importedByUserId: userId }),
+      };
+      const svc = createImportService(repo, importSessions);
+      try {
+        const { _institutionId, ...result } = await svc.commit(input.sessionId, input.duplicateStrategy, input.filename);
+        void _institutionId;
+        return result;
+      } catch (e) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: e instanceof Error ? e.message : 'Import failed' });
+      }
+    }),
 });
