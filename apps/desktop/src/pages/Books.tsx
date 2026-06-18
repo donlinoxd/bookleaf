@@ -17,6 +17,7 @@ import { Badge } from '@bookleaf/ui/components/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@bookleaf/ui/components/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@bookleaf/ui/components/alert-dialog';
 import { Plus, Pencil, Trash2, Search } from 'lucide-react';
+import { AuthorityPicker, AuthorityMultiPicker } from '@/components/AuthorityCombobox';
 
 const bookSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -32,7 +33,7 @@ const bookSchema = z.object({
   is_loanable: z.boolean().default(true),
 });
 type BookForm = z.infer<typeof bookSchema>;
-type Book = { id: number; title: string; author: string | null; genre: string | null; year: number | null; material_type: string; available_copies: number; total_copies: number };
+type Book = { id: number; title: string; author: string | null; genre: string | null; year: number | null; material_type: string; available_copies: number; total_copies: number; author_authority_id?: number | null; publisher?: string | null; publisher_authority_id?: number | null; subject_headings?: string[] | null };
 
 export default function Books() {
   const trpc = useTRPC();
@@ -95,7 +96,7 @@ export default function Books() {
           </tbody>
         </table>
       </div>
-      <BookDialog open={isAddOpen || !!editBook} onClose={() => { setIsAddOpen(false); setEditBook(null); }}
+      <BookDialog open={isAddOpen || !!editBook} onClose={() => { setIsAddOpen(false); setEditBook(null); }} editing={editBook}
         defaultValues={editBook ? { title: editBook.title, author: editBook.author ?? '', genre: editBook.genre ?? '', year: editBook.year ?? undefined, total_copies: editBook.total_copies, material_type: editBook.material_type, is_loanable: true } : undefined}
         onSubmit={(data) => editBook ? updateMutation.mutate({ id: editBook.id, data }) : createMutation.mutate({ institutionId: iid, data, copies: [] })}
         isPending={createMutation.isPending || updateMutation.isPending} error={createMutation.error || updateMutation.error} title={editBook ? 'Edit Book' : 'Add Book'} />
@@ -112,24 +113,59 @@ export default function Books() {
   );
 }
 
-function BookDialog({ open, onClose, defaultValues, onSubmit, isPending, error, title }: { open: boolean; onClose: () => void; defaultValues?: Partial<BookForm>; onSubmit: (d: BookForm) => void; isPending: boolean; error: unknown; title: string }) {
+function BookDialog({ open, onClose, editing, defaultValues, onSubmit, isPending, error, title }: { open: boolean; onClose: () => void; editing?: Book | null; defaultValues?: Partial<BookForm>; onSubmit: (d: Record<string, unknown>) => void; isPending: boolean; error: unknown; title: string }) {
   const { register, handleSubmit, reset, formState: { errors } } = useForm<BookForm>({ resolver: zodResolver(bookSchema), defaultValues: defaultValues ?? { total_copies: 1, material_type: 'BOOK', is_loanable: true } });
+  const [authorAuthority, setAuthorAuthority] = useState<{ id: number | null; name: string | null }>({ id: null, name: null });
+  const [publisherAuthority, setPublisherAuthority] = useState<{ id: number | null; name: string | null }>({ id: null, name: null });
+  const [subjects, setSubjects] = useState<{ id: number; name: string }[]>([]);
+  const [subjectsTouched, setSubjectsTouched] = useState(false);
   useEffect(() => { if (open) reset(defaultValues ?? { total_copies: 1, material_type: 'BOOK', is_loanable: true }); }, [open]);
+  useEffect(() => {
+    if (!open) return;
+    setAuthorAuthority({ id: editing?.author_authority_id ?? null, name: editing?.author ?? null });
+    setPublisherAuthority({ id: editing?.publisher_authority_id ?? null, name: editing?.publisher ?? null });
+    // Subject ids aren't carried on the list row; start empty on edit and only
+    // send subjects if the librarian actually touches the field (see submit handler).
+    setSubjects([]);
+    setSubjectsTouched(false);
+  }, [open]);
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) { onClose(); reset(); } }}>
       <DialogContent className="max-w-lg">
         <DialogHeader><DialogTitle>{title}</DialogTitle></DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 py-2">
+        <form onSubmit={handleSubmit((data) => onSubmit({
+          ...data,
+          author: authorAuthority.name ?? data.author,
+          publisher: publisherAuthority.name ?? data.publisher,
+          author_authority_id: authorAuthority.id,
+          publisher_authority_id: publisherAuthority.id,
+          // Only send subjects if the librarian touched the field, so editing a
+          // book without opening Subjects doesn't wipe its existing links.
+          ...(subjectsTouched ? { subject_authority_ids: subjects.map((s) => s.id) } : {}),
+        }))} className="space-y-3 py-2">
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2 space-y-1"><Label>Title *</Label><Input {...register('title')} />{errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}</div>
-            <div className="space-y-1"><Label>Author</Label><Input {...register('author')} /></div>
+            <div className="col-span-2 space-y-1"><Label>Author</Label>
+              <AuthorityPicker type="personal" valueId={authorAuthority.id} valueName={authorAuthority.name ?? undefined}
+                placeholder="Search or create an author authority…"
+                onChange={(id, name) => setAuthorAuthority({ id, name })} />
+            </div>
             <div className="space-y-1"><Label>ISBN</Label><Input {...register('isbn')} /></div>
             <div className="space-y-1"><Label>Genre</Label><Input {...register('genre')} /></div>
             <div className="space-y-1"><Label>Year</Label><Input type="number" {...register('year')} /></div>
-            <div className="space-y-1"><Label>Publisher</Label><Input {...register('publisher')} /></div>
+            <div className="col-span-2 space-y-1"><Label>Publisher</Label>
+              <AuthorityPicker type="publisher" valueId={publisherAuthority.id} valueName={publisherAuthority.name ?? undefined}
+                placeholder="Search or create a publisher…"
+                onChange={(id, name) => setPublisherAuthority({ id, name })} />
+            </div>
             <div className="space-y-1"><Label>Language</Label><Input {...register('language')} placeholder="English" /></div>
             <div className="space-y-1"><Label>Call Number</Label><Input {...register('call_number')} /></div>
             <div className="space-y-1"><Label>Copies</Label><Input type="number" min={1} {...register('total_copies')} /></div>
+            <div className="col-span-2 space-y-1"><Label>Subjects</Label>
+              <AuthorityMultiPicker type="subject" value={subjects}
+                onChange={(next) => { setSubjects(next); setSubjectsTouched(true); }}
+                placeholder="Add controlled subjects…" />
+            </div>
           </div>
           {error && <p className="text-xs text-destructive">{getTRPCErrorMessage(error)}</p>}
           <DialogFooter>
