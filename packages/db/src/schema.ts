@@ -199,6 +199,41 @@ export const sessions = sqliteTable('sessions', {
   created_at: text('created_at').notNull().default(sql`(datetime('now'))`),
 });
 
+export const loanRules = sqliteTable('loan_rules', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  institution_id: integer('institution_id').notNull().references(() => institutions.id),
+  user_type: text('user_type').notNull(),
+  material_type: text('material_type').notNull(),
+  loan_period_days: integer('loan_period_days').notNull(),
+  type_limit: integer('type_limit'),
+  max_renewals: integer('max_renewals').notNull(),
+  renewal_period_days: integer('renewal_period_days'),
+  fine_per_day: real('fine_per_day').notNull(),
+  grace_period_days: integer('grace_period_days').notNull().default(0),
+  fine_max: real('fine_max'),
+  is_loanable: integer('is_loanable', { mode: 'boolean' }).notNull().default(true),
+  is_holdable: integer('is_holdable', { mode: 'boolean' }).notNull().default(true),
+});
+
+export const categoryLimits = sqliteTable('category_limits', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  institution_id: integer('institution_id').notNull().references(() => institutions.id),
+  user_type: text('user_type').notNull(),
+  overall_limit: integer('overall_limit'),
+  fines_block_threshold: real('fines_block_threshold').notNull().default(0),
+});
+
+export const circOverrides = sqliteTable('circ_overrides', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  institution_id: integer('institution_id').notNull().references(() => institutions.id),
+  acted_by_user_id: integer('acted_by_user_id').notNull().references(() => users.id),
+  patron_user_id: integer('patron_user_id').notNull().references(() => users.id),
+  copy_id: integer('copy_id').references(() => resourceCopies.id),
+  reason_code: text('reason_code').notNull(),
+  note: text('note'),
+  created_at: text('created_at').notNull().default(sql`(datetime('now'))`),
+});
+
 export const DEFAULT_SETTINGS = [
   { key: 'fine_per_day', value: '5' },
   { key: 'max_borrow_days', value: '7' },

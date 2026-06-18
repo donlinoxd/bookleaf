@@ -14,7 +14,7 @@ const cleanup = setInterval(() => {
     if (e.lastActivity < cutoff && e.blockedUntil < now) loginFailures.delete(k);
   }
 }, 5 * 60 * 1000);
-if ((cleanup as NodeJS.Timeout).unref) (cleanup as NodeJS.Timeout).unref();
+if ((cleanup as unknown as NodeJS.Timeout).unref) (cleanup as unknown as NodeJS.Timeout).unref();
 
 export function rateLimitCheck(key: string): { blocked: false } | { blocked: true; retryAfter: number } {
   const now = Date.now();
