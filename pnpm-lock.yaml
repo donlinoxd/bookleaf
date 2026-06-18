@@ -394,6 +394,10 @@ importers:
         version: 5.9.3
 
   packages/db:
+    dependencies:
+      '@bookleaf/types':
+        specifier: workspace:*
+        version: link:../types
     devDependencies:
       '@bookleaf/tsconfig':
         specifier: workspace:*
