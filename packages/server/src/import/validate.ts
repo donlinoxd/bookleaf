@@ -32,7 +32,8 @@ export function validateRow(input: ImportRow): RowValidation {
   if (title.length === 0) {
     return { rowIndex: input._rowIndex, ok: false, normalized: null, reasons: ['Missing title'] };
   }
-  if (author.length === 0) {
+  const material_type = coerceMaterialType(input.material_type, reasons);
+  if (author.length === 0 && material_type !== 'SERIAL') {
     return { rowIndex: input._rowIndex, ok: false, normalized: null, reasons: ['Missing author'] };
   }
 
@@ -82,8 +83,17 @@ export function validateRow(input: ImportRow): RowValidation {
     language: trimOrNull(input.language),
     call_number: trimOrNull(input.call_number),
     call_number_type: coerceCallNumberType(input.call_number_type),
-    material_type: coerceMaterialType(input.material_type, reasons),
+    material_type,
     subject_headings: subject_headings && subject_headings.length > 0 ? subject_headings : null,
+    issue_number: trimOrNull(input.issue_number),
+    doi: trimOrNull(input.doi),
+    url: trimOrNull(input.url),
+    frequency: trimOrNull(input.frequency),
+    container_title: trimOrNull(input.container_title),
+    pages: trimOrNull(input.pages),
+    thesis_degree: trimOrNull(input.thesis_degree),
+    thesis_institution: trimOrNull(input.thesis_institution),
+    thesis_advisor: trimOrNull(input.thesis_advisor),
     copies,
     accession_number: trimOrNull(input.accession_number),
     barcode: trimOrNull(input.barcode),

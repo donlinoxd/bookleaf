@@ -8,8 +8,10 @@ function norm(rowIndex: number, copies: number): NormalizedRow {
     rowIndex, title: 'T', author: 'A', isbn: null, isbnKey: null, issn: null, publisher: null,
     year: null, genre: null, description: null, subtitle: null, edition: null, volume: null,
     series_title: null, language: null, call_number: null, call_number_type: null,
-    material_type: 'BOOK', subject_headings: null, copies, accession_number: null,
-    barcode: null, shelf_location: null,
+    material_type: 'BOOK', subject_headings: null,
+    issue_number: null, doi: null, url: null, frequency: null, container_title: null,
+    pages: null, thesis_degree: null, thesis_institution: null, thesis_advisor: null,
+    copies, accession_number: null, barcode: null, shelf_location: null,
   };
 }
 

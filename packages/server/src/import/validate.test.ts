@@ -58,3 +58,29 @@ describe('validateRow', () => {
     expect(v.normalized!.isbnKey).toBeNull();
   });
 });
+
+describe('validateRow material-type fields + serial author', () => {
+  it('carries the new material-type fields through to the normalized row', () => {
+    const v = validateRow({
+      _rowIndex: 0, title: 'A', author: 'X', material_type: 'ARTICLE',
+      container_title: 'J', issue_number: '3', pages: '44-58', doi: '10.1/x', url: 'http://e',
+    } as never);
+    expect(v.ok).toBe(true);
+    expect(v.normalized?.container_title).toBe('J');
+    expect(v.normalized?.pages).toBe('44-58');
+    expect(v.normalized?.doi).toBe('10.1/x');
+  });
+
+  it('allows an empty author for SERIAL', () => {
+    const v = validateRow({ _rowIndex: 1, title: 'Journal', author: '', material_type: 'SERIAL', frequency: 'Monthly' } as never);
+    expect(v.ok).toBe(true);
+    expect(v.normalized?.author).toBe('');
+    expect(v.normalized?.frequency).toBe('Monthly');
+  });
+
+  it('still requires author for non-serials', () => {
+    const v = validateRow({ _rowIndex: 2, title: 'Book', author: '', material_type: 'BOOK' } as never);
+    expect(v.ok).toBe(false);
+    expect(v.reasons).toContain('Missing author');
+  });
+});
