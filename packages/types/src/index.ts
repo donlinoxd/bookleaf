@@ -275,4 +275,35 @@ export interface DiscrepancyReport {
   extra_copies: ExtraCopy[];
 }
 
+/** Resource field key → primary MARC tag+subfield. Shared by the desktop form's
+ *  display `marc` values and the server MARC codec, so the two cannot drift.
+ *  The server codec layers richer logic (subfields, leader, repeatable fields). */
+export const FIELD_MARC_TAGS: Record<string, string> = {
+  title: '245$a',
+  subtitle: '245$b',
+  author: '100$a',
+  publisher: '264$b',
+  year: '264$c',
+  edition: '250$a',
+  isbn: '020$a',
+  issn: '022$a',
+  genre: '655$a',
+  series_title: '490$a',
+  volume: '490$v',
+  language: '041$a',
+  call_number: '082',
+  call_number_type: '082',
+  description: '520$a',
+  frequency: '310$a',
+  container_title: '773$t',
+  issue_number: '773$g',
+  pages: '773$g',
+  doi: '024$a',
+  url: '856$u',
+  thesis_degree: '502$b',
+  thesis_institution: '502$c',
+  thesis_advisor: '502$g',
+  subject_authority_ids: '650$a',
+};
+
 export * from './import';
