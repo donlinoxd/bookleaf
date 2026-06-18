@@ -29,7 +29,7 @@ MARC tags are the under-the-hood mapping each field descriptor carries. Fields m
 - Title — 245$a (required)
 - Subtitle — 245$b
 - Language — 041$a
-- Call number + call number type — 082 (Dewey) / 050 (LC)
+- Call number — 082 (Dewey) / 050 (LC); rendered as two descriptors: `call_number` (text) + `call_number_type` (select: DEWEY / LC / OTHER)
 - Subjects — 650$a (multi, subject authority)
 - Description / notes — 520$a
 - Copies — (inventory, not MARC)
@@ -48,14 +48,14 @@ MARC tags are the under-the-hood mapping each field descriptor carries. Fields m
 - Publisher — 264$b (publisher authority)
 - Year began — 264$c
 - ISSN — 022$a
-- **Frequency — 310$a (new column)**
-- Volume — 362
+- **Frequency — 310$a (new column; controlled `select`, value stored as TEXT)**
+- Volume — 362 (existing `volume` column)
 
 **Article** — new columns: `container_title`, `pages`
 - Author — 100$a (personal authority)
 - **Container/journal title — 773$t (new column)**
-- Volume — 773$g
-- Issue number — 773$g
+- Volume — 773$g (existing `volume` column)
+- Issue number — 773$g (existing `issue_number` column)
 - **Pages — 773$g (new column)**
 - Year — 264$c
 - DOI — 024$a
@@ -75,7 +75,9 @@ MARC tags are the under-the-hood mapping each field descriptor carries. Fields m
 
 Six nullable `TEXT` columns on `resources`: `frequency`, `container_title`, `pages`, `thesis_degree`, `thesis_institution`, `thesis_advisor`. All `ADD COLUMN` (idempotent-friendly, no backfill needed).
 
-Note: `resources.author` is `NOT NULL`. For Serial (no author field) the form persists an empty string, matching existing behavior for type-less author input.
+Article Volume and Issue number reuse the **existing** `volume` and `issue_number` columns — they are not new. Only `container_title` and `pages` are new for Article. The total stays six.
+
+Note: `resources.author` is `NOT NULL`. For Serial (no author field) the form persists an empty string, matching existing behavior for type-less author input. The persisting code carries a comment flagging that a Serial's `author = ''` means "no personal author" (not "author unknown"), so a future MARC exporter does not emit an empty `100$a`.
 
 ## Architecture (Approach A — declarative config)
 
@@ -86,7 +88,7 @@ Dependency-free (no React) so it can be lifted into `packages/server` unchanged 
 ```ts
 type FieldKind =
   | 'text' | 'number' | 'textarea' | 'select'
-  | 'author-authority' | 'publisher-authority' | 'subjects' | 'call-number';
+  | 'author-authority' | 'publisher-authority' | 'subjects';
 
 type FieldDescriptor = {
   key: string;        // resources column name
@@ -94,6 +96,7 @@ type FieldDescriptor = {
   kind: FieldKind;
   marc: string;       // under-the-hood mapping, e.g. '245$a'
   required?: boolean;
+  options?: string[]; // required when kind === 'select' (e.g. frequency, call_number_type)
   group?: string;     // optional section header
 };
 
@@ -102,11 +105,15 @@ export const GENERIC_FIELDS: FieldDescriptor[];
 export function fieldsFor(materialType: string): FieldDescriptor[]; // falls back to GENERIC_FIELDS
 ```
 
+**Controlled `select` option lists:**
+- `call_number_type`: `DEWEY`, `LC`, `OTHER` (matches the existing `resources.call_number_type` enum).
+- `frequency`: `Daily`, `Weekly`, `Biweekly`, `Monthly`, `Bimonthly`, `Quarterly`, `Semiannual`, `Annual`, `Irregular`.
+
 ### Form — generic renderer (`MaterialDialog`, evolving from current `BookDialog`)
 
 1. Material-type `<select>` is always visible at the top. Changing it re-derives visible fields via `fieldsFor(type)`.
 2. Descriptors render grouped by `group`. `author-authority` / `publisher-authority` / `subjects` render the existing authority pickers (the escape hatch); other kinds render plain react-hook-form inputs via `register(key)`.
-3. A zod schema is built dynamically from the active descriptor list: Title always required, plus any descriptor with `required: true`. Validation stays in sync with visible fields automatically.
+3. A zod schema is built dynamically from the active descriptor list: Title always required, plus any descriptor with `required: true`. Today only Title carries `required` (librarians catalog incrementally — no field beyond Title is mandatory); the mechanism is general so other types can mark fields required later without code changes. Validation stays in sync with visible fields automatically. `select` descriptors validate against their `options`.
 4. Submit builds the payload from the active field keys plus authority-picker state, following the same enrichment pattern already used in the form (author/publisher name + authority id, conditional subjects).
 
 ### Backend
@@ -121,7 +128,7 @@ Extend the `Resource` type in `packages/types` with the 6 new optional string fi
 
 ## Testing (TDD)
 
-- **Config unit tests** (`materialFields.test.ts`): each in-scope type includes a required Title; no duplicate field keys within a type; every descriptor has a non-empty `marc` tag; `fieldsFor('MAP')` returns the generic set; in-scope types resolve to their specific sets.
+- **Config unit tests** (`materialFields.test.ts`): each in-scope type includes a required Title; no duplicate field keys within a type; every descriptor has a non-empty `marc` tag; every `select` descriptor has non-empty `options`; in-scope types resolve to their specific sets; `fieldsFor('MAP')` (valid non-scoped enum) and `fieldsFor('GARBAGE')` (non-enum string) both return the generic set.
 - **Adapter round-trip tests**: create + read back a Thesis (degree/institution/advisor), a Serial (frequency), and an Article (container_title/pages), proving the new columns persist and load. Extends the existing sqlite adapter test suite.
 - **Regression gate**: full server suite green; server/desktop/types/db typechecks at baseline (no new errors); `git diff --name-only master...HEAD -- apps/server` stays empty.
 
