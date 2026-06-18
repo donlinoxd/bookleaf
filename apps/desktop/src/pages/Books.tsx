@@ -19,7 +19,7 @@ import { Plus, Pencil, Trash2, Search } from 'lucide-react';
 import { AuthorityPicker, AuthorityMultiPicker } from '@/components/AuthorityCombobox';
 import { fieldsFor, type FieldDescriptor } from '@/lib/materialFields';
 import { buildMaterialSchema } from '@/lib/materialFormSchema';
-type Book = { id: number; title: string; author: string | null; genre: string | null; year: number | null; material_type: string; available_copies: number; total_copies: number; author_authority_id?: number | null; publisher?: string | null; publisher_authority_id?: number | null; subject_headings?: string[] | null };
+type Book = { id: number; title: string; author: string | null; genre: string | null; year?: number | null; material_type: string; available_copies: number; total_copies: number; author_authority_id?: number | null; publisher?: string | null; publisher_authority_id?: number | null; subject_headings?: string[] | null; isbn?: string | null; issn?: string | null; subtitle?: string | null; edition?: string | null; volume?: string | null; issue_number?: string | null; series_title?: string | null; doi?: string | null; url?: string | null; language?: string | null; call_number?: string | null; call_number_type?: string | null; description?: string | null; frequency?: string | null; container_title?: string | null; pages?: string | null; thesis_degree?: string | null; thesis_institution?: string | null; thesis_advisor?: string | null };
 
 export default function Books() {
   const trpc = useTRPC();
@@ -83,7 +83,7 @@ export default function Books() {
         </table>
       </div>
       <BookDialog open={isAddOpen || !!editBook} onClose={() => { setIsAddOpen(false); setEditBook(null); }} editing={editBook}
-        defaultValues={editBook ? { title: editBook.title, author: editBook.author ?? '', genre: editBook.genre ?? '', year: editBook.year ?? undefined, total_copies: editBook.total_copies, material_type: editBook.material_type, is_loanable: true } as Record<string, unknown> : undefined}
+        defaultValues={editBook ? ({ ...editBook, total_copies: editBook.total_copies ?? 1 } as Record<string, unknown>) : undefined}
         onSubmit={(data) => editBook ? updateMutation.mutate({ id: editBook.id, data }) : createMutation.mutate({ institutionId: iid, data, copies: [] })}
         isPending={createMutation.isPending || updateMutation.isPending} error={createMutation.error || updateMutation.error} title={editBook ? 'Edit Book' : 'Add Book'} />
       <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
@@ -120,7 +120,7 @@ function BookDialog({ open, onClose, editing, defaultValues, onSubmit, isPending
     setPublisherAuthority({ id: editing?.publisher_authority_id ?? null, name: editing?.publisher ?? null });
     setSubjects([]);
     setSubjectsTouched(false);
-  }, [open]);
+  }, [open, editing, defaultValues]);
 
   function renderField(f: FieldDescriptor) {
     if (f.kind === 'author-authority') {
@@ -155,8 +155,9 @@ function BookDialog({ open, onClose, editing, defaultValues, onSubmit, isPending
         <div key={f.key} className="space-y-1"><Label>{f.label}</Label>
           <select {...register(f.key)} className="h-9 w-full rounded-md border bg-background px-2 text-sm">
             <option value="">—</option>
-            {f.options!.map(o => <option key={o} value={o}>{o}</option>)}
+            {(f.options ?? []).map(o => <option key={o} value={o}>{o}</option>)}
           </select>
+          {errors[f.key] && <p className="text-xs text-destructive">{String(errors[f.key]?.message)}</p>}
         </div>
       );
     }
