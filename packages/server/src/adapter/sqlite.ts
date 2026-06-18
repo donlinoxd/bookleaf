@@ -8,8 +8,8 @@ import * as schema from '@bookleaf/db/schema';
 import { hashPin, verifyPin, isLegacyHash } from '@bookleaf/db/database';
 import { normalizeAuthorityName } from '../authorities/normalize';
 import type { DbAdapter, SessionPrincipal } from './types';
-import type { LoanRule, CategoryLimit, ResolvedPolicy } from '@bookleaf/types';
-import { resolvePolicy, type CheckoutCounters } from './loanPolicy';
+import type { LoanRule, CategoryLimit, ResolvedPolicy, PolicyReasonCode } from '@bookleaf/types';
+import { resolvePolicy, evaluateCheckout, PolicyError, type CheckoutCounters } from './loanPolicy';
 
 const {
   institutions, users, resources, resourceCopies, borrowingRecords,
@@ -1235,43 +1235,67 @@ export function createSqliteAdapter(
       return resolveForResource(institutionId, userId, resourceId);
     },
 
-    async adminCheckout(copyId, userId) {
-      const cfg = await getSettings(db);
+    async adminCheckout(copyId, userId, opts) {
+      // Resolve the copy's resource + institution first (needed for policy).
+      const copyInfo = await db.select({ resource_id: resourceCopies.resource_id, institution_id: resources.institution_id, material_type: resources.material_type })
+        .from(resourceCopies)
+        .innerJoin(resources, eq(resourceCopies.resource_id, resources.id))
+        .where(eq(resourceCopies.id, copyId)).limit(1).then(r => r[0] ?? null);
+      if (!copyInfo) throw new Error('This copy is no longer available. Please pick another.');
+
+      const policy = await resolveForResource(copyInfo.institution_id, userId, copyInfo.resource_id);
+      const counters = await fetchCheckoutCounters(userId, copyInfo.material_type);
+      const violations = evaluateCheckout(policy, counters);
+
+      if (violations.length > 0 && !opts?.override) {
+        throw new PolicyError(violations);
+      }
+
       const dueDate = new Date();
-      dueDate.setDate(dueDate.getDate() + cfg.max_borrow_days);
+      dueDate.setDate(dueDate.getDate() + policy.loan_period_days);
 
-      return db.transaction(async (tx) => {
-        const claimed = await tx.update(resourceCopies)
-          .set({ status: 'borrowed' })
-          .where(and(
-            eq(resourceCopies.id, copyId),
-            eq(resourceCopies.status, 'available'),
-            ne(resourceCopies.condition, 'lost'),
-          ))
-          .returning({ id: resourceCopies.id, resource_id: resourceCopies.resource_id });
+      const doCheckout = rawDb.transaction(() => {
+        const claimed = rawDb.prepare(
+          `UPDATE resource_copies SET status = 'borrowed'
+           WHERE id = ? AND status = 'available' AND condition != 'lost'
+           RETURNING id, resource_id`,
+        ).all(copyId) as { id: number; resource_id: number }[];
+        if (claimed.length === 0) throw new Error('This copy is no longer available. Please pick another.');
 
-        if (claimed.length === 0) {
-          throw new Error('This copy is no longer available. Please pick another.');
+        if (violations.length > 0 && opts?.override) {
+          const insertOverride = rawDb.prepare(
+            `INSERT INTO circ_overrides (institution_id, acted_by_user_id, patron_user_id, copy_id, reason_code, note)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+          );
+          for (const v of violations) {
+            insertOverride.run(
+              opts.institutionId ?? copyInfo.institution_id,
+              opts.actedByUserId ?? userId,
+              userId,
+              copyId,
+              v.reason_code as PolicyReasonCode,
+              opts.note ?? null,
+            );
+          }
         }
 
-        const result = await tx.insert(borrowingRecords)
-          .values({ copy_id: copyId, user_id: userId, due_date: dueDate.toISOString() })
-          .returning({ id: borrowingRecords.id });
+        const borrowResult = rawDb.prepare(
+          `INSERT INTO borrowing_records (copy_id, user_id, due_date) VALUES (?, ?, ?) RETURNING id`,
+        ).get(copyId, userId, dueDate.toISOString()) as { id: number };
 
-        await tx.update(resources)
-          .set({ available_copies: sql`${resources.available_copies} - 1` })
-          .where(eq(resources.id, claimed[0].resource_id));
+        rawDb.prepare(
+          `UPDATE resources SET available_copies = available_copies - 1 WHERE id = ?`,
+        ).run(claimed[0].resource_id);
 
-        await tx.update(reservations)
-          .set({ status: 'fulfilled' })
-          .where(and(
-            eq(reservations.resource_id, claimed[0].resource_id),
-            eq(reservations.user_id, userId),
-            eq(reservations.status, 'active'),
-          ));
+        rawDb.prepare(
+          `UPDATE reservations SET status = 'fulfilled'
+           WHERE resource_id = ? AND user_id = ? AND status = 'active'`,
+        ).run(claimed[0].resource_id, userId);
 
-        return { borrowingId: result[0].id };
+        return { borrowingId: borrowResult.id };
       });
+
+      return doCheckout();
     },
 
     async adminReturn(borrowingId, condition) {

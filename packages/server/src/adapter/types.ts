@@ -118,7 +118,11 @@ export interface DbAdapter {
   // ── Admin: Circulation ────────────────────────────────────────────────────
   adminActiveBorrows(institutionId: number): Promise<unknown[]>;
   adminOverdueBorrows(institutionId: number): Promise<unknown[]>;
-  adminCheckout(copyId: number, userId: number): Promise<{ borrowingId: number }>;
+  adminCheckout(
+    copyId: number,
+    userId: number,
+    opts?: { override?: boolean; actedByUserId?: number; institutionId?: number; note?: string },
+  ): Promise<{ borrowingId: number }>;
   adminReturn(borrowingId: number, condition: string): Promise<unknown | null>;
   adminPendingReservations(institutionId: number): Promise<unknown[]>;
   adminCancelReservation(reservationId: number): Promise<void>;

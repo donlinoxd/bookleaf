@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { PolicyError } from './loanPolicy';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { createSqliteAdapter } from './sqlite';
@@ -64,5 +65,50 @@ describe('policy resolution', () => {
     const p = await db.adminResolvePolicy(iid, uid, id);
     expect(p.loan_period_days).toBe(3);
     expect(p.fine_per_day).toBe(10);
+  });
+});
+
+describe('checkout enforcement', () => {
+  async function member(user_type: string) {
+    const r = raw.prepare("INSERT INTO users (institution_id, name, role, id_number, pin_hash, user_type) VALUES (?, 'M', 'member', ?, 'x', ?)")
+      .run(iid, 'EID' + Math.floor(performance.now() * 1000), user_type) as { lastInsertRowid: number };
+    return Number(r.lastInsertRowid);
+  }
+  async function bookWithCopy() {
+    const { id } = await db.adminCreateBook(iid, { title: 'T', author: 'A', material_type: 'BOOK' }, [{ barcode: 'BC' + Math.floor(performance.now() * 1000) }]);
+    const copy = raw.prepare('SELECT id FROM resource_copies WHERE resource_id = ? LIMIT 1').get(id) as { id: number };
+    return { resourceId: id, copyId: copy.id };
+  }
+
+  it('allows a normal checkout under the default policy', async () => {
+    const uid = await member('student');
+    const { copyId } = await bookWithCopy();
+    const res = await db.adminCheckout(copyId, uid);
+    expect(res.borrowingId).toBeGreaterThan(0);
+  });
+
+  it('blocks checkout over the overall limit and does NOT claim the copy', async () => {
+    // overall_limit defaults to 3; give this category a limit of 1 for a sharp test
+    raw.prepare("INSERT INTO category_limits (institution_id, user_type, overall_limit, fines_block_threshold) VALUES (?, 'student', 1, 0)").run(iid);
+    const uid = await member('student');
+    const a = await bookWithCopy();
+    const b = await bookWithCopy();
+    await db.adminCheckout(a.copyId, uid);
+    await expect(db.adminCheckout(b.copyId, uid)).rejects.toBeInstanceOf(PolicyError);
+    const status = raw.prepare('SELECT status FROM resource_copies WHERE id = ?').get(b.copyId) as { status: string };
+    expect(status.status).toBe('available');
+  });
+
+  it('proceeds when overridden and writes a circ_overrides row', async () => {
+    raw.prepare("INSERT INTO category_limits (institution_id, user_type, overall_limit, fines_block_threshold) VALUES (?, 'student', 1, 0)").run(iid);
+    const uid = await member('student');
+    const a = await bookWithCopy();
+    const b = await bookWithCopy();
+    await db.adminCheckout(a.copyId, uid);
+    const res = await db.adminCheckout(b.copyId, uid, { override: true, actedByUserId: uid, institutionId: iid, note: 'dean approved' });
+    expect(res.borrowingId).toBeGreaterThan(0);
+    const row = raw.prepare('SELECT reason_code, note FROM circ_overrides WHERE patron_user_id = ?').get(uid) as { reason_code: string; note: string };
+    expect(row.reason_code).toBe('over_overall_limit');
+    expect(row.note).toBe('dean approved');
   });
 });
