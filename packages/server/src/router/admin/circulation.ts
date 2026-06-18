@@ -75,4 +75,18 @@ export const adminCirculationRouter = router({
   resolvePatron: librarianProcedure
     .input(z.object({ idNumber: z.string().min(1) }))
     .query(({ input, ctx }) => ctx.db.adminResolvePatron(ctx.principal.institution_id, input.idNumber)),
+
+  checkoutByAccession: librarianProcedure
+    .input(z.object({
+      userId: z.number().int(),
+      accession: z.string().min(1),
+      override: z.boolean().optional(),
+      note: z.string().optional(),
+    }))
+    .mutation(({ input, ctx }) => ctx.db.adminCheckoutByAccession(
+      ctx.principal.institution_id,
+      input.userId,
+      input.accession,
+      { override: input.override, note: input.note, actedByUserId: ctx.principal.user_id, institutionId: ctx.principal.institution_id },
+    )),
 });

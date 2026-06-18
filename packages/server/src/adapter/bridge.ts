@@ -255,5 +255,6 @@ export function createBridgeAdapter(queryRN: QueryFn): DbAdapter {
     adminBulkImport: () => {
       throw new Error('Bulk import is not supported on mobile');
     },
+    adminCheckoutByAccession: () => { throw new Error('adminCheckoutByAccession is not supported on mobile'); },
   };
 }

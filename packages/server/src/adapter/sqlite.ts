@@ -300,6 +300,16 @@ export function createSqliteAdapter(
     return doCheckout();
   }
 
+  async function resolveCopyByAccession(institutionId: number, accession: string) {
+    const rows = await db.select({ id: resourceCopies.id, resource_id: resourceCopies.resource_id, title: resources.title })
+      .from(resourceCopies)
+      .innerJoin(resources, eq(resourceCopies.resource_id, resources.id))
+      .where(and(eq(resources.institution_id, institutionId), eq(resourceCopies.accession_number, accession)));
+    if (rows.length === 0) return { status: 'unknown' as const };
+    if (rows.length > 1) return { status: 'ambiguous' as const };
+    return { status: 'ok' as const, copyId: rows[0].id, resourceId: rows[0].resource_id, title: rows[0].title };
+  }
+
   async function returnBorrowing(
     borrowingId: number,
     condition: string,
@@ -1400,6 +1410,21 @@ export function createSqliteAdapter(
 
     async adminCheckout(copyId, userId, opts) {
       return checkoutCopy(copyId, userId, opts);
+    },
+
+    async adminCheckoutByAccession(institutionId, userId, accession, opts) {
+      const resolved = await resolveCopyByAccession(institutionId, accession);
+      if (resolved.status === 'unknown') return { ok: false as const, reason: 'unknown' as const, accession };
+      if (resolved.status === 'ambiguous') return { ok: false as const, reason: 'ambiguous' as const, accession };
+      try {
+        const { borrowingId } = await checkoutCopy(resolved.copyId, userId, opts);
+        const row = await db.select({ due_date: borrowingRecords.due_date })
+          .from(borrowingRecords).where(eq(borrowingRecords.id, borrowingId)).limit(1).then(r => r[0]!);
+        return { ok: true as const, copyId: resolved.copyId, title: resolved.title, due_date: row.due_date };
+      } catch (e) {
+        if (e instanceof PolicyError) return { ok: false as const, reason: 'policy' as const, violations: e.violations };
+        return { ok: false as const, reason: 'unavailable' as const, accession };
+      }
     },
 
     async adminReturn(borrowingId, condition) {

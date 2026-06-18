@@ -131,6 +131,12 @@ export interface DbAdapter {
     institutionId: number,
     idNumber: string,
   ): Promise<import('@bookleaf/types').PatronSummary | null>;
+  adminCheckoutByAccession(
+    institutionId: number,
+    userId: number,
+    accession: string,
+    opts?: { override?: boolean; actedByUserId?: number; institutionId?: number; note?: string },
+  ): Promise<import('@bookleaf/types').CheckoutScanResult>;
   adminResolvePolicy(
     institutionId: number,
     userId: number,
