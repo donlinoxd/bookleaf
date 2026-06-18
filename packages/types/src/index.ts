@@ -289,7 +289,7 @@ export const FIELD_MARC_TAGS: Record<string, string> = {
   issn: '022$a',
   genre: '655$a',
   series_title: '490$a',
-  volume: '490$v',
+  volume: '490$v', // canonical/default; the desktop form shows 362 for serials and 773$g for articles
   language: '041$a',
   call_number: '082',
   call_number_type: '082',
