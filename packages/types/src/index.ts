@@ -89,6 +89,9 @@ export interface Resource {
   carrier_type: string | null;
   subject_headings: string[] | null;
   author_authority_id: number | null;
+  // Optional so the mobile app (which doesn't set publisher authorities) keeps
+  // constructing Resource objects without it; the desktop column always exists.
+  publisher_authority_id?: number | null;
   // Lending
   is_loanable: boolean;
   loan_period_days: number | null;
