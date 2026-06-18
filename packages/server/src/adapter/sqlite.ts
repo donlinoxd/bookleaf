@@ -1432,6 +1432,22 @@ export function createSqliteAdapter(
       return returnBorrowing(borrowingId, condition);
     },
 
+    async adminReturnByAccession(institutionId, accession) {
+      const resolved = await resolveCopyByAccession(institutionId, accession);
+      if (resolved.status === 'unknown') return { ok: false as const, reason: 'unknown' as const, accession };
+      if (resolved.status === 'ambiguous') return { ok: false as const, reason: 'ambiguous' as const, accession };
+
+      const active = await db.select({ id: borrowingRecords.id, patron_name: users.name })
+        .from(borrowingRecords)
+        .innerJoin(users, eq(borrowingRecords.user_id, users.id))
+        .where(and(eq(borrowingRecords.copy_id, resolved.copyId), isNull(borrowingRecords.returned_at)))
+        .limit(1).then(r => r[0] ?? null);
+      if (!active) return { ok: false as const, reason: 'no_active_loan' as const, accession };
+
+      const fine = await returnBorrowing(active.id, 'good');
+      return { ok: true as const, title: resolved.title, patron_name: active.patron_name, fine_amount: fine?.amount ?? 0 };
+    },
+
     async adminPendingReservations(institutionId) {
       return db.select({
         id: reservations.id,

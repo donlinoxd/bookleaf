@@ -122,3 +122,40 @@ describe('adminCheckoutByAccession', () => {
     expect(res.ok).toBe(true);
   });
 });
+
+describe('adminReturnByAccession', () => {
+  it('returns an active loan and reports patron + zero fine when on time', async () => {
+    const uid = makeMember('R-1');
+    makeCopy('ACC-R-1');
+    await db.adminCheckoutByAccession(iid, uid, 'ACC-R-1');
+    const res = await db.adminReturnByAccession(iid, 'ACC-R-1');
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.title).toBe('T');
+      expect(res.patron_name).toBe('Pat');
+      expect(res.fine_amount).toBe(0);
+    }
+  });
+
+  it('surfaces a fine for an overdue loan', async () => {
+    raw.prepare("INSERT INTO loan_rules (institution_id, user_type, material_type, loan_period_days, max_renewals, fine_per_day, grace_period_days) VALUES (?, 'student', 'BOOK', 7, 2, 5, 0)").run(iid);
+    const uid = makeMember('R-2');
+    const { copyId } = makeCopy('ACC-R-2');
+    await db.adminCheckoutByAccession(iid, uid, 'ACC-R-2');
+    raw.prepare("UPDATE borrowing_records SET due_date = datetime('now','-3 days') WHERE copy_id = ? AND returned_at IS NULL").run(copyId);
+    const res = await db.adminReturnByAccession(iid, 'ACC-R-2');
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(res.fine_amount).toBe(15); // 3 days × ₱5
+  });
+
+  it('returns no_active_loan when the copy is not currently out', async () => {
+    makeCopy('ACC-R-3');
+    const res = await db.adminReturnByAccession(iid, 'ACC-R-3');
+    expect(res).toEqual({ ok: false, reason: 'no_active_loan', accession: 'ACC-R-3' });
+  });
+
+  it('returns unknown for an unrecognised accession', async () => {
+    const res = await db.adminReturnByAccession(iid, 'NOPE');
+    expect(res).toEqual({ ok: false, reason: 'unknown', accession: 'NOPE' });
+  });
+});

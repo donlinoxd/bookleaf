@@ -89,4 +89,8 @@ export const adminCirculationRouter = router({
       input.accession,
       { override: input.override, note: input.note, actedByUserId: ctx.principal.user_id, institutionId: ctx.principal.institution_id },
     )),
+
+  returnByAccession: librarianProcedure
+    .input(z.object({ accession: z.string().min(1) }))
+    .mutation(({ input, ctx }) => ctx.db.adminReturnByAccession(ctx.principal.institution_id, input.accession)),
 });
