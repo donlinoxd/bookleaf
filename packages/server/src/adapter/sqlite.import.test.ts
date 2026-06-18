@@ -102,6 +102,44 @@ describe('adminBulkImport', () => {
     expect(t.thesis_degree).toBe('PhD');
     expect(t.thesis_institution).toBe('State U');
   });
+
+  it('links authorities when linkAuthorities is true', async () => {
+    const base = {
+      rowIndex: 0, title: 'Linked', author: 'Tolkien, J.R.R.', isbn: null, isbnKey: null, issn: null,
+      publisher: 'Allen', year: null, genre: null, description: null, subtitle: null, edition: null,
+      volume: null, series_title: null, language: null, call_number: null, call_number_type: null,
+      material_type: 'BOOK', subject_headings: ['Fantasy', 'Adventure'], copies: 1, accession_number: null,
+      barcode: null, shelf_location: null, issue_number: null, doi: null, url: null, frequency: null,
+      container_title: null, pages: null, thesis_degree: null, thesis_institution: null, thesis_advisor: null,
+    };
+    await db.adminBulkImport(institutionId, { creates: [base], copyAdds: [] } as never, {
+      institutionId, importedByUserId: 1, filename: 'x', duplicateStrategy: 'skip',
+      rowCount: 1, createdCount: 0, copiesAddedCount: 0, skippedCount: 0, linkAuthorities: true,
+    } as never);
+    const authors = await db.adminListAuthorities(institutionId, { type: 'personal' });
+    expect(authors.map(a => a.name)).toContain('Tolkien, J.R.R.');
+    const publishers = await db.adminListAuthorities(institutionId, { type: 'publisher' });
+    expect(publishers.map(a => a.name)).toContain('Allen');
+    const subjects = await db.adminListAuthorities(institutionId, { type: 'subject' });
+    expect(subjects.map(a => a.name).sort()).toEqual(['Adventure', 'Fantasy']);
+  });
+
+  it('does NOT create authorities when linkAuthorities is falsy (CSV parity)', async () => {
+    const base = {
+      rowIndex: 0, title: 'Unlinked', author: 'Nobody', isbn: null, isbnKey: null, issn: null,
+      publisher: 'NoPub', year: null, genre: null, description: null, subtitle: null, edition: null,
+      volume: null, series_title: null, language: null, call_number: null, call_number_type: null,
+      material_type: 'BOOK', subject_headings: ['Misc'], copies: 1, accession_number: null,
+      barcode: null, shelf_location: null, issue_number: null, doi: null, url: null, frequency: null,
+      container_title: null, pages: null, thesis_degree: null, thesis_institution: null, thesis_advisor: null,
+    };
+    await db.adminBulkImport(institutionId, { creates: [base], copyAdds: [] } as never, {
+      institutionId, importedByUserId: 1, filename: 'x', duplicateStrategy: 'skip',
+      rowCount: 1, createdCount: 0, copiesAddedCount: 0, skippedCount: 0,
+    } as never);
+    const authors = await db.adminListAuthorities(institutionId, { type: 'personal' });
+    expect(authors.map(a => a.name)).not.toContain('Nobody');
+  });
 });
 
 function job(institutionId: number): ImportJobInput {

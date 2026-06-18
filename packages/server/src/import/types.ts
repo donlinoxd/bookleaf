@@ -74,6 +74,7 @@ export interface ImportJobInput {
   createdCount: number;
   copiesAddedCount: number;
   skippedCount: number;
+  linkAuthorities?: boolean;
 }
 
 /** Narrow DB port the import service depends on (so it is testable with a fake). */

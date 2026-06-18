@@ -711,6 +711,23 @@ export function createSqliteAdapter(
           'UPDATE resources SET total_copies = total_copies + ?, available_copies = available_copies + ? WHERE id = ?',
         );
 
+        const link = job.linkAuthorities === true;
+        const findAuth = rawDb.prepare(
+          'SELECT id FROM authority_names WHERE institution_id = ? AND name_type = ? AND normalized_name = ?',
+        );
+        const insAuth = rawDb.prepare(
+          'INSERT INTO authority_names (institution_id, name, name_type, normalized_name) VALUES (?, ?, ?, ?)',
+        );
+        const setAuthorAuth = rawDb.prepare('UPDATE resources SET author_authority_id = ? WHERE id = ?');
+        const setPublisherAuth = rawDb.prepare('UPDATE resources SET publisher_authority_id = ? WHERE id = ?');
+        const insSubjectLink = rawDb.prepare('INSERT INTO resource_subjects (resource_id, authority_id) VALUES (?, ?)');
+        const getOrCreateAuthority = (name: string, type: string): number => {
+          const norm = normalizeAuthorityName(name);
+          const found = findAuth.get(institutionId, type, norm) as { id: number } | undefined;
+          if (found) return found.id;
+          return Number(insAuth.run(institutionId, name.trim(), type, norm).lastInsertRowid);
+        };
+
         for (const n of plan.creates) {
           const r = insertResource.run({
             institution_id: institutionId,
@@ -730,6 +747,13 @@ export function createSqliteAdapter(
             const bc = i === 0 ? n.barcode : null;
             const ac = i === 0 ? n.accession_number : null;
             insertCopy.run(resourceId, i + 1, bc, ac, n.shelf_location);
+          }
+          if (link) {
+            if (n.author && n.author.trim()) setAuthorAuth.run(getOrCreateAuthority(n.author, 'personal'), resourceId);
+            if (n.publisher && n.publisher.trim()) setPublisherAuth.run(getOrCreateAuthority(n.publisher, 'publisher'), resourceId);
+            for (const s of n.subject_headings ?? []) {
+              if (s && s.trim()) insSubjectLink.run(resourceId, getOrCreateAuthority(s, 'subject'));
+            }
           }
           created += 1;
         }
