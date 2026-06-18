@@ -46,15 +46,21 @@ export default function Circulation() {
   const checkoutMut = useMutation(trpc.admin.circulation.checkoutByAccession.mutationOptions());
   const returnMut = useMutation(trpc.admin.circulation.returnByAccession.mutationOptions());
 
-  let lineKey = 0;
-  const nextKey = () => ++lineKey + Date.now();
+  const lineKeyRef = useRef(0);
+  const nextKey = () => ++lineKeyRef.current;
 
   // ── Card scan: resolve patron ──
   const onCardScan = async () => {
     const idNumber = cardInput.trim();
     if (!idNumber) return;
     setCardError(null);
-    const summary = await qc.fetchQuery(trpc.admin.circulation.resolvePatron.queryOptions({ idNumber }));
+    let summary;
+    try {
+      summary = await qc.fetchQuery(trpc.admin.circulation.resolvePatron.queryOptions({ idNumber }));
+    } catch {
+      setCardError('Could not reach the server. Please try again.');
+      return;
+    }
     if (!summary) { setCardError(`No patron with card "${idNumber}".`); return; }
     setPatron(summary);
     setCoLines([]);
@@ -66,10 +72,20 @@ export default function Circulation() {
   const onAccScan = async (accessionRaw: string, override?: { note: string }) => {
     const accession = accessionRaw.trim();
     if (!accession || !patron) return;
-    const res = await checkoutMut.mutateAsync({
-      userId: patron.userId, accession,
-      ...(override ? { override: true, note: override.note } : {}),
-    });
+    let res;
+    try {
+      res = await checkoutMut.mutateAsync({
+        userId: patron.userId, accession,
+        ...(override ? { override: true, note: override.note } : {}),
+      });
+    } catch {
+      setCoLines((p) => [{ key: nextKey(), label: `✗ ${accession}: error — please retry`, ok: false, accession }, ...p]);
+      setAccInput('');
+      setOverrideKey(null);
+      setOverrideNote('');
+      setTimeout(() => accRef.current?.focus(), 0);
+      return;
+    }
     if (res.ok) {
       setCoLines((p) => [{ key: nextKey(), label: `✓ ${res.title} — due ${new Date(res.due_date).toLocaleDateString()}`, ok: true, accession }, ...p]);
     } else if (res.reason === 'policy') {
@@ -95,7 +111,15 @@ export default function Circulation() {
   const onRetScan = async () => {
     const accession = retInput.trim();
     if (!accession) return;
-    const res: ReturnScanResult = await returnMut.mutateAsync({ accession });
+    let res: ReturnScanResult;
+    try {
+      res = await returnMut.mutateAsync({ accession });
+    } catch {
+      setRetLines((p) => [{ key: nextKey(), label: `✗ ${accession}: error — please retry`, ok: false }, ...p]);
+      setRetInput('');
+      setTimeout(() => retRef.current?.focus(), 0);
+      return;
+    }
     if (res.ok) {
       const fine = res.fine_amount > 0 ? ` — fine ₱${res.fine_amount}` : '';
       setRetLines((p) => [{ key: nextKey(), label: `✓ returned: ${res.title} — ${res.patron_name}${fine}`, ok: true }, ...p]);
