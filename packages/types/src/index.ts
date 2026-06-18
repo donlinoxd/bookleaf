@@ -11,7 +11,9 @@ export type CopyCondition = 'good' | 'damaged' | 'lost';
 export type CopyStatus = 'available' | 'borrowed' | 'reserved';
 export type ReservationStatus = 'active' | 'fulfilled' | 'cancelled';
 export type MaterialType = 'BOOK' | 'SERIAL' | 'ARTICLE' | 'AUDIOVISUAL' | 'MAP' | 'MANUSCRIPT' | 'DIGITAL' | 'THESIS' | 'OTHER';
-export type CallNumberType = 'DEWEY' | 'LC' | 'OTHER';
+/** Single source of truth: referenced by the db schema enum and the form's call_number_type select. */
+export const CALL_NUMBER_TYPES = ['DEWEY', 'LC', 'OTHER'] as const;
+export type CallNumberType = (typeof CALL_NUMBER_TYPES)[number];
 
 /** @deprecated use CopyCondition */
 export type BookCondition = CopyCondition;
@@ -92,6 +94,14 @@ export interface Resource {
   // Optional so the mobile app (which doesn't set publisher authorities) keeps
   // constructing Resource objects without it; the desktop column always exists.
   publisher_authority_id?: number | null;
+  // Material-type-specific fields (desktop cataloging). Optional so existing
+  // Resource constructions remain valid; the desktop columns always exist.
+  frequency?: string | null;          // SERIAL — MARC 310$a (display value)
+  container_title?: string | null;    // ARTICLE — MARC 773$t
+  pages?: string | null;              // ARTICLE — MARC 773$g
+  thesis_degree?: string | null;      // THESIS — MARC 502$b
+  thesis_institution?: string | null; // THESIS — MARC 502$c
+  thesis_advisor?: string | null;     // THESIS — MARC 502$g
   // Lending
   is_loanable: boolean;
   loan_period_days: number | null;
