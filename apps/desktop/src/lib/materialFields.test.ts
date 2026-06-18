@@ -25,9 +25,12 @@ describe('materialFields config', () => {
     }
   });
 
-  it('every descriptor has a non-empty marc tag', () => {
+  it('every bibliographic descriptor has a non-empty marc tag', () => {
     const all = [...Object.values(MATERIAL_FIELDS).flat(), ...GENERIC_FIELDS];
-    for (const f of all) expect(f!.marc.length, f!.key).toBeGreaterThan(0);
+    // total_copies is inventory, not a bibliographic MARC field — it carries no tag.
+    for (const f of all.filter(f => f!.key !== 'total_copies')) {
+      expect(f!.marc.length, f!.key).toBeGreaterThan(0);
+    }
   });
 
   it('every select descriptor has non-empty options', () => {

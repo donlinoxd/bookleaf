@@ -27,7 +27,8 @@ const CALL_NUMBER: FieldDescriptor = { key: 'call_number', label: 'Call number',
 const CALL_NUMBER_TYPE: FieldDescriptor = { key: 'call_number_type', label: 'Call number type', kind: 'select', marc: '082', options: CALL_NUMBER_TYPES, group: 'Shelving' };
 const SUBJECTS: FieldDescriptor = { key: 'subject_authority_ids', label: 'Subjects', kind: 'subjects', marc: '650$a', group: 'Subjects' };
 const DESCRIPTION: FieldDescriptor = { key: 'description', label: 'Notes / description', kind: 'textarea', marc: '520$a', group: 'Details' };
-const COPIES: FieldDescriptor = { key: 'total_copies', label: 'Copies', kind: 'number', marc: '561', group: 'Inventory' };
+// total_copies is inventory, not a bibliographic MARC field — it carries no tag.
+const COPIES: FieldDescriptor = { key: 'total_copies', label: 'Copies', kind: 'number', marc: '', group: 'Inventory' };
 const AUTHOR: FieldDescriptor = { key: 'author', label: 'Author', kind: 'author-authority', marc: '100$a', group: 'Identity' };
 const PUBLISHER: FieldDescriptor = { key: 'publisher', label: 'Publisher', kind: 'publisher-authority', marc: '264$b', group: 'Publication' };
 
