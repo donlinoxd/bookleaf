@@ -5,6 +5,7 @@ import { importPreviewInput, importCommitInput } from '@bookleaf/types';
 import { createImportService } from '../../import/service';
 import { createSessionStore } from '../../import/session';
 import type { ImportRepo } from '../../import/types';
+import { serializeCollection } from '../../marc/serialize';
 
 // Process-wide session store (desktop server is single-process).
 const importSessions = createSessionStore();
@@ -68,6 +69,13 @@ export const adminBooksRouter = router({
     .mutation(async ({ input, ctx }) => {
       await ctx.db.adminAddCopy(input.resourceId);
       return { ok: true as const };
+    }),
+
+  marcExport: librarianProcedure
+    .input(z.object({ institutionId: z.number().int(), q: z.string().optional() }))
+    .query(async ({ input, ctx }) => {
+      const rows = (await ctx.db.adminListBooks(input.institutionId, input.q)) as Record<string, unknown>[];
+      return serializeCollection(rows);
     }),
 
   importPreview: librarianProcedure
