@@ -10,7 +10,7 @@ import type { SessionStore } from './session';
 import type { ImportRepo, NormalizedRow, CommitPlan, ImportContext } from './types';
 
 export interface ImportService {
-  preview(institutionId: number, rows: ImportRow[]): Promise<ImportPreviewResult>;
+  preview(institutionId: number, rows: ImportRow[], opts?: { linkAuthorities?: boolean }): Promise<ImportPreviewResult>;
   commit(sessionId: string, strategy: DuplicateStrategy, filename: string): Promise<ImportCommitResult & { _institutionId: number }>;
 }
 
@@ -59,14 +59,14 @@ function buildPlan(
 
 export function createImportService(repo: ImportRepo, sessions: SessionStore): ImportService {
   return {
-    async preview(institutionId, rows) {
+    async preview(institutionId, rows, opts?) {
       if (rows.length > MAX_IMPORT_ROWS) {
         throw new Error(`Too many rows: ${rows.length}. The limit is ${MAX_IMPORT_ROWS.toLocaleString()} per import.`);
       }
       const ctx = await repo.loadContext(institutionId);
       const { verdicts, norms } = evaluate(rows, ctx);
       const stats = computeStats(verdicts, norms);
-      const sessionId = sessions.create({ institutionId, norms, verdicts });
+      const sessionId = sessions.create({ institutionId, norms, verdicts, linkAuthorities: opts?.linkAuthorities ?? false });
       return { sessionId, verdicts, stats };
     },
 
@@ -92,6 +92,7 @@ export function createImportService(repo: ImportRepo, sessions: SessionStore): I
         createdCount: 0,
         copiesAddedCount: 0,
         skippedCount: skipped.length,
+        linkAuthorities: payload.linkAuthorities ?? false,
       });
       sessions.evict(sessionId);
       return {

@@ -6,6 +6,8 @@ import { createImportService } from '../../import/service';
 import { createSessionStore } from '../../import/session';
 import type { ImportRepo } from '../../import/types';
 import { serializeCollection } from '../../marc/serialize';
+import { parseMarcXml } from '../../marc/parse';
+import { marcRecordToRow } from '../../marc/toRows';
 
 // Process-wide session store (desktop server is single-process).
 const importSessions = createSessionStore();
@@ -88,6 +90,27 @@ export const adminBooksRouter = router({
       const svc = createImportService(repo, importSessions);
       try {
         return await svc.preview(input.institutionId, input.rows);
+      } catch (e) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: e instanceof Error ? e.message : 'Preview failed' });
+      }
+    }),
+
+  marcImportPreview: librarianProcedure
+    .input(z.object({ institutionId: z.number().int(), xml: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      let rows;
+      try {
+        rows = parseMarcXml(input.xml).map((r, i) => marcRecordToRow(r, i));
+      } catch (e) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: e instanceof Error ? e.message : 'Could not parse MARCXML' });
+      }
+      const repo: ImportRepo = {
+        loadContext: (iid) => ctx.db.adminLoadImportContext(iid),
+        commit: (iid, plan, job) => ctx.db.adminBulkImport(iid, plan, job),
+      };
+      const svc = createImportService(repo, importSessions);
+      try {
+        return await svc.preview(input.institutionId, rows, { linkAuthorities: true });
       } catch (e) {
         throw new TRPCError({ code: 'BAD_REQUEST', message: e instanceof Error ? e.message : 'Preview failed' });
       }
