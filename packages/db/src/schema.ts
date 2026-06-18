@@ -1,5 +1,6 @@
 import { integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
+import { CALL_NUMBER_TYPES } from '@bookleaf/types';
 
 export const institutions = sqliteTable('institutions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -64,13 +65,20 @@ export const resources = sqliteTable('resources', {
   duration: text('duration'),
   language: text('language'),
   call_number: text('call_number'),
-  call_number_type: text('call_number_type', { enum: ['DEWEY', 'LC', 'OTHER'] }),
+  call_number_type: text('call_number_type', { enum: CALL_NUMBER_TYPES }),
   content_type: text('content_type'),
   media_type: text('media_type'),
   carrier_type: text('carrier_type'),
   subject_headings: text('subject_headings'),
   author_authority_id: integer('author_authority_id').references(() => authorityNames.id),
   publisher_authority_id: integer('publisher_authority_id').references(() => authorityNames.id),
+  // Material-type-specific fields (desktop cataloging)
+  frequency: text('frequency'),
+  container_title: text('container_title'),
+  pages: text('pages'),
+  thesis_degree: text('thesis_degree'),
+  thesis_institution: text('thesis_institution'),
+  thesis_advisor: text('thesis_advisor'),
   // Lending rules
   is_loanable: integer('is_loanable', { mode: 'boolean' }).notNull().default(true),
   loan_period_days: integer('loan_period_days'),

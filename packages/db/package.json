@@ -9,6 +9,9 @@
     "./schema": "./src/schema.ts",
     "./database": "./src/database.ts"
   },
+  "dependencies": {
+    "@bookleaf/types": "workspace:*"
+  },
   "peerDependencies": {
     "crypto-js": "^4.2.0",
     "drizzle-orm": "^0.45.2",
