@@ -40,6 +40,7 @@ export default function ImportBooks() {
 
   async function onFile(file: File) {
     setError(null);
+    setIsMarc(false); // reset before branching; only the .xml path sets it true
     try {
       if (file.name.toLowerCase().endsWith('.xml')) {
         const xml = await file.text();
