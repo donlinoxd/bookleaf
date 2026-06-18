@@ -1,20 +1,14 @@
-﻿import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useReactTable, getCoreRowModel, flexRender, type ColumnDef } from '@tanstack/react-table';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { useTRPC, getTRPCErrorMessage } from '@/lib/trpc';
+import { useTRPC } from '@/lib/trpc';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Button } from '@bookleaf/ui/components/button';
 import { Input } from '@bookleaf/ui/components/input';
-import { Label } from '@bookleaf/ui/components/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@bookleaf/ui/components/dialog';
-import type { PolicyViolation } from '@bookleaf/types';
+import type { PatronSummary, CheckoutScanResult, ReturnScanResult } from '@bookleaf/types';
 
-const checkoutSchema = z.object({ copyId: z.coerce.number().min(1, 'Required'), userId: z.coerce.number().min(1, 'Required') });
-type CheckoutForm = z.infer<typeof checkoutSchema>;
 type Borrow = { id: number; user_name: string; user_id_number: string; book_title: string; borrowed_at: string; due_date: string };
+type CheckoutLine = { key: number; label: string; ok: boolean; blocked?: Extract<CheckoutScanResult, { reason: 'policy' }>; accession: string };
+type ReturnLine = { key: number; label: string; ok: boolean };
 
 export default function Circulation() {
   const trpc = useTRPC();
@@ -22,157 +16,206 @@ export default function Circulation() {
   const { user } = useAuthStore();
   const iid = user?.institution_id ?? 1;
   const role = user?.role;
-  const [tab, setTab] = useState<'active' | 'overdue'>('active');
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [returnId, setReturnId] = useState<number | null>(null);
-  const [payFineId, setPayFineId] = useState<number | null>(null);
-  const [blocked, setBlocked] = useState<{ copyId: number; userId: number; violations: PolicyViolation[] } | null>(null);
+  const canOverride = role === 'admin' || role === 'librarian';
+
+  const [mode, setMode] = useState<'checkout' | 'return'>('checkout');
+
+  // ── Checkout session state ──
+  const [patron, setPatron] = useState<PatronSummary | null>(null);
+  const [cardInput, setCardInput] = useState('');
+  const [cardError, setCardError] = useState<string | null>(null);
+  const [accInput, setAccInput] = useState('');
+  const [coLines, setCoLines] = useState<CheckoutLine[]>([]);
+  const [overrideKey, setOverrideKey] = useState<number | null>(null);
   const [overrideNote, setOverrideNote] = useState('');
+  const accRef = useRef<HTMLInputElement>(null);
+  const cardRef = useRef<HTMLInputElement>(null);
 
-  const { data: activeBorrows = [], isLoading: loadingActive } = useQuery(trpc.admin.circulation.activeBorrows.queryOptions({ institutionId: iid }));
-  const { data: overdueBorrows = [], isLoading: loadingOverdue } = useQuery(trpc.admin.circulation.overdueBorrows.queryOptions({ institutionId: iid }));
+  // ── Return session state ──
+  const [retInput, setRetInput] = useState('');
+  const [retLines, setRetLines] = useState<ReturnLine[]>([]);
+  const retRef = useRef<HTMLInputElement>(null);
 
-  const invalidateAll = () => {
+  const { data: activeBorrows = [] } = useQuery(trpc.admin.circulation.activeBorrows.queryOptions({ institutionId: iid }));
+  const { data: overdueBorrows = [] } = useQuery(trpc.admin.circulation.overdueBorrows.queryOptions({ institutionId: iid }));
+  const invalidateTables = () => {
     qc.invalidateQueries({ queryKey: trpc.admin.circulation.activeBorrows.queryKey({ institutionId: iid }) });
     qc.invalidateQueries({ queryKey: trpc.admin.circulation.overdueBorrows.queryKey({ institutionId: iid }) });
   };
 
-  const checkoutMutation = useMutation(trpc.admin.circulation.checkout.mutationOptions({
-    onSuccess: (res, vars) => {
-      if (res.ok === false) {
-        setBlocked({ copyId: vars.copyId, userId: vars.userId, violations: res.violations });
-        return;
-      }
-      setBlocked(null);
-      setOverrideNote('');
-      invalidateAll();
-      setIsCheckoutOpen(false);
-      reset();
-    },
-  }));
-  const returnMutation = useMutation(trpc.admin.circulation.return.mutationOptions({ onSuccess: () => { invalidateAll(); setReturnId(null); } }));
-  const payFineMutation = useMutation(trpc.admin.circulation.payFine.mutationOptions({ onSuccess: () => { invalidateAll(); setPayFineId(null); } }));
+  const checkoutMut = useMutation(trpc.admin.circulation.checkoutByAccession.mutationOptions());
+  const returnMut = useMutation(trpc.admin.circulation.returnByAccession.mutationOptions());
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<CheckoutForm>({ resolver: zodResolver(checkoutSchema) });
+  let lineKey = 0;
+  const nextKey = () => ++lineKey + Date.now();
 
-  const columns: ColumnDef<Borrow>[] = [
-    { accessorKey: 'book_title', header: 'Book', cell: ({ getValue }) => <span className="font-medium">{getValue() as string}</span> },
-    { accessorKey: 'user_name', header: 'Patron' },
-    { accessorKey: 'user_id_number', header: 'ID' },
-    { accessorKey: 'borrowed_at', header: 'Borrowed', cell: ({ getValue }) => new Date(getValue() as string).toLocaleDateString() },
-    { accessorKey: 'due_date', header: 'Due', cell: ({ getValue }) => { const d = new Date(getValue() as string); return <span className={d < new Date() ? 'text-destructive font-medium' : ''}>{d.toLocaleDateString()}</span>; } },
-    { id: 'actions', cell: ({ row }) => (
-      <div className="flex gap-1">
-        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setReturnId(row.original.id)}>Return</Button>
-        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setPayFineId(row.original.id)}>Pay Fine</Button>
-      </div>
-    )},
-  ];
+  // ── Card scan: resolve patron ──
+  const onCardScan = async () => {
+    const idNumber = cardInput.trim();
+    if (!idNumber) return;
+    setCardError(null);
+    const summary = await qc.fetchQuery(trpc.admin.circulation.resolvePatron.queryOptions({ idNumber }));
+    if (!summary) { setCardError(`No patron with card "${idNumber}".`); return; }
+    setPatron(summary);
+    setCoLines([]);
+    setCardInput('');
+    setTimeout(() => accRef.current?.focus(), 0);
+  };
 
-  const currentData = (tab === 'active' ? activeBorrows : overdueBorrows) as Borrow[];
-  const isLoading = tab === 'active' ? loadingActive : loadingOverdue;
-  const table = useReactTable({ data: currentData, columns, getCoreRowModel: getCoreRowModel() });
+  // ── Item scan: checkout ──
+  const onAccScan = async (accessionRaw: string, override?: { note: string }) => {
+    const accession = accessionRaw.trim();
+    if (!accession || !patron) return;
+    const res = await checkoutMut.mutateAsync({
+      userId: patron.userId, accession,
+      ...(override ? { override: true, note: override.note } : {}),
+    });
+    if (res.ok) {
+      setCoLines((p) => [{ key: nextKey(), label: `✓ ${res.title} — due ${new Date(res.due_date).toLocaleDateString()}`, ok: true, accession }, ...p]);
+    } else if (res.reason === 'policy') {
+      const k = nextKey();
+      setCoLines((p) => [{ key: k, label: `✗ ${accession}: blocked`, ok: false, blocked: res, accession }, ...p]);
+    } else {
+      const msg = res.reason === 'unknown' ? 'unknown item' : res.reason === 'ambiguous' ? 'ambiguous accession' : 'unavailable';
+      setCoLines((p) => [{ key: nextKey(), label: `✗ ${accession}: ${msg}`, ok: false, accession }, ...p]);
+    }
+    setAccInput('');
+    setOverrideKey(null);
+    setOverrideNote('');
+    invalidateTables();
+    setTimeout(() => accRef.current?.focus(), 0);
+  };
+
+  const resetCheckout = () => {
+    setPatron(null); setCoLines([]); setAccInput(''); setCardInput(''); setCardError(null);
+    setTimeout(() => cardRef.current?.focus(), 0);
+  };
+
+  // ── Item scan: return ──
+  const onRetScan = async () => {
+    const accession = retInput.trim();
+    if (!accession) return;
+    const res: ReturnScanResult = await returnMut.mutateAsync({ accession });
+    if (res.ok) {
+      const fine = res.fine_amount > 0 ? ` — fine ₱${res.fine_amount}` : '';
+      setRetLines((p) => [{ key: nextKey(), label: `✓ returned: ${res.title} — ${res.patron_name}${fine}`, ok: true }, ...p]);
+    } else {
+      const msg = res.reason === 'unknown' ? 'unknown item' : res.reason === 'ambiguous' ? 'ambiguous accession' : 'no active loan';
+      setRetLines((p) => [{ key: nextKey(), label: `✗ ${accession}: ${msg}`, ok: false }, ...p]);
+    }
+    setRetInput('');
+    invalidateTables();
+    setTimeout(() => retRef.current?.focus(), 0);
+  };
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-6 space-y-5">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Circulation</h1>
-        <Button onClick={() => setIsCheckoutOpen(true)} size="sm">Checkout Book</Button>
+        <div className="flex gap-1 rounded-md border p-0.5">
+          {(['checkout', 'return'] as const).map((m) => (
+            <button key={m} onClick={() => setMode(m)} className={`px-4 py-1.5 text-sm font-medium rounded ${mode === m ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+              {m === 'checkout' ? 'Checkout' : 'Return'}
+            </button>
+          ))}
+        </div>
       </div>
-      <div className="flex gap-1 border-b">
-        {(['active', 'overdue'] as const).map((t) => (
-          <button key={t} onClick={() => setTab(t)} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === t ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
-            {t === 'active' ? `Active (${(activeBorrows as Borrow[]).length})` : `Overdue (${(overdueBorrows as Borrow[]).length})`}
-          </button>
+
+      {mode === 'checkout' ? (
+        <div className="space-y-4">
+          {!patron ? (
+            <div className="rounded-lg border bg-card p-5 space-y-3 shadow-sm max-w-md">
+              <p className="text-sm font-medium">Scan patron card</p>
+              <div className="flex gap-2">
+                <Input ref={cardRef} autoFocus value={cardInput} onChange={(e) => setCardInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && onCardScan()} placeholder="Scan or type card ID…" />
+                <Button onClick={onCardScan} disabled={!cardInput.trim()}>Find</Button>
+              </div>
+              {cardError && <p className="text-xs text-destructive">{cardError}</p>}
+            </div>
+          ) : (
+            <>
+              <div className="rounded-lg border bg-card p-4 shadow-sm flex items-center justify-between max-w-2xl">
+                <div>
+                  <p className="font-semibold">{patron.name} <span className="text-muted-foreground font-normal">· {patron.user_type ?? '—'}</span></p>
+                  <p className="text-xs text-muted-foreground">{patron.active_loans} active loan(s) · ₱{patron.unpaid_fines} unpaid {patron.is_active ? '' : '· INACTIVE'}</p>
+                </div>
+                <Button variant="outline" size="sm" onClick={resetCheckout}>Done / Next patron</Button>
+              </div>
+
+              {!patron.is_active ? (
+                <p className="text-sm text-destructive">This patron is inactive and cannot borrow.</p>
+              ) : (
+                <div className="rounded-lg border bg-card p-5 space-y-3 shadow-sm max-w-2xl">
+                  <p className="text-sm font-medium">Scan item (accession)</p>
+                  <div className="flex gap-2">
+                    <Input ref={accRef} autoFocus value={accInput} onChange={(e) => setAccInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && onAccScan(accInput)} placeholder="Scan or type accession…" disabled={checkoutMut.isPending} />
+                    <Button onClick={() => onAccScan(accInput)} disabled={checkoutMut.isPending || !accInput.trim()}>Check out</Button>
+                  </div>
+                  <ul className="space-y-1 text-sm">
+                    {coLines.map((l) => (
+                      <li key={l.key} className={l.ok ? 'text-green-600' : 'text-destructive'}>
+                        {l.label}
+                        {l.blocked && (
+                          <ul className="list-disc pl-5 text-xs text-muted-foreground mt-0.5">
+                            {l.blocked.violations.map((v) => <li key={v.reason_code}>{v.message}</li>)}
+                            {canOverride && (
+                              <li className="list-none mt-1">
+                                {overrideKey === l.key ? (
+                                  <div className="flex gap-2">
+                                    <Input value={overrideNote} onChange={(e) => setOverrideNote(e.target.value)} placeholder="Override reason…" className="h-7 text-xs" />
+                                    <Button size="sm" className="h-7 text-xs" disabled={!overrideNote.trim()} onClick={() => onAccScan(l.accession, { note: overrideNote.trim() })}>Override</Button>
+                                  </div>
+                                ) : (
+                                  <Button size="sm" variant="outline" className="h-6 text-xs" onClick={() => { setOverrideKey(l.key); setOverrideNote(''); }}>Override…</Button>
+                                )}
+                              </li>
+                            )}
+                          </ul>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      ) : (
+        <div className="rounded-lg border bg-card p-5 space-y-3 shadow-sm max-w-2xl">
+          <p className="text-sm font-medium">Scan item to return (accession)</p>
+          <div className="flex gap-2">
+            <Input ref={retRef} autoFocus value={retInput} onChange={(e) => setRetInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && onRetScan()} placeholder="Scan or type accession…" disabled={returnMut.isPending} />
+            <Button onClick={onRetScan} disabled={returnMut.isPending || !retInput.trim()}>Return</Button>
+          </div>
+          <ul className="space-y-1 text-sm">
+            {retLines.map((l) => <li key={l.key} className={l.ok ? 'text-green-600' : 'text-destructive'}>{l.label}</li>)}
+          </ul>
+        </div>
+      )}
+
+      {/* Reference tables */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-2">
+        {([['Active', activeBorrows], ['Overdue', overdueBorrows]] as const).map(([title, rows]) => (
+          <div key={title} className="space-y-2">
+            <p className="text-sm font-medium text-muted-foreground">{title} ({(rows as Borrow[]).length})</p>
+            <div className="rounded-md border overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50"><tr>{['Book', 'Patron', 'Due'].map((h) => <th key={h} className="text-left px-3 py-2 font-medium text-muted-foreground text-xs uppercase tracking-wider">{h}</th>)}</tr></thead>
+                <tbody className="divide-y">
+                  {(rows as Borrow[]).length === 0 ? <tr><td colSpan={3} className="px-3 py-6 text-center text-muted-foreground">None.</td></tr>
+                    : (rows as Borrow[]).map((b) => (
+                      <tr key={b.id} className="hover:bg-muted/30">
+                        <td className="px-3 py-2 font-medium">{b.book_title}</td>
+                        <td className="px-3 py-2">{b.user_name}</td>
+                        <td className="px-3 py-2">{new Date(b.due_date).toLocaleDateString()}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         ))}
       </div>
-      <div className="rounded-md border overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/50">
-            {table.getHeaderGroups().map((hg) => <tr key={hg.id}>{hg.headers.map((h) => <th key={h.id} className="text-left px-3 py-2 font-medium text-muted-foreground text-xs uppercase tracking-wider">{flexRender(h.column.columnDef.header, h.getContext())}</th>)}</tr>)}
-          </thead>
-          <tbody className="divide-y">
-            {isLoading ? <tr><td colSpan={6} className="px-3 py-8 text-center text-muted-foreground">Loading…</td></tr>
-              : table.getRowModel().rows.length === 0 ? <tr><td colSpan={6} className="px-3 py-8 text-center text-muted-foreground">No records.</td></tr>
-              : table.getRowModel().rows.map((row) => <tr key={row.id} className="hover:bg-muted/30">{row.getVisibleCells().map((cell) => <td key={cell.id} className="px-3 py-2">{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>)}</tr>)}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Checkout Dialog */}
-      <Dialog open={isCheckoutOpen} onOpenChange={(o) => { if (!o) { setIsCheckoutOpen(false); reset(); } }}>
-        <DialogContent className="max-w-xs">
-          <DialogHeader><DialogTitle>Checkout Book</DialogTitle></DialogHeader>
-          <form onSubmit={handleSubmit((d) => checkoutMutation.mutate({ copyId: d.copyId, userId: d.userId }))} className="space-y-3 py-2">
-            <div className="space-y-1"><Label>Copy ID</Label><Input type="number" {...register('copyId')} />{errors.copyId && <p className="text-xs text-destructive">{errors.copyId.message}</p>}</div>
-            <div className="space-y-1"><Label>Member ID (numeric)</Label><Input type="number" {...register('userId')} />{errors.userId && <p className="text-xs text-destructive">{errors.userId.message}</p>}</div>
-            {checkoutMutation.error && <p className="text-xs text-destructive">{getTRPCErrorMessage(checkoutMutation.error)}</p>}
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => { setIsCheckoutOpen(false); reset(); }}>Cancel</Button>
-              <Button type="submit" disabled={checkoutMutation.isPending}>{checkoutMutation.isPending ? 'Processing…' : 'Checkout'}</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Return Dialog */}
-      <Dialog open={!!returnId} onOpenChange={(o) => !o && setReturnId(null)}>
-        <DialogContent className="max-w-xs">
-          <DialogHeader><DialogTitle>Return Book?</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground py-2">Mark borrowing #{returnId} as returned.</p>
-          {returnMutation.error && <p className="text-xs text-destructive">{getTRPCErrorMessage(returnMutation.error)}</p>}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setReturnId(null)}>Cancel</Button>
-            <Button onClick={() => returnId && returnMutation.mutate({ borrowingId: returnId, condition: 'good' })} disabled={returnMutation.isPending}>{returnMutation.isPending ? 'Processing…' : 'Confirm Return'}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Pay Fine Dialog */}
-      <Dialog open={!!payFineId} onOpenChange={(o) => !o && setPayFineId(null)}>
-        <DialogContent className="max-w-xs">
-          <DialogHeader><DialogTitle>Mark Fine as Paid?</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground py-2">Clear outstanding fines for borrowing #{payFineId}.</p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPayFineId(null)}>Cancel</Button>
-            <Button onClick={() => payFineId && payFineMutation.mutate({ borrowingId: payFineId })} disabled={payFineMutation.isPending}>{payFineMutation.isPending ? 'Processing…' : 'Confirm'}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Override Dialog */}
-      <Dialog open={!!blocked} onOpenChange={(o) => { if (!o) { setBlocked(null); setOverrideNote(''); } }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Checkout blocked by loan policy</DialogTitle>
-            <DialogDescription>This checkout violates the library's circulation rules.</DialogDescription>
-          </DialogHeader>
-          <ul className="list-disc pl-5 text-sm space-y-1">
-            {blocked?.violations.map((v) => <li key={v.reason_code}>{v.message}</li>)}
-          </ul>
-          {(role === 'admin' || role === 'librarian') ? (
-            <>
-              <div className="space-y-1">
-                <label className="text-xs">Override reason (required)</label>
-                <Input value={overrideNote} onChange={(e) => setOverrideNote(e.target.value)} placeholder="e.g. department head approved" />
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => { setBlocked(null); setOverrideNote(''); }}>Cancel</Button>
-                <Button
-                  disabled={!overrideNote.trim() || checkoutMutation.isPending}
-                  onClick={() => blocked && checkoutMutation.mutate({ copyId: blocked.copyId, userId: blocked.userId, override: true, note: overrideNote.trim() })}
-                >
-                  Override &amp; check out
-                </Button>
-              </DialogFooter>
-            </>
-          ) : (
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setBlocked(null)}>Close</Button>
-            </DialogFooter>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
