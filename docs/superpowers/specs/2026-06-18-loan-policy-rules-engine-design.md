@@ -120,6 +120,8 @@ evaluateCheckout(policy, counters: { activeTotal, activeOfType, unpaidFines }, r
 
 `PolicyViolation.reason_code` ∈ `not_loanable | over_overall_limit | over_type_limit | fines_block`. (`renewals_exhausted` is produced by the renewal path.)
 
+Threshold semantics: `fines_block` fires only when `fines_block_threshold > 0` **and** `unpaidFines > fines_block_threshold`. A threshold of `0` means the rule is **disabled** (never blocks), which is the seeded default — so fines never block until a librarian sets a positive threshold. Similarly, a `NULL` `overall_limit` / `type_limit` means "no limit" and is skipped.
+
 ## Enforcement at the desk
 
 ### Checkout (`adminCheckout` signature extended)
