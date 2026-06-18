@@ -29,3 +29,28 @@ describe('buildMaterialSchema', () => {
     expect(r.success).toBe(false);
   });
 });
+
+describe('buildMaterialSchema number fields', () => {
+  const numFields: FieldDescriptor[] = [
+    { key: 'title', label: 'Title', kind: 'text', marc: '245$a', required: true },
+    { key: 'year', label: 'Year', kind: 'number', marc: '264$c' },
+    { key: 'total_copies', label: 'Copies', kind: 'number', marc: '' },
+  ];
+
+  it('defaults a blank Copies field to 1', () => {
+    const r = buildMaterialSchema(numFields).safeParse({ title: 'X', total_copies: '' });
+    expect(r.success).toBe(true);
+    if (r.success) expect((r.data as Record<string, unknown>).total_copies).toBe(1);
+  });
+
+  it('rejects 0 copies', () => {
+    const r = buildMaterialSchema(numFields).safeParse({ title: 'X', total_copies: 0 });
+    expect(r.success).toBe(false);
+  });
+
+  it('treats a blank optional number as unset (undefined), not 0', () => {
+    const r = buildMaterialSchema(numFields).safeParse({ title: 'X', year: '' });
+    expect(r.success).toBe(true);
+    if (r.success) expect((r.data as Record<string, unknown>).year).toBeUndefined();
+  });
+});

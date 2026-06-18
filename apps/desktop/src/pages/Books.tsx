@@ -166,7 +166,7 @@ function BookDialog({ open, onClose, editing, defaultValues, onSubmit, isPending
       <div key={f.key} className={`${span} space-y-1`}><Label>{f.label}{f.required ? ' *' : ''}</Label>
         {f.kind === 'textarea'
           ? <textarea {...register(f.key)} className="min-h-16 w-full rounded-md border bg-background px-2 py-1 text-sm" />
-          : <Input type={f.kind === 'number' ? 'number' : 'text'} {...register(f.key)} />}
+          : <Input type={f.kind === 'number' ? 'number' : 'text'} {...(f.key === 'total_copies' ? { min: 1 } : {})} {...register(f.key)} />}
         {errors[f.key] && <p className="text-xs text-destructive">{String(errors[f.key]?.message)}</p>}
       </div>
     );

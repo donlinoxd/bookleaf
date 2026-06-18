@@ -18,7 +18,12 @@ export function buildMaterialSchema(fields: FieldDescriptor[]): z.ZodType<Record
       continue;
     }
     if (f.kind === 'number') {
-      shape[f.key] = z.coerce.number().optional();
+      // Treat a blank input as "unset" so an empty number field persists as NULL, not 0.
+      const blankToUndefined = (v: unknown) => (v === '' || v == null ? undefined : v);
+      shape[f.key] = f.key === 'total_copies'
+        // Copies must be a positive integer; a blank field defaults to 1 (never 0).
+        ? z.preprocess(blankToUndefined, z.coerce.number().int().min(1).default(1))
+        : z.preprocess(blankToUndefined, z.coerce.number().optional());
       continue;
     }
     shape[f.key] = f.required ? z.string().min(1, `${f.label} is required`) : z.string().optional();
