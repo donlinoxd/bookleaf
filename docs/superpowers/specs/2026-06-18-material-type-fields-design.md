@@ -71,6 +71,13 @@ MARC tags are the under-the-hood mapping each field descriptor carries. Fields m
 
 **Generic (all other types)** — today's fields: title, author, isbn, genre, year, publisher, language, call number, subjects, copies.
 
+### Depends on existing schema (verified against current `resources`)
+
+This design reuses columns that already exist and are **not** added by this slice:
+`volume`, `issue_number`, and the `call_number_type` enum (`DEWEY` / `LC` / `OTHER`).
+Verified present in `packages/db/src/schema.ts` before scoping the migration. If any of
+these were absent the six-column count would be wrong — they are confirmed present.
+
 ### New columns (migration `0004_material_fields.sql`)
 
 Six nullable `TEXT` columns on `resources`: `frequency`, `container_title`, `pages`, `thesis_degree`, `thesis_institution`, `thesis_advisor`. All `ADD COLUMN` (idempotent-friendly, no backfill needed).
@@ -106,14 +113,14 @@ export function fieldsFor(materialType: string): FieldDescriptor[]; // falls bac
 ```
 
 **Controlled `select` option lists:**
-- `call_number_type`: `DEWEY`, `LC`, `OTHER` (matches the existing `resources.call_number_type` enum).
-- `frequency`: `Daily`, `Weekly`, `Biweekly`, `Monthly`, `Bimonthly`, `Quarterly`, `Semiannual`, `Annual`, `Irregular`.
+- `call_number_type`: `DEWEY`, `LC`, `OTHER`. **Single source of truth:** extract these into an exported `CALL_NUMBER_TYPES` const in `packages/types`, reference it from both the `resources.call_number_type` enum in `schema.ts` and the descriptor's `options`. This adds one acyclic dependency edge — `@bookleaf/db` → `@bookleaf/types` (types does not import db; verified no existing edge either way) — so `@bookleaf/types` must be added to `@bookleaf/db`'s dependencies. The config test asserts the descriptor options deep-equal `CALL_NUMBER_TYPES`, so the two can't drift and the form never offers a value the DB rejects. (Values unchanged → no migration needed for this refactor.)
+- `frequency`: `Daily`, `Weekly`, `Biweekly`, `Monthly`, `Bimonthly`, `Quarterly`, `Semiannual`, `Annual`, `Irregular`. Stored as the **display value** (TEXT), deliberately — there is no DB enum for frequency, so no drift risk. Note: a future MARC `310$a` exporter will read these display strings, which is intended.
 
 ### Form — generic renderer (`MaterialDialog`, evolving from current `BookDialog`)
 
 1. Material-type `<select>` is always visible at the top. Changing it re-derives visible fields via `fieldsFor(type)`.
 2. Descriptors render grouped by `group`. `author-authority` / `publisher-authority` / `subjects` render the existing authority pickers (the escape hatch); other kinds render plain react-hook-form inputs via `register(key)`.
-3. A zod schema is built dynamically from the active descriptor list: Title always required, plus any descriptor with `required: true`. Today only Title carries `required` (librarians catalog incrementally — no field beyond Title is mandatory); the mechanism is general so other types can mark fields required later without code changes. Validation stays in sync with visible fields automatically. `select` descriptors validate against their `options`.
+3. A zod schema is built dynamically from the active descriptor list: Title always required, plus any descriptor with `required: true`. Today only Title carries `required` (librarians catalog incrementally — no field beyond Title is mandatory); the mechanism is general so other types can mark fields required later without code changes. Validation stays in sync with visible fields automatically. A non-required `select` is built as `z.enum(options).optional()` (or equivalently allows empty), so an unselected frequency on a Serial passes validation — only Title is mandatory.
 4. Submit builds the payload from the active field keys plus authority-picker state, following the same enrichment pattern already used in the form (author/publisher name + authority id, conditional subjects).
 
 ### Backend
@@ -128,7 +135,7 @@ Extend the `Resource` type in `packages/types` with the 6 new optional string fi
 
 ## Testing (TDD)
 
-- **Config unit tests** (`materialFields.test.ts`): each in-scope type includes a required Title; no duplicate field keys within a type; every descriptor has a non-empty `marc` tag; every `select` descriptor has non-empty `options`; in-scope types resolve to their specific sets; `fieldsFor('MAP')` (valid non-scoped enum) and `fieldsFor('GARBAGE')` (non-enum string) both return the generic set.
+- **Config unit tests** (`materialFields.test.ts`): each in-scope type includes a required Title; no duplicate field keys within a type; every descriptor has a non-empty `marc` tag; every `select` descriptor has non-empty `options`; the `call_number_type` descriptor's `options` deep-equal the shared `CALL_NUMBER_TYPES` const (catches enum/descriptor drift); in-scope types resolve to their specific sets; `fieldsFor('MAP')` (valid non-scoped enum) and `fieldsFor('GARBAGE')` (non-enum string) both return the generic set.
 - **Adapter round-trip tests**: create + read back a Thesis (degree/institution/advisor), a Serial (frequency), and an Article (container_title/pages), proving the new columns persist and load. Extends the existing sqlite adapter test suite.
 - **Regression gate**: full server suite green; server/desktop/types/db typechecks at baseline (no new errors); `git diff --name-only master...HEAD -- apps/server` stays empty.
 
