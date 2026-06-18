@@ -256,6 +256,93 @@ export function createSqliteAdapter(
     });
   }
 
+  async function checkoutCopy(
+    copyId: number,
+    userId: number,
+    opts?: { override?: boolean; actedByUserId?: number; institutionId?: number; note?: string },
+  ): Promise<{ borrowingId: number }> {
+    const copyInfo = await db.select({ resource_id: resourceCopies.resource_id, institution_id: resources.institution_id, material_type: resources.material_type })
+      .from(resourceCopies)
+      .innerJoin(resources, eq(resourceCopies.resource_id, resources.id))
+      .where(eq(resourceCopies.id, copyId)).limit(1).then(r => r[0] ?? null);
+    if (!copyInfo) throw new Error('This copy is no longer available. Please pick another.');
+
+    const policy = await resolveForResource(copyInfo.institution_id, userId, copyInfo.resource_id);
+    const counters = await fetchCheckoutCounters(userId, copyInfo.material_type);
+    const violations = evaluateCheckout(policy, counters);
+    if (violations.length > 0 && !opts?.override) throw new PolicyError(violations);
+
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + policy.loan_period_days);
+
+    const doCheckout = rawDb.transaction(() => {
+      const claimed = rawDb.prepare(
+        `UPDATE resource_copies SET status = 'borrowed' WHERE id = ? AND status = 'available' AND condition != 'lost' RETURNING id, resource_id`,
+      ).all(copyId) as { id: number; resource_id: number }[];
+      if (claimed.length === 0) throw new Error('This copy is no longer available. Please pick another.');
+
+      if (violations.length > 0 && opts?.override) {
+        const insertOverride = rawDb.prepare(
+          `INSERT INTO circ_overrides (institution_id, acted_by_user_id, patron_user_id, copy_id, reason_code, note) VALUES (?, ?, ?, ?, ?, ?)`,
+        );
+        for (const v of violations) {
+          insertOverride.run(opts.institutionId ?? copyInfo.institution_id, opts.actedByUserId ?? userId, userId, copyId, v.reason_code, opts.note ?? null);
+        }
+      }
+
+      const borrowResult = rawDb.prepare(
+        `INSERT INTO borrowing_records (copy_id, user_id, due_date) VALUES (?, ?, ?) RETURNING id`,
+      ).get(copyId, userId, dueDate.toISOString()) as { id: number };
+      rawDb.prepare(`UPDATE resources SET available_copies = available_copies - 1 WHERE id = ?`).run(claimed[0].resource_id);
+      rawDb.prepare(`UPDATE reservations SET status = 'fulfilled' WHERE resource_id = ? AND user_id = ? AND status = 'active'`).run(claimed[0].resource_id, userId);
+      return { borrowingId: borrowResult.id };
+    });
+    return doCheckout();
+  }
+
+  async function returnBorrowing(
+    borrowingId: number,
+    condition: string,
+  ): Promise<{ id: number; borrowing_id: number; amount: number; paid: boolean; paid_at: null } | null> {
+    const record = await db.select().from(borrowingRecords)
+      .where(eq(borrowingRecords.id, borrowingId)).limit(1).then(r => r[0] ?? null);
+    if (!record) throw new Error('Borrowing record not found');
+
+    const now = new Date();
+    const due = new Date(record.due_date);
+    let fineAmount = 0;
+
+    if (now > due) {
+      const copyRes = await db.select({ resource_id: resourceCopies.resource_id, institution_id: resources.institution_id })
+        .from(resourceCopies)
+        .innerJoin(resources, eq(resourceCopies.resource_id, resources.id))
+        .where(eq(resourceCopies.id, record.copy_id)).limit(1).then(r => r[0] ?? null);
+      if (copyRes) {
+        const policy = await resolveForResource(copyRes.institution_id, record.user_id, copyRes.resource_id);
+        const daysLate = Math.max(0, Math.floor((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24)));
+        const billableDays = Math.max(0, daysLate - policy.grace_period_days);
+        fineAmount = billableDays * policy.fine_per_day;
+        if (policy.fine_max != null) fineAmount = Math.min(fineAmount, policy.fine_max);
+      }
+    }
+
+    const typedCondition = (condition ?? 'good') as 'good' | 'damaged' | 'lost';
+    const doReturn = rawDb.transaction(() => {
+      rawDb.prepare(`UPDATE borrowing_records SET returned_at = ?, fine_amount = ? WHERE id = ?`).run(now.toISOString(), fineAmount, borrowingId);
+      rawDb.prepare(`UPDATE resource_copies SET status = 'available', condition = ? WHERE id = ?`).run(typedCondition, record.copy_id);
+      if (typedCondition !== 'lost') {
+        const copy = rawDb.prepare(`SELECT resource_id FROM resource_copies WHERE id = ? LIMIT 1`).get(record.copy_id) as { resource_id: number } | undefined;
+        if (copy) rawDb.prepare(`UPDATE resources SET available_copies = available_copies + 1 WHERE id = ?`).run(copy.resource_id);
+      }
+      if (fineAmount > 0) {
+        const fineResult = rawDb.prepare(`INSERT INTO fines (borrowing_id, amount) VALUES (?, ?) RETURNING id`).get(borrowingId, fineAmount) as { id: number };
+        return { id: fineResult.id, borrowing_id: borrowingId, amount: fineAmount, paid: false, paid_at: null };
+      }
+      return null;
+    });
+    return doReturn();
+  }
+
   const adapterImpl: DbAdapter = {
     // ── Auth ────────────────────────────────────────────────────────────────
 
@@ -1312,122 +1399,11 @@ export function createSqliteAdapter(
     },
 
     async adminCheckout(copyId, userId, opts) {
-      // Resolve the copy's resource + institution first (needed for policy).
-      const copyInfo = await db.select({ resource_id: resourceCopies.resource_id, institution_id: resources.institution_id, material_type: resources.material_type })
-        .from(resourceCopies)
-        .innerJoin(resources, eq(resourceCopies.resource_id, resources.id))
-        .where(eq(resourceCopies.id, copyId)).limit(1).then(r => r[0] ?? null);
-      if (!copyInfo) throw new Error('This copy is no longer available. Please pick another.');
-
-      const policy = await resolveForResource(copyInfo.institution_id, userId, copyInfo.resource_id);
-      const counters = await fetchCheckoutCounters(userId, copyInfo.material_type);
-      const violations = evaluateCheckout(policy, counters);
-
-      if (violations.length > 0 && !opts?.override) {
-        throw new PolicyError(violations);
-      }
-
-      const dueDate = new Date();
-      dueDate.setDate(dueDate.getDate() + policy.loan_period_days);
-
-      const doCheckout = rawDb.transaction(() => {
-        const claimed = rawDb.prepare(
-          `UPDATE resource_copies SET status = 'borrowed'
-           WHERE id = ? AND status = 'available' AND condition != 'lost'
-           RETURNING id, resource_id`,
-        ).all(copyId) as { id: number; resource_id: number }[];
-        if (claimed.length === 0) throw new Error('This copy is no longer available. Please pick another.');
-
-        if (violations.length > 0 && opts?.override) {
-          const insertOverride = rawDb.prepare(
-            `INSERT INTO circ_overrides (institution_id, acted_by_user_id, patron_user_id, copy_id, reason_code, note)
-             VALUES (?, ?, ?, ?, ?, ?)`,
-          );
-          for (const v of violations) {
-            insertOverride.run(
-              opts.institutionId ?? copyInfo.institution_id,
-              opts.actedByUserId ?? userId,
-              userId,
-              copyId,
-              v.reason_code,
-              opts.note ?? null,
-            );
-          }
-        }
-
-        const borrowResult = rawDb.prepare(
-          `INSERT INTO borrowing_records (copy_id, user_id, due_date) VALUES (?, ?, ?) RETURNING id`,
-        ).get(copyId, userId, dueDate.toISOString()) as { id: number };
-
-        rawDb.prepare(
-          `UPDATE resources SET available_copies = available_copies - 1 WHERE id = ?`,
-        ).run(claimed[0].resource_id);
-
-        rawDb.prepare(
-          `UPDATE reservations SET status = 'fulfilled'
-           WHERE resource_id = ? AND user_id = ? AND status = 'active'`,
-        ).run(claimed[0].resource_id, userId);
-
-        return { borrowingId: borrowResult.id };
-      });
-
-      return doCheckout();
+      return checkoutCopy(copyId, userId, opts);
     },
 
     async adminReturn(borrowingId, condition) {
-      const record = await db.select().from(borrowingRecords)
-        .where(eq(borrowingRecords.id, borrowingId)).limit(1).then(r => r[0] ?? null);
-      if (!record) throw new Error('Borrowing record not found');
-
-      const now = new Date();
-      const due = new Date(record.due_date);
-      let fineAmount = 0;
-
-      if (now > due) {
-        const copyRes = await db.select({ resource_id: resourceCopies.resource_id, institution_id: resources.institution_id })
-          .from(resourceCopies)
-          .innerJoin(resources, eq(resourceCopies.resource_id, resources.id))
-          .where(eq(resourceCopies.id, record.copy_id)).limit(1).then(r => r[0] ?? null);
-        if (copyRes) {
-          const policy = await resolveForResource(copyRes.institution_id, record.user_id, copyRes.resource_id);
-          const daysLate = Math.max(0, Math.floor((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24)));
-          const billableDays = Math.max(0, daysLate - policy.grace_period_days);
-          fineAmount = billableDays * policy.fine_per_day;
-          if (policy.fine_max != null) fineAmount = Math.min(fineAmount, policy.fine_max);
-        }
-      }
-
-      const typedCondition = (condition ?? 'good') as 'good' | 'damaged' | 'lost';
-      const doReturn = rawDb.transaction(() => {
-        rawDb.prepare(
-          `UPDATE borrowing_records SET returned_at = ?, fine_amount = ? WHERE id = ?`,
-        ).run(now.toISOString(), fineAmount, borrowingId);
-
-        rawDb.prepare(
-          `UPDATE resource_copies SET status = 'available', condition = ? WHERE id = ?`,
-        ).run(typedCondition, record.copy_id);
-
-        if (typedCondition !== 'lost') {
-          const copy = rawDb.prepare(
-            `SELECT resource_id FROM resource_copies WHERE id = ? LIMIT 1`,
-          ).get(record.copy_id) as { resource_id: number } | undefined;
-          if (copy) {
-            rawDb.prepare(
-              `UPDATE resources SET available_copies = available_copies + 1 WHERE id = ?`,
-            ).run(copy.resource_id);
-          }
-        }
-
-        if (fineAmount > 0) {
-          const fineResult = rawDb.prepare(
-            `INSERT INTO fines (borrowing_id, amount) VALUES (?, ?) RETURNING id`,
-          ).get(borrowingId, fineAmount) as { id: number };
-          return { id: fineResult.id, borrowing_id: borrowingId, amount: fineAmount, paid: false, paid_at: null };
-        }
-        return null;
-      });
-
-      return doReturn();
+      return returnBorrowing(borrowingId, condition);
     },
 
     async adminPendingReservations(institutionId) {
