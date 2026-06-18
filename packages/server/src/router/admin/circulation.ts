@@ -71,4 +71,8 @@ export const adminCirculationRouter = router({
       await ctx.db.adminPayFine(input.borrowingId);
       return { ok: true as const };
     }),
+
+  resolvePatron: librarianProcedure
+    .input(z.object({ institutionId: z.number().int(), idNumber: z.string().min(1) }))
+    .query(({ input, ctx }) => ctx.db.adminResolvePatron(input.institutionId, input.idNumber)),
 });

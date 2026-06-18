@@ -176,6 +176,7 @@ export function createBridgeAdapter(queryRN: QueryFn): DbAdapter {
     adminResolvePolicy: () => {
       throw new Error('Policy resolution is not supported on mobile');
     },
+    adminResolvePatron: () => { throw new Error('adminResolvePatron is not supported on mobile'); },
     adminListLoanRules: () => {
       throw new Error('Loan rule management is not supported on mobile');
     },

@@ -1244,6 +1244,25 @@ export function createSqliteAdapter(
       return resolveForResource(institutionId, userId, resourceId);
     },
 
+    async adminResolvePatron(institutionId, idNumber) {
+      const u = await db.select({
+        id: users.id, name: users.name, user_type: users.user_type, is_active: users.is_active,
+      }).from(users)
+        .where(and(eq(users.institution_id, institutionId), eq(users.id_number, idNumber)))
+        .limit(1).then(r => r[0] ?? null);
+      if (!u) return null;
+      const activeRow = await db.select({ c: sql<number>`count(*)` }).from(borrowingRecords)
+        .where(and(eq(borrowingRecords.user_id, u.id), isNull(borrowingRecords.returned_at)));
+      const fineRow = await db.select({ s: sum(fines.amount) }).from(fines)
+        .innerJoin(borrowingRecords, eq(fines.borrowing_id, borrowingRecords.id))
+        .where(and(eq(borrowingRecords.user_id, u.id), eq(fines.paid, false)));
+      return {
+        userId: u.id, name: u.name, user_type: u.user_type, is_active: u.is_active,
+        active_loans: Number(activeRow[0]?.c ?? 0),
+        unpaid_fines: Number(fineRow[0]?.s ?? 0),
+      };
+    },
+
     async adminListLoanRules(institutionId) {
       const { rules } = await loadRulesAndLimits(institutionId);
       return rules;

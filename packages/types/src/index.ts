@@ -343,3 +343,22 @@ export interface CircOverride {
   note: string | null;
   created_at: string;
 }
+
+// ── Circulation desk (scan flows) ────────────────────────────────────────────
+export interface PatronSummary {
+  userId: number;
+  name: string;
+  user_type: UserType | null;
+  is_active: boolean;
+  active_loans: number;
+  unpaid_fines: number;
+}
+
+export type CheckoutScanResult =
+  | { ok: true; copyId: number; title: string; due_date: string }
+  | { ok: false; reason: 'unknown' | 'ambiguous' | 'unavailable'; accession: string }
+  | { ok: false; reason: 'policy'; violations: PolicyViolation[] };
+
+export type ReturnScanResult =
+  | { ok: true; title: string; patron_name: string; fine_amount: number }
+  | { ok: false; reason: 'unknown' | 'ambiguous' | 'no_active_loan'; accession: string };
