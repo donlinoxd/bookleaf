@@ -73,6 +73,6 @@ export const adminCirculationRouter = router({
     }),
 
   resolvePatron: librarianProcedure
-    .input(z.object({ institutionId: z.number().int(), idNumber: z.string().min(1) }))
-    .query(({ input, ctx }) => ctx.db.adminResolvePatron(input.institutionId, input.idNumber)),
+    .input(z.object({ idNumber: z.string().min(1) }))
+    .query(({ input, ctx }) => ctx.db.adminResolvePatron(ctx.principal.institution_id, input.idNumber)),
 });

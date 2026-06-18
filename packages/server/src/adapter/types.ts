@@ -127,6 +127,10 @@ export interface DbAdapter {
   adminPendingReservations(institutionId: number): Promise<unknown[]>;
   adminCancelReservation(reservationId: number): Promise<void>;
   adminPayFine(borrowingId: number): Promise<void>;
+  adminResolvePatron(
+    institutionId: number,
+    idNumber: string,
+  ): Promise<import('@bookleaf/types').PatronSummary | null>;
   adminResolvePolicy(
     institutionId: number,
     userId: number,
@@ -143,10 +147,6 @@ export interface DbAdapter {
     institutionId: number,
     data: Omit<import('@bookleaf/types').CategoryLimit, 'id' | 'institution_id'> & { id?: number },
   ): Promise<{ id: number }>;
-  adminResolvePatron(
-    institutionId: number,
-    idNumber: string,
-  ): Promise<import('@bookleaf/types').PatronSummary | null>;
 
   // ── Admin: Reports ────────────────────────────────────────────────────────
   adminCirculationReport(institutionId: number): Promise<unknown>;
