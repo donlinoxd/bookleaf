@@ -7,7 +7,6 @@ import {
 } from '@tanstack/react-table';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useTRPC, getTRPCErrorMessage } from '@/lib/trpc';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Button } from '@bookleaf/ui/components/button';
@@ -18,21 +17,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@bookleaf/ui/components/alert-dialog';
 import { Plus, Pencil, Trash2, Search } from 'lucide-react';
 import { AuthorityPicker, AuthorityMultiPicker } from '@/components/AuthorityCombobox';
-
-const bookSchema = z.object({
-  title: z.string().min(1, 'Title is required'),
-  author: z.string().optional(),
-  isbn: z.string().optional(),
-  genre: z.string().optional(),
-  year: z.coerce.number().optional(),
-  publisher: z.string().optional(),
-  language: z.string().optional(),
-  call_number: z.string().optional(),
-  total_copies: z.coerce.number().min(1).default(1),
-  material_type: z.string().default('BOOK'),
-  is_loanable: z.boolean().default(true),
-});
-type BookForm = z.infer<typeof bookSchema>;
+import { fieldsFor, type FieldDescriptor } from '@/lib/materialFields';
+import { buildMaterialSchema } from '@/lib/materialFormSchema';
 type Book = { id: number; title: string; author: string | null; genre: string | null; year: number | null; material_type: string; available_copies: number; total_copies: number; author_authority_id?: number | null; publisher?: string | null; publisher_authority_id?: number | null; subject_headings?: string[] | null };
 
 export default function Books() {
@@ -97,7 +83,7 @@ export default function Books() {
         </table>
       </div>
       <BookDialog open={isAddOpen || !!editBook} onClose={() => { setIsAddOpen(false); setEditBook(null); }} editing={editBook}
-        defaultValues={editBook ? { title: editBook.title, author: editBook.author ?? '', genre: editBook.genre ?? '', year: editBook.year ?? undefined, total_copies: editBook.total_copies, material_type: editBook.material_type, is_loanable: true } : undefined}
+        defaultValues={editBook ? { title: editBook.title, author: editBook.author ?? '', genre: editBook.genre ?? '', year: editBook.year ?? undefined, total_copies: editBook.total_copies, material_type: editBook.material_type, is_loanable: true } as Record<string, unknown> : undefined}
         onSubmit={(data) => editBook ? updateMutation.mutate({ id: editBook.id, data }) : createMutation.mutate({ institutionId: iid, data, copies: [] })}
         isPending={createMutation.isPending || updateMutation.isPending} error={createMutation.error || updateMutation.error} title={editBook ? 'Edit Book' : 'Add Book'} />
       <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
@@ -113,59 +99,103 @@ export default function Books() {
   );
 }
 
-function BookDialog({ open, onClose, editing, defaultValues, onSubmit, isPending, error, title }: { open: boolean; onClose: () => void; editing?: Book | null; defaultValues?: Partial<BookForm>; onSubmit: (d: Record<string, unknown>) => void; isPending: boolean; error: unknown; title: string }) {
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<BookForm>({ resolver: zodResolver(bookSchema), defaultValues: defaultValues ?? { total_copies: 1, material_type: 'BOOK', is_loanable: true } });
+const MATERIAL_TYPES = ['BOOK', 'SERIAL', 'ARTICLE', 'AUDIOVISUAL', 'MAP', 'MANUSCRIPT', 'DIGITAL', 'THESIS', 'OTHER'] as const;
+
+function BookDialog({ open, onClose, editing, defaultValues, onSubmit, isPending, error, title }: { open: boolean; onClose: () => void; editing?: Book | null; defaultValues?: Record<string, unknown>; onSubmit: (d: Record<string, unknown>) => void; isPending: boolean; error: unknown; title: string }) {
+  const [materialType, setMaterialType] = useState<string>(editing?.material_type ?? 'BOOK');
+  const fields = fieldsFor(materialType);
+  const schema = buildMaterialSchema(fields);
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<Record<string, unknown>>({ resolver: zodResolver(schema) });
+
   const [authorAuthority, setAuthorAuthority] = useState<{ id: number | null; name: string | null }>({ id: null, name: null });
   const [publisherAuthority, setPublisherAuthority] = useState<{ id: number | null; name: string | null }>({ id: null, name: null });
   const [subjects, setSubjects] = useState<{ id: number; name: string }[]>([]);
   const [subjectsTouched, setSubjectsTouched] = useState(false);
-  useEffect(() => { if (open) reset(defaultValues ?? { total_copies: 1, material_type: 'BOOK', is_loanable: true }); }, [open]);
+
   useEffect(() => {
     if (!open) return;
+    setMaterialType(editing?.material_type ?? 'BOOK');
+    reset({ ...(defaultValues as Record<string, unknown> | undefined), total_copies: defaultValues?.total_copies ?? 1 });
     setAuthorAuthority({ id: editing?.author_authority_id ?? null, name: editing?.author ?? null });
     setPublisherAuthority({ id: editing?.publisher_authority_id ?? null, name: editing?.publisher ?? null });
-    // Subject ids aren't carried on the list row; start empty on edit and only
-    // send subjects if the librarian actually touches the field (see submit handler).
     setSubjects([]);
     setSubjectsTouched(false);
   }, [open]);
+
+  function renderField(f: FieldDescriptor) {
+    if (f.kind === 'author-authority') {
+      return (
+        <div key={f.key} className="col-span-2 space-y-1"><Label>{f.label}</Label>
+          <AuthorityPicker type="personal" valueName={authorAuthority.name ?? undefined}
+            placeholder={`Search or create ${f.label.toLowerCase()}…`}
+            onChange={(id, name) => setAuthorAuthority({ id, name })} />
+        </div>
+      );
+    }
+    if (f.kind === 'publisher-authority') {
+      return (
+        <div key={f.key} className="col-span-2 space-y-1"><Label>{f.label}</Label>
+          <AuthorityPicker type="publisher" valueName={publisherAuthority.name ?? undefined}
+            placeholder={`Search or create ${f.label.toLowerCase()}…`}
+            onChange={(id, name) => setPublisherAuthority({ id, name })} />
+        </div>
+      );
+    }
+    if (f.kind === 'subjects') {
+      return (
+        <div key={f.key} className="col-span-2 space-y-1"><Label>{f.label}</Label>
+          <AuthorityMultiPicker type="subject" value={subjects}
+            onChange={(next) => { setSubjects(next); setSubjectsTouched(true); }}
+            placeholder="Add controlled subjects…" />
+        </div>
+      );
+    }
+    if (f.kind === 'select') {
+      return (
+        <div key={f.key} className="space-y-1"><Label>{f.label}</Label>
+          <select {...register(f.key)} className="h-9 w-full rounded-md border bg-background px-2 text-sm">
+            <option value="">—</option>
+            {f.options!.map(o => <option key={o} value={o}>{o}</option>)}
+          </select>
+        </div>
+      );
+    }
+    const span = f.kind === 'textarea' ? 'col-span-2' : '';
+    return (
+      <div key={f.key} className={`${span} space-y-1`}><Label>{f.label}{f.required ? ' *' : ''}</Label>
+        {f.kind === 'textarea'
+          ? <textarea {...register(f.key)} className="min-h-16 w-full rounded-md border bg-background px-2 py-1 text-sm" />
+          : <Input type={f.kind === 'number' ? 'number' : 'text'} {...register(f.key)} />}
+        {errors[f.key] && <p className="text-xs text-destructive">{String(errors[f.key]?.message)}</p>}
+      </div>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) { onClose(); reset(); } }}>
       <DialogContent className="max-w-lg">
         <DialogHeader><DialogTitle>{title}</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit((data) => onSubmit({
           ...data,
-          author: authorAuthority.name ?? data.author,
-          publisher: publisherAuthority.name ?? data.publisher,
+          material_type: materialType,
+          // Serial has no author field → persist '' (means "no personal author", not "unknown");
+          // a future MARC exporter must not emit an empty 100$a for these.
+          author: authorAuthority.name ?? (data.author as string | undefined) ?? '',
+          publisher: publisherAuthority.name ?? (data.publisher as string | undefined),
           author_authority_id: authorAuthority.id,
           publisher_authority_id: publisherAuthority.id,
-          // Only send subjects if the librarian touched the field, so editing a
-          // book without opening Subjects doesn't wipe its existing links.
+          is_loanable: true,
           ...(subjectsTouched ? { subject_authority_ids: subjects.map((s) => s.id) } : {}),
         }))} className="space-y-3 py-2">
+          <div className="space-y-1">
+            <Label>Material type</Label>
+            <select value={materialType} onChange={(e) => setMaterialType(e.target.value)}
+              className="h-9 w-full rounded-md border bg-background px-2 text-sm">
+              {MATERIAL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2 space-y-1"><Label>Title *</Label><Input {...register('title')} />{errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}</div>
-            <div className="col-span-2 space-y-1"><Label>Author</Label>
-              <AuthorityPicker type="personal" valueName={authorAuthority.name ?? undefined}
-                placeholder="Search or create an author authority…"
-                onChange={(id, name) => setAuthorAuthority({ id, name })} />
-            </div>
-            <div className="space-y-1"><Label>ISBN</Label><Input {...register('isbn')} /></div>
-            <div className="space-y-1"><Label>Genre</Label><Input {...register('genre')} /></div>
-            <div className="space-y-1"><Label>Year</Label><Input type="number" {...register('year')} /></div>
-            <div className="col-span-2 space-y-1"><Label>Publisher</Label>
-              <AuthorityPicker type="publisher" valueName={publisherAuthority.name ?? undefined}
-                placeholder="Search or create a publisher…"
-                onChange={(id, name) => setPublisherAuthority({ id, name })} />
-            </div>
-            <div className="space-y-1"><Label>Language</Label><Input {...register('language')} placeholder="English" /></div>
-            <div className="space-y-1"><Label>Call Number</Label><Input {...register('call_number')} /></div>
-            <div className="space-y-1"><Label>Copies</Label><Input type="number" min={1} {...register('total_copies')} /></div>
-            <div className="col-span-2 space-y-1"><Label>Subjects</Label>
-              <AuthorityMultiPicker type="subject" value={subjects}
-                onChange={(next) => { setSubjects(next); setSubjectsTouched(true); }}
-                placeholder="Add controlled subjects…" />
-            </div>
+            {fields.map(renderField)}
           </div>
           {error && <p className="text-xs text-destructive">{getTRPCErrorMessage(error)}</p>}
           <DialogFooter>
