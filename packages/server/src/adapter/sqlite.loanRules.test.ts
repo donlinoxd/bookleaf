@@ -111,6 +111,41 @@ describe('checkout enforcement', () => {
     expect(row.reason_code).toBe('over_overall_limit');
     expect(row.note).toBe('dean approved');
   });
+
+  it('not_loanable blocks at checkout end-to-end', async () => {
+    const uid = await member('student');
+    const { resourceId, copyId } = await bookWithCopy();
+    raw.prepare('UPDATE resources SET is_loanable = 0 WHERE id = ?').run(resourceId);
+
+    let err: unknown;
+    try { await db.adminCheckout(copyId, uid); } catch (e) { err = e; }
+    expect(err).toBeInstanceOf(PolicyError);
+    expect((err as PolicyError).violations.map(v => v.reason_code)).toContain('not_loanable');
+
+    const status = raw.prepare('SELECT status FROM resource_copies WHERE id = ?').get(copyId) as { status: string };
+    expect(status.status).toBe('available');
+  });
+
+  it('a checkout tripping TWO violations writes TWO circ_overrides rows on override', async () => {
+    raw.prepare("INSERT INTO category_limits (institution_id, user_type, overall_limit, fines_block_threshold) VALUES (?, 'student', 1, 0)").run(iid);
+    const uid = await member('student');
+
+    // Check out one loanable item to consume the overall limit
+    const a = await bookWithCopy();
+    await db.adminCheckout(a.copyId, uid);
+
+    // Create a second book and mark it non-loanable
+    const b = await bookWithCopy();
+    raw.prepare('UPDATE resources SET is_loanable = 0 WHERE id = ?').run(b.resourceId);
+
+    // Should trip BOTH over_overall_limit AND not_loanable
+    const res = await db.adminCheckout(b.copyId, uid, { override: true, actedByUserId: uid, institutionId: iid, note: 'approved' });
+    expect(res.borrowingId).toBeGreaterThan(0);
+
+    const rows = raw.prepare('SELECT reason_code FROM circ_overrides WHERE patron_user_id = ?').all(uid) as { reason_code: string }[];
+    expect(rows.length).toBe(2);
+    expect(rows.map(r => r.reason_code).sort()).toEqual(['not_loanable', 'over_overall_limit']);
+  });
 });
 
 describe('renewal + return use resolved policy', () => {

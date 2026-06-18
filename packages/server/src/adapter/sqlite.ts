@@ -8,7 +8,7 @@ import * as schema from '@bookleaf/db/schema';
 import { hashPin, verifyPin, isLegacyHash } from '@bookleaf/db/database';
 import { normalizeAuthorityName } from '../authorities/normalize';
 import type { DbAdapter, SessionPrincipal } from './types';
-import type { LoanRule, CategoryLimit, ResolvedPolicy, PolicyReasonCode } from '@bookleaf/types';
+import type { LoanRule, CategoryLimit, ResolvedPolicy } from '@bookleaf/types';
 import { resolvePolicy, evaluateCheckout, PolicyError, type CheckoutCounters } from './loanPolicy';
 
 const {
@@ -198,23 +198,25 @@ export function createSqliteAdapter(
     const existing = await db.select({ id: loanRules.id }).from(loanRules)
       .where(and(eq(loanRules.institution_id, institutionId),
         eq(loanRules.user_type, 'ANY'), eq(loanRules.material_type, 'ANY'))).limit(1);
-    const cfg = await getSettings(db);
-    if (existing.length === 0) {
-      await db.insert(loanRules).values({
-        institution_id: institutionId, user_type: 'ANY', material_type: 'ANY',
-        loan_period_days: cfg.max_borrow_days, type_limit: null,
-        max_renewals: cfg.max_renewals, renewal_period_days: null,
-        fine_per_day: cfg.fine_per_day, grace_period_days: cfg.grace_period_days,
-        fine_max: null, is_loanable: true, is_holdable: true,
-      }).onConflictDoNothing();
-    }
     const limitExists = await db.select({ id: categoryLimits.id }).from(categoryLimits)
       .where(and(eq(categoryLimits.institution_id, institutionId), eq(categoryLimits.user_type, 'ANY'))).limit(1);
-    if (limitExists.length === 0) {
-      await db.insert(categoryLimits).values({
-        institution_id: institutionId, user_type: 'ANY',
-        overall_limit: cfg.max_books_per_member, fines_block_threshold: 0,
-      }).onConflictDoNothing();
+    if (existing.length === 0 || limitExists.length === 0) {
+      const cfg = await getSettings(db);
+      if (existing.length === 0) {
+        await db.insert(loanRules).values({
+          institution_id: institutionId, user_type: 'ANY', material_type: 'ANY',
+          loan_period_days: cfg.max_borrow_days, type_limit: null,
+          max_renewals: cfg.max_renewals, renewal_period_days: null,
+          fine_per_day: cfg.fine_per_day, grace_period_days: cfg.grace_period_days,
+          fine_max: null, is_loanable: true, is_holdable: true,
+        }).onConflictDoNothing();
+      }
+      if (limitExists.length === 0) {
+        await db.insert(categoryLimits).values({
+          institution_id: institutionId, user_type: 'ANY',
+          overall_limit: cfg.max_books_per_member, fines_block_threshold: 0,
+        }).onConflictDoNothing();
+      }
     }
   }
 
@@ -1328,7 +1330,7 @@ export function createSqliteAdapter(
               opts.actedByUserId ?? userId,
               userId,
               copyId,
-              v.reason_code as PolicyReasonCode,
+              v.reason_code,
               opts.note ?? null,
             );
           }
