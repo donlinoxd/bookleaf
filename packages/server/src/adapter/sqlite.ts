@@ -167,6 +167,30 @@ export function createSqliteAdapter(
     return row?.name;
   }
 
+  // After an authority's preferred name changes, propagate it to the denormalized
+  // text columns on every resource that links to it (author/publisher) and
+  // re-derive subject_headings for resources that use it as a subject. Assumes the
+  // authority_names row already holds the NEW name. Wrapped in a transaction so the
+  // multi-row rewrite is atomic.
+  function resyncDenormalizedTextForAuthority(authorityId: number, newName: string): void {
+    const tx = rawDb.transaction(() => {
+      rawDb.prepare('UPDATE resources SET author = ? WHERE author_authority_id = ?').run(newName, authorityId);
+      rawDb.prepare('UPDATE resources SET publisher = ? WHERE publisher_authority_id = ?').run(newName, authorityId);
+      const affected = rawDb.prepare('SELECT DISTINCT resource_id FROM resource_subjects WHERE authority_id = ?').all(authorityId) as { resource_id: number }[];
+      const subjNames = rawDb.prepare(
+        `SELECT an.name AS name FROM resource_subjects rs
+           JOIN authority_names an ON an.id = rs.authority_id
+          WHERE rs.resource_id = ? ORDER BY an.name`,
+      );
+      const setSubjects = rawDb.prepare('UPDATE resources SET subject_headings = ? WHERE id = ?');
+      for (const a of affected) {
+        const names = (subjNames.all(a.resource_id) as { name: string }[]).map(n => n.name);
+        setSubjects.run(names.length ? JSON.stringify(names) : null, a.resource_id);
+      }
+    });
+    tx();
+  }
+
   const adapterImpl: DbAdapter = {
     // ── Auth ────────────────────────────────────────────────────────────────
 
@@ -950,6 +974,8 @@ export function createSqliteAdapter(
       if (data.variants !== undefined) patch.variants = serializeVariants(data.variants);
       if (Object.keys(patch).length === 0) return;
       await db.update(authorityNames).set(patch as any).where(eq(authorityNames.id, id));
+      // Keep denormalized resource text in sync when the preferred name changed.
+      if (patch.name !== undefined) resyncDenormalizedTextForAuthority(id, patch.name as string);
     },
 
     async adminDeleteAuthority(id) {

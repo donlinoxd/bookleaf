@@ -63,6 +63,19 @@ describe('adminUpdateAuthority', () => {
     expect(got?.name).toBe('New Name');
     expect(got?.normalized_name).toBe('new name');
   });
+
+  it('propagates a renamed authority to denormalized resource text (author + subjects)', async () => {
+    const author = await db.adminCreateAuthority({ institutionId: iid, name: 'Twain', type: 'personal' });
+    const subject = await db.adminCreateAuthority({ institutionId: iid, name: 'Histroy', type: 'subject' });
+    const { id: bookId } = await db.adminCreateBook(iid, { title: 'T', author: 'Twain', author_authority_id: author.id, subject_authority_ids: [subject.id] }, []);
+
+    await db.adminUpdateAuthority(author.id, { name: 'Twain, Mark' });
+    await db.adminUpdateAuthority(subject.id, { name: 'History' });
+
+    const book = await db.adminGetBook(bookId) as { author: string; subject_headings: string[] | null };
+    expect(book.author).toBe('Twain, Mark');
+    expect(book.subject_headings).toEqual(['History']);
+  });
 });
 
 describe('adminDeleteAuthority', () => {
