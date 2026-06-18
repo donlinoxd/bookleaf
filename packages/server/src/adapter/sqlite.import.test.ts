@@ -139,6 +139,10 @@ describe('adminBulkImport', () => {
     } as never);
     const authors = await db.adminListAuthorities(institutionId, { type: 'personal' });
     expect(authors.map(a => a.name)).not.toContain('Nobody');
+    const pubs = await db.adminListAuthorities(institutionId, { type: 'publisher' });
+    expect(pubs.map(a => a.name)).not.toContain('NoPub');
+    const subs = await db.adminListAuthorities(institutionId, { type: 'subject' });
+    expect(subs.map(a => a.name)).not.toContain('Misc');
   });
 });
 

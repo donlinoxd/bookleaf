@@ -30,7 +30,7 @@ export function serializeResourceToRecord(row: Record<string, unknown>): string 
   parts.push(`<leader>${leaderFor(mt)}</leader>`);
   parts.push(field('020', ' ', ' ', [sub('a', row.isbn)]));
   parts.push(field('022', ' ', ' ', [sub('a', row.issn)]));
-  parts.push(field('024', '7', ' ', [sub('a', row.doi)]));
+  parts.push(field('024', ' ', ' ', [sub('a', row.doi)]));
   parts.push(field('041', ' ', ' ', [sub('a', row.language)]));
   parts.push(field('082', '0', ' ', [sub('a', row.call_number)]));
   parts.push(field('100', '1', ' ', [sub('a', row.author)]));

@@ -77,6 +77,7 @@ export const adminBooksRouter = router({
     .input(z.object({ institutionId: z.number().int(), q: z.string().optional() }))
     .query(async ({ input, ctx }) => {
       const rows = (await ctx.db.adminListBooks(input.institutionId, input.q)) as Record<string, unknown>[];
+      // Export serializes the denormalized author/publisher/subject_headings columns, which Slice 1 keeps in sync with the linked authorities' canonical names.
       return serializeCollection(rows);
     }),
 
