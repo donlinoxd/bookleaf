@@ -1940,6 +1940,9 @@ export function createSqliteAdapter(
   // violate the DbAdapter excess-property check. Cast it off in tests via:
   //   (adapter as unknown as { __seedTestInstitution(): number }).__seedTestInstitution()
   return Object.assign(adapterImpl, {
+    __raw(): Database.Database {
+      return rawDb;
+    },
     __seedTestInstitution(): number {
       const inst = rawDb.prepare(
         "INSERT INTO institutions (name) VALUES ('Test Inst')",
