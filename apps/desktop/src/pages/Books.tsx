@@ -146,7 +146,7 @@ function BookDialog({ open, onClose, editing, defaultValues, onSubmit, isPending
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2 space-y-1"><Label>Title *</Label><Input {...register('title')} />{errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}</div>
             <div className="col-span-2 space-y-1"><Label>Author</Label>
-              <AuthorityPicker type="personal" valueId={authorAuthority.id} valueName={authorAuthority.name ?? undefined}
+              <AuthorityPicker type="personal" valueName={authorAuthority.name ?? undefined}
                 placeholder="Search or create an author authority…"
                 onChange={(id, name) => setAuthorAuthority({ id, name })} />
             </div>
@@ -154,7 +154,7 @@ function BookDialog({ open, onClose, editing, defaultValues, onSubmit, isPending
             <div className="space-y-1"><Label>Genre</Label><Input {...register('genre')} /></div>
             <div className="space-y-1"><Label>Year</Label><Input type="number" {...register('year')} /></div>
             <div className="col-span-2 space-y-1"><Label>Publisher</Label>
-              <AuthorityPicker type="publisher" valueId={publisherAuthority.id} valueName={publisherAuthority.name ?? undefined}
+              <AuthorityPicker type="publisher" valueName={publisherAuthority.name ?? undefined}
                 placeholder="Search or create a publisher…"
                 onChange={(id, name) => setPublisherAuthority({ id, name })} />
             </div>

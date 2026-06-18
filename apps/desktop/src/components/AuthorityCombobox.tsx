@@ -29,10 +29,9 @@ function useCreateAuthority(_type?: AuthorityType) {
 
 /** Single-select: binds one authority id (or null). */
 export function AuthorityPicker({
-  type, valueId, valueName, onChange, placeholder,
+  type, valueName, onChange, placeholder,
 }: {
   type: AuthorityType;
-  valueId: number | null;
   valueName?: string;
   onChange: (id: number | null, name: string | null) => void;
   placeholder?: string;
@@ -64,7 +63,7 @@ export function AuthorityPicker({
       <Input
         value={text}
         placeholder={placeholder}
-        onChange={(e) => { setText(e.target.value); setOpen(true); if (valueId != null) onChange(null, null); }}
+        onChange={(e) => { const v = e.target.value; setText(v); setOpen(true); onChange(null, v.trim() ? v : null); }}
         onFocus={() => setOpen(true)}
       />
       {open && text.trim() && (
