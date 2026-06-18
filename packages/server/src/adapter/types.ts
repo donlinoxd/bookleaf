@@ -88,6 +88,25 @@ export interface DbAdapter {
   adminDeleteBook(id: number): Promise<void>;
   adminAddCopy(resourceId: number): Promise<void>;
 
+  // ── Admin: Authorities ────────────────────────────────────────────────────
+  adminListAuthorities(
+    institutionId: number,
+    filter: { type?: string; q?: string },
+  ): Promise<Array<Record<string, unknown> & { usage_count: number }>>;
+  adminGetAuthority(id: number): Promise<(Record<string, unknown> & { usage_count: number }) | null>;
+  adminCreateAuthority(input: {
+    institutionId: number;
+    name: string;
+    type: string;
+    variants?: string[] | null;
+  }): Promise<{ id: number }>;
+  adminUpdateAuthority(
+    id: number,
+    data: { name?: string; type?: string; variants?: string[] | null },
+  ): Promise<void>;
+  adminDeleteAuthority(id: number): Promise<void>;
+  adminMergeAuthorities(survivorId: number, loserIds: number[]): Promise<void>;
+
   // ── Admin: Members ────────────────────────────────────────────────────────
   adminListMembers(institutionId: number, q?: string): Promise<unknown[]>;
   adminGetMember(id: number): Promise<unknown | null>;

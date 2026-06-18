@@ -7,6 +7,7 @@ import { adminInventoryRouter } from './inventory';
 import { adminSettingsRouter } from './settings';
 import { adminBackupRouter } from './backup';
 import { adminGateRouter } from './gate';
+import { adminAuthoritiesRouter } from './authorities';
 
 export const adminRouter = router({
   books: adminBooksRouter,
@@ -17,4 +18,5 @@ export const adminRouter = router({
   settings: adminSettingsRouter,
   backup: adminBackupRouter,
   gate: adminGateRouter,
+  authorities: adminAuthoritiesRouter,
 });

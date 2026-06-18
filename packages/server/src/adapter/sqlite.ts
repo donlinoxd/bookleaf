@@ -6,12 +6,13 @@ import {
 } from 'drizzle-orm';
 import * as schema from '@bookleaf/db/schema';
 import { hashPin, verifyPin, isLegacyHash } from '@bookleaf/db/database';
+import { normalizeAuthorityName } from '../authorities/normalize';
 import type { DbAdapter, SessionPrincipal } from './types';
 
 const {
   institutions, users, resources, resourceCopies, borrowingRecords,
   reservations, fines, favorites, reviews, gateLogs, settings,
-  authorityNames, scanSessions, scanEntries, sessions,
+  authorityNames, resourceSubjects, scanSessions, scanEntries, sessions,
   DEFAULT_SETTINGS,
 } = schema;
 
@@ -25,6 +26,22 @@ function serializeSubjectHeadings(headings: string[] | null | undefined): string
 function parseSubjectHeadings(raw: string | null | undefined): string[] | null {
   if (!raw) return null;
   try { return JSON.parse(raw) as string[]; } catch { return null; }
+}
+
+function serializeVariants(variants: string[] | null | undefined): string | null {
+  if (!variants || variants.length === 0) return null;
+  return JSON.stringify(variants);
+}
+
+function parseVariants(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  try {
+    const v = JSON.parse(raw);
+    return Array.isArray(v) ? (v as string[]) : [];
+  } catch {
+    // Legacy non-JSON variants (mobile stored comma-or-free text); treat as single.
+    return [raw];
+  }
 }
 
 function mapResourceRow(row: Record<string, unknown>): Record<string, unknown> {
@@ -125,6 +142,54 @@ export function createSqliteAdapter(
   runMigrations(rawDb, ...sqlFiles);
   const db = drizzle(rawDb);
   seedDefaultsIfEmpty(rawDb);
+
+  // Replace a resource's subject links and re-derive its denormalized
+  // subject_headings JSON from the linked authorities' preferred names.
+  function syncResourceSubjects(resourceId: number, authorityIds: number[] | undefined): void {
+    if (authorityIds === undefined) return; // caller didn't touch subjects
+    const unique = [...new Set(authorityIds)];
+    rawDb.prepare('DELETE FROM resource_subjects WHERE resource_id = ?').run(resourceId);
+    const insert = rawDb.prepare('INSERT OR IGNORE INTO resource_subjects (resource_id, authority_id) VALUES (?, ?)');
+    for (const aid of unique) insert.run(resourceId, aid);
+    const names = unique.length
+      ? (rawDb.prepare(
+          `SELECT name FROM authority_names WHERE id IN (${unique.map(() => '?').join(',')}) ORDER BY name`,
+        ).all(...unique) as { name: string }[]).map(n => n.name)
+      : [];
+    rawDb.prepare('UPDATE resources SET subject_headings = ? WHERE id = ?')
+      .run(names.length ? JSON.stringify(names) : null, resourceId);
+  }
+
+  // If a publisher/author authority is linked, force the denormalized text to its name.
+  function authorityNameFor(authorityId: number | null | undefined): string | undefined {
+    if (authorityId == null) return undefined;
+    const row = rawDb.prepare('SELECT name FROM authority_names WHERE id = ?').get(authorityId) as { name: string } | undefined;
+    return row?.name;
+  }
+
+  // After an authority's preferred name changes, propagate it to the denormalized
+  // text columns on every resource that links to it (author/publisher) and
+  // re-derive subject_headings for resources that use it as a subject. Assumes the
+  // authority_names row already holds the NEW name. Wrapped in a transaction so the
+  // multi-row rewrite is atomic.
+  function resyncDenormalizedTextForAuthority(authorityId: number, newName: string): void {
+    const tx = rawDb.transaction(() => {
+      rawDb.prepare('UPDATE resources SET author = ? WHERE author_authority_id = ?').run(newName, authorityId);
+      rawDb.prepare('UPDATE resources SET publisher = ? WHERE publisher_authority_id = ?').run(newName, authorityId);
+      const affected = rawDb.prepare('SELECT DISTINCT resource_id FROM resource_subjects WHERE authority_id = ?').all(authorityId) as { resource_id: number }[];
+      const subjNames = rawDb.prepare(
+        `SELECT an.name AS name FROM resource_subjects rs
+           JOIN authority_names an ON an.id = rs.authority_id
+          WHERE rs.resource_id = ? ORDER BY an.name`,
+      );
+      const setSubjects = rawDb.prepare('UPDATE resources SET subject_headings = ? WHERE id = ?');
+      for (const a of affected) {
+        const names = (subjNames.all(a.resource_id) as { name: string }[]).map(n => n.name);
+        setSubjects.run(names.length ? JSON.stringify(names) : null, a.resource_id);
+      }
+    });
+    tx();
+  }
 
   const adapterImpl: DbAdapter = {
     // ── Auth ────────────────────────────────────────────────────────────────
@@ -738,8 +803,8 @@ export function createSqliteAdapter(
         isbn: d.isbn ?? null,
         issn: d.issn ?? null,
         title: d.title,
-        author: d.author,
-        publisher: d.publisher ?? null,
+        author: authorityNameFor(d.author_authority_id) ?? d.author,
+        publisher: authorityNameFor(d.publisher_authority_id) ?? d.publisher ?? null,
         year: d.year ?? null,
         genre: d.genre ?? null,
         description: d.description ?? null,
@@ -760,6 +825,7 @@ export function createSqliteAdapter(
         carrier_type: d.carrier_type ?? null,
         subject_headings: serializeSubjectHeadings(d.subject_headings),
         author_authority_id: d.author_authority_id ?? null,
+        publisher_authority_id: d.publisher_authority_id ?? null,
         is_loanable: d.is_loanable ?? true,
         loan_period_days: d.loan_period_days ?? null,
         total_copies: d.total_copies ?? 1,
@@ -778,6 +844,7 @@ export function createSqliteAdapter(
         }));
         await db.insert(resourceCopies).values(copyRows);
       }
+      syncResourceSubjects(resourceId, d.subject_authority_ids as number[] | undefined);
       return { id: resourceId };
     },
 
@@ -786,8 +853,8 @@ export function createSqliteAdapter(
       await db.update(resources).set({
         material_type: d.material_type,
         title: d.title,
-        author: d.author,
-        publisher: d.publisher ?? null,
+        author: authorityNameFor(d.author_authority_id) ?? d.author,
+        publisher: authorityNameFor(d.publisher_authority_id) ?? d.publisher ?? null,
         year: d.year ?? null,
         genre: d.genre ?? null,
         description: d.description ?? null,
@@ -810,9 +877,11 @@ export function createSqliteAdapter(
         carrier_type: d.carrier_type ?? null,
         subject_headings: serializeSubjectHeadings(d.subject_headings),
         author_authority_id: d.author_authority_id ?? null,
+        publisher_authority_id: d.publisher_authority_id ?? null,
         is_loanable: d.is_loanable,
         loan_period_days: d.loan_period_days ?? null,
       }).where(eq(resources.id, id));
+      syncResourceSubjects(id, d.subject_authority_ids as number[] | undefined);
     },
 
     async adminDeleteBook(id) {
@@ -829,6 +898,156 @@ export function createSqliteAdapter(
         total_copies: sql`${resources.total_copies} + 1`,
         available_copies: sql`${resources.available_copies} + 1`,
       }).where(eq(resources.id, resourceId));
+    },
+
+    // ── Admin: Authorities ─────────────────────────────────────────────────
+
+    async adminCreateAuthority(input) {
+      const name = input.name.trim();
+      const normalized = normalizeAuthorityName(name);
+      const existing = await db.select({ id: authorityNames.id })
+        .from(authorityNames)
+        .where(and(
+          eq(authorityNames.institution_id, input.institutionId),
+          eq(authorityNames.name_type, input.type as any),
+          eq(authorityNames.normalized_name, normalized),
+        ))
+        .limit(1)
+        .then(r => r[0] ?? null);
+      if (existing) return { id: existing.id };
+
+      const result = await db.insert(authorityNames).values({
+        institution_id: input.institutionId,
+        name,
+        name_type: input.type as any,
+        variants: serializeVariants(input.variants),
+        normalized_name: normalized,
+      }).returning({ id: authorityNames.id });
+      return { id: result[0].id };
+    },
+
+    async adminListAuthorities(institutionId, filter) {
+      const conditions: any[] = [eq(authorityNames.institution_id, institutionId)];
+      if (filter.type) conditions.push(eq(authorityNames.name_type, filter.type as any));
+      if (filter.q) {
+        const qp = `%${filter.q}%`;
+        conditions.push(or(like(authorityNames.name, qp), like(authorityNames.variants, qp)));
+      }
+      const rows = await db.select().from(authorityNames)
+        .where(and(...conditions))
+        .orderBy(asc(authorityNames.name));
+
+      const usage = rawDb.prepare(
+        `SELECT a.id AS id,
+           (SELECT COUNT(*) FROM resources r WHERE r.author_authority_id = a.id)
+         + (SELECT COUNT(*) FROM resources r WHERE r.publisher_authority_id = a.id)
+         + (SELECT COUNT(*) FROM resource_subjects rs WHERE rs.authority_id = a.id) AS usage_count
+         FROM authority_names a WHERE a.institution_id = ?`,
+      ).all(institutionId) as { id: number; usage_count: number }[];
+      const usageMap = new Map(usage.map(u => [u.id, u.usage_count]));
+
+      return rows.map(r => ({
+        ...r,
+        variants: parseVariants(r.variants),
+        usage_count: usageMap.get(r.id) ?? 0,
+      }));
+    },
+
+    async adminGetAuthority(id) {
+      const row = await db.select().from(authorityNames).where(eq(authorityNames.id, id)).limit(1).then(r => r[0] ?? null);
+      if (!row) return null;
+      const usageRow = rawDb.prepare(
+        `SELECT (SELECT COUNT(*) FROM resources r WHERE r.author_authority_id = ?)
+              + (SELECT COUNT(*) FROM resources r WHERE r.publisher_authority_id = ?)
+              + (SELECT COUNT(*) FROM resource_subjects rs WHERE rs.authority_id = ?) AS usage_count`,
+      ).get(id, id, id) as { usage_count: number };
+      return { ...row, variants: parseVariants(row.variants), usage_count: usageRow.usage_count };
+    },
+
+    async adminUpdateAuthority(id, data) {
+      const patch: Record<string, unknown> = {};
+      if (data.name !== undefined) {
+        patch.name = data.name.trim();
+        patch.normalized_name = normalizeAuthorityName(data.name);
+      }
+      if (data.type !== undefined) patch.name_type = data.type;
+      if (data.variants !== undefined) patch.variants = serializeVariants(data.variants);
+      if (Object.keys(patch).length === 0) return;
+      await db.update(authorityNames).set(patch as any).where(eq(authorityNames.id, id));
+      // Keep denormalized resource text in sync when the preferred name changed.
+      if (patch.name !== undefined) resyncDenormalizedTextForAuthority(id, patch.name as string);
+    },
+
+    async adminDeleteAuthority(id) {
+      const usage = rawDb.prepare(
+        `SELECT (SELECT COUNT(*) FROM resources r WHERE r.author_authority_id = ?)
+              + (SELECT COUNT(*) FROM resources r WHERE r.publisher_authority_id = ?)
+              + (SELECT COUNT(*) FROM resource_subjects rs WHERE rs.authority_id = ?) AS c`,
+      ).get(id, id, id) as { c: number };
+      if (usage.c > 0) {
+        throw new Error(`This authority is in use by ${usage.c} record(s). Merge it into another authority or unlink it first.`);
+      }
+      await db.delete(authorityNames).where(eq(authorityNames.id, id));
+    },
+
+    async adminMergeAuthorities(survivorId, loserIds) {
+      const losers = loserIds.filter(id => id !== survivorId);
+      if (losers.length === 0) return;
+
+      const tx = rawDb.transaction(() => {
+        const survivor = rawDb.prepare('SELECT id, name, variants FROM authority_names WHERE id = ?').get(survivorId) as
+          { id: number; name: string; variants: string | null } | undefined;
+        if (!survivor) throw new Error('Survivor authority not found');
+
+        const placeholders = losers.map(() => '?').join(',');
+        const loserRows = rawDb.prepare(
+          `SELECT id, name, variants FROM authority_names WHERE id IN (${placeholders})`,
+        ).all(...losers) as { id: number; name: string; variants: string | null }[];
+
+        // 1. Repoint author + publisher FKs.
+        rawDb.prepare(`UPDATE resources SET author_authority_id = ? WHERE author_authority_id IN (${placeholders})`).run(survivorId, ...losers);
+        rawDb.prepare(`UPDATE resources SET publisher_authority_id = ? WHERE publisher_authority_id IN (${placeholders})`).run(survivorId, ...losers);
+
+        // 2. Repoint subject links, dropping rows that would collide with an
+        //    existing survivor link on the same resource (UNIQUE(resource_id, authority_id)).
+        rawDb.prepare(
+          `DELETE FROM resource_subjects
+            WHERE authority_id IN (${placeholders})
+              AND resource_id IN (SELECT resource_id FROM resource_subjects WHERE authority_id = ?)`,
+        ).run(...losers, survivorId);
+        rawDb.prepare(`UPDATE resource_subjects SET authority_id = ? WHERE authority_id IN (${placeholders})`).run(survivorId, ...losers);
+
+        // 3. Fold loser names + variants into survivor variants (deduped).
+        const folded = new Set(parseVariants(survivor.variants));
+        for (const l of loserRows) {
+          folded.add(l.name);
+          for (const v of parseVariants(l.variants)) folded.add(v);
+        }
+        folded.delete(survivor.name);
+        rawDb.prepare('UPDATE authority_names SET variants = ? WHERE id = ?')
+          .run(serializeVariants([...folded]), survivorId);
+
+        // 4. Re-sync denormalized text on resources now pointing at the survivor.
+        rawDb.prepare('UPDATE resources SET author = ? WHERE author_authority_id = ?').run(survivor.name, survivorId);
+        rawDb.prepare('UPDATE resources SET publisher = ? WHERE publisher_authority_id = ?').run(survivor.name, survivorId);
+
+        // 5. Re-derive subject_headings JSON for every resource touched.
+        const affected = rawDb.prepare('SELECT DISTINCT resource_id FROM resource_subjects WHERE authority_id = ?').all(survivorId) as { resource_id: number }[];
+        const subjNames = rawDb.prepare(
+          `SELECT an.name AS name FROM resource_subjects rs
+             JOIN authority_names an ON an.id = rs.authority_id
+            WHERE rs.resource_id = ? ORDER BY an.name`,
+        );
+        const setSubjects = rawDb.prepare('UPDATE resources SET subject_headings = ? WHERE id = ?');
+        for (const a of affected) {
+          const names = (subjNames.all(a.resource_id) as { name: string }[]).map(n => n.name);
+          setSubjects.run(names.length ? JSON.stringify(names) : null, a.resource_id);
+        }
+
+        // 6. Delete losers.
+        rawDb.prepare(`DELETE FROM authority_names WHERE id IN (${placeholders})`).run(...losers);
+      });
+      tx();
     },
 
     // ── Admin: Members ───────────────────────────────────────────────────────
