@@ -16,6 +16,13 @@ export class PolicyError extends Error {
   }
 }
 
+export class UnavailableError extends Error {
+  constructor(message = 'This copy is no longer available. Please pick another.') {
+    super(message);
+    this.name = 'UnavailableError';
+  }
+}
+
 const ANY = 'ANY';
 
 export function resolvePolicy(

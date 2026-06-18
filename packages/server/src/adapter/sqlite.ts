@@ -9,7 +9,7 @@ import { hashPin, verifyPin, isLegacyHash } from '@bookleaf/db/database';
 import { normalizeAuthorityName } from '../authorities/normalize';
 import type { DbAdapter, SessionPrincipal } from './types';
 import type { LoanRule, CategoryLimit, ResolvedPolicy } from '@bookleaf/types';
-import { resolvePolicy, evaluateCheckout, PolicyError, type CheckoutCounters } from './loanPolicy';
+import { resolvePolicy, evaluateCheckout, PolicyError, UnavailableError, type CheckoutCounters } from './loanPolicy';
 
 const {
   institutions, users, resources, resourceCopies, borrowingRecords,
@@ -265,7 +265,7 @@ export function createSqliteAdapter(
       .from(resourceCopies)
       .innerJoin(resources, eq(resourceCopies.resource_id, resources.id))
       .where(eq(resourceCopies.id, copyId)).limit(1).then(r => r[0] ?? null);
-    if (!copyInfo) throw new Error('This copy is no longer available. Please pick another.');
+    if (!copyInfo) throw new UnavailableError();
 
     const policy = await resolveForResource(copyInfo.institution_id, userId, copyInfo.resource_id);
     const counters = await fetchCheckoutCounters(userId, copyInfo.material_type);
@@ -279,7 +279,7 @@ export function createSqliteAdapter(
       const claimed = rawDb.prepare(
         `UPDATE resource_copies SET status = 'borrowed' WHERE id = ? AND status = 'available' AND condition != 'lost' RETURNING id, resource_id`,
       ).all(copyId) as { id: number; resource_id: number }[];
-      if (claimed.length === 0) throw new Error('This copy is no longer available. Please pick another.');
+      if (claimed.length === 0) throw new UnavailableError();
 
       if (violations.length > 0 && opts?.override) {
         const insertOverride = rawDb.prepare(
@@ -1423,7 +1423,8 @@ export function createSqliteAdapter(
         return { ok: true as const, copyId: resolved.copyId, title: resolved.title, due_date: row.due_date };
       } catch (e) {
         if (e instanceof PolicyError) return { ok: false as const, reason: 'policy' as const, violations: e.violations };
-        return { ok: false as const, reason: 'unavailable' as const, accession };
+        if (e instanceof UnavailableError) return { ok: false as const, reason: 'unavailable' as const, accession };
+        throw e;
       }
     },
 
