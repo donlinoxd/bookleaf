@@ -112,3 +112,36 @@ describe('checkout enforcement', () => {
     expect(row.note).toBe('dean approved');
   });
 });
+
+describe('renewal + return use resolved policy', () => {
+  async function member(user_type: string) {
+    const r = raw.prepare("INSERT INTO users (institution_id, name, role, id_number, pin_hash, user_type) VALUES (?, 'M', 'member', ?, 'x', ?)")
+      .run(iid, 'RID' + Math.floor(performance.now() * 1000), user_type) as { lastInsertRowid: number };
+    return Number(r.lastInsertRowid);
+  }
+  async function bookCopy(material_type = 'BOOK') {
+    const { id } = await db.adminCreateBook(iid, { title: 'T', author: 'A', material_type }, [{ barcode: 'RB' + Math.floor(performance.now() * 1000) }]);
+    const copy = raw.prepare('SELECT id FROM resource_copies WHERE resource_id = ? LIMIT 1').get(id) as { id: number };
+    return copy.id;
+  }
+
+  it('blocks renewal past the rule max_renewals', async () => {
+    raw.prepare("INSERT INTO loan_rules (institution_id, user_type, material_type, loan_period_days, max_renewals, fine_per_day) VALUES (?, 'student', 'BOOK', 7, 0, 5)").run(iid);
+    const uid = await member('student');
+    const copyId = await bookCopy('BOOK');
+    const { borrowingId } = await db.adminCheckout(copyId, uid);
+    await expect(db.renewBorrow(borrowingId, uid)).rejects.toThrow(/renewal/i);
+  });
+
+  it('computes the return fine from the rule fine_per_day and caps at fine_max', async () => {
+    // student/BOOK: ₱10/day, capped at ₱15
+    raw.prepare("INSERT INTO loan_rules (institution_id, user_type, material_type, loan_period_days, max_renewals, fine_per_day, grace_period_days, fine_max) VALUES (?, 'student', 'BOOK', 7, 2, 10, 0, 15)").run(iid);
+    const uid = await member('student');
+    const copyId = await bookCopy('BOOK');
+    const { borrowingId } = await db.adminCheckout(copyId, uid);
+    // Force the loan 5 days overdue.
+    raw.prepare("UPDATE borrowing_records SET due_date = datetime('now', '-5 days') WHERE id = ?").run(borrowingId);
+    const fine = await db.adminReturn(borrowingId, 'good') as { amount: number } | null;
+    expect(fine?.amount).toBe(15); // 5×10=50 capped to 15
+  });
+});
