@@ -132,6 +132,17 @@ export interface DbAdapter {
     userId: number,
     resourceId: number,
   ): Promise<import('@bookleaf/types').ResolvedPolicy>;
+  adminListLoanRules(institutionId: number): Promise<import('@bookleaf/types').LoanRule[]>;
+  adminUpsertLoanRule(
+    institutionId: number,
+    data: Omit<import('@bookleaf/types').LoanRule, 'id' | 'institution_id'> & { id?: number },
+  ): Promise<{ id: number }>;
+  adminDeleteLoanRule(id: number): Promise<void>;
+  adminGetCategoryLimits(institutionId: number): Promise<import('@bookleaf/types').CategoryLimit[]>;
+  adminUpsertCategoryLimit(
+    institutionId: number,
+    data: Omit<import('@bookleaf/types').CategoryLimit, 'id' | 'institution_id'> & { id?: number },
+  ): Promise<{ id: number }>;
 
   // ── Admin: Reports ────────────────────────────────────────────────────────
   adminCirculationReport(institutionId: number): Promise<unknown>;

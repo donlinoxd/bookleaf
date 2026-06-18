@@ -231,7 +231,7 @@ export function createSqliteAdapter(
     const typeRow = await db.select({ c: sql<number>`count(*)` }).from(borrowingRecords)
       .innerJoin(resourceCopies, eq(borrowingRecords.copy_id, resourceCopies.id))
       .innerJoin(resources, eq(resourceCopies.resource_id, resources.id))
-      .where(and(eq(borrowingRecords.user_id, userId), isNull(borrowingRecords.returned_at), eq(resources.material_type, materialType)));
+      .where(and(eq(borrowingRecords.user_id, userId), isNull(borrowingRecords.returned_at), sql`${resources.material_type} = ${materialType}`));
     const fineRow = await db.select({ s: sum(fines.amount) }).from(fines)
       .innerJoin(borrowingRecords, eq(fines.borrowing_id, borrowingRecords.id))
       .where(and(eq(borrowingRecords.user_id, userId), eq(fines.paid, false)));
@@ -1240,6 +1240,54 @@ export function createSqliteAdapter(
 
     async adminResolvePolicy(institutionId, userId, resourceId) {
       return resolveForResource(institutionId, userId, resourceId);
+    },
+
+    async adminListLoanRules(institutionId) {
+      const { rules } = await loadRulesAndLimits(institutionId);
+      return rules;
+    },
+
+    async adminUpsertLoanRule(institutionId, data) {
+      const values = {
+        institution_id: institutionId,
+        user_type: data.user_type, material_type: data.material_type,
+        loan_period_days: data.loan_period_days, type_limit: data.type_limit ?? null,
+        max_renewals: data.max_renewals, renewal_period_days: data.renewal_period_days ?? null,
+        fine_per_day: data.fine_per_day, grace_period_days: data.grace_period_days,
+        fine_max: data.fine_max ?? null, is_loanable: data.is_loanable, is_holdable: data.is_holdable,
+      };
+      if (data.id) {
+        await db.update(loanRules).set(values).where(eq(loanRules.id, data.id));
+        return { id: data.id };
+      }
+      const res = await db.insert(loanRules).values(values)
+        .onConflictDoUpdate({ target: [loanRules.institution_id, loanRules.user_type, loanRules.material_type], set: values })
+        .returning({ id: loanRules.id });
+      return { id: res[0].id };
+    },
+
+    async adminDeleteLoanRule(id) {
+      await db.delete(loanRules).where(eq(loanRules.id, id));
+    },
+
+    async adminGetCategoryLimits(institutionId) {
+      const { limits } = await loadRulesAndLimits(institutionId);
+      return limits;
+    },
+
+    async adminUpsertCategoryLimit(institutionId, data) {
+      const values = {
+        institution_id: institutionId, user_type: data.user_type,
+        overall_limit: data.overall_limit ?? null, fines_block_threshold: data.fines_block_threshold,
+      };
+      if (data.id) {
+        await db.update(categoryLimits).set(values).where(eq(categoryLimits.id, data.id));
+        return { id: data.id };
+      }
+      const res = await db.insert(categoryLimits).values(values)
+        .onConflictDoUpdate({ target: [categoryLimits.institution_id, categoryLimits.user_type], set: values })
+        .returning({ id: categoryLimits.id });
+      return { id: res[0].id };
     },
 
     async adminCheckout(copyId, userId, opts) {

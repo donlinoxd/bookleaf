@@ -47,7 +47,7 @@ const server = http.createServer(async (req, res) => {
   const url = `http://0.0.0.0:${PORT}${req.url ?? '/'}`;
   const fetchReq = new Request(url, {
     method: req.method ?? 'GET',
-    headers: req.headers as HeadersInit,
+    headers: req.headers as unknown as Headers,
     body: bodyBuf && bodyBuf.length > 0 ? bodyBuf : undefined,
   });
 

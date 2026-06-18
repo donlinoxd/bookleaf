@@ -14,7 +14,7 @@ function migrationSqls(): string[] {
 
 let db: ReturnType<typeof createSqliteAdapter>;
 let iid: number;
-let raw: { prepare(sql: string): { get(...a: unknown[]): unknown; all(...a: unknown[]): unknown[] } };
+let raw: { prepare(sql: string): { get(...a: unknown[]): unknown; all(...a: unknown[]): unknown[]; run(...a: unknown[]): unknown } };
 
 beforeEach(() => {
   db = createSqliteAdapter(':memory:', ...migrationSqls());
@@ -143,5 +143,37 @@ describe('renewal + return use resolved policy', () => {
     raw.prepare("UPDATE borrowing_records SET due_date = datetime('now', '-5 days') WHERE id = ?").run(borrowingId);
     const fine = await db.adminReturn(borrowingId, 'good') as { amount: number } | null;
     expect(fine?.amount).toBe(15); // 5×10=50 capped to 15
+  });
+});
+
+describe('loan-rule CRUD', () => {
+  it('lists (with the ensured default), upserts, and deletes a rule', async () => {
+    const initial = await db.adminListLoanRules(iid);
+    expect(initial.some(r => r.user_type === 'ANY' && r.material_type === 'ANY')).toBe(true);
+
+    const { id } = await db.adminUpsertLoanRule(iid, {
+      user_type: 'faculty', material_type: 'AUDIOVISUAL', loan_period_days: 3, type_limit: 2,
+      max_renewals: 0, renewal_period_days: null, fine_per_day: 10, grace_period_days: 0,
+      fine_max: 50, is_loanable: true, is_holdable: true,
+    });
+    expect(id).toBeGreaterThan(0);
+
+    await db.adminUpsertLoanRule(iid, {
+      id, user_type: 'faculty', material_type: 'AUDIOVISUAL', loan_period_days: 5, type_limit: 2,
+      max_renewals: 1, renewal_period_days: null, fine_per_day: 10, grace_period_days: 0,
+      fine_max: 50, is_loanable: true, is_holdable: true,
+    });
+    const updated = (await db.adminListLoanRules(iid)).find(r => r.id === id);
+    expect(updated?.loan_period_days).toBe(5);
+
+    await db.adminDeleteLoanRule(id);
+    expect((await db.adminListLoanRules(iid)).some(r => r.id === id)).toBe(false);
+  });
+
+  it('upserts a category limit', async () => {
+    await db.adminUpsertCategoryLimit(iid, { user_type: 'student', overall_limit: 8, fines_block_threshold: 100 });
+    const got = (await db.adminGetCategoryLimits(iid)).find(l => l.user_type === 'student');
+    expect(got?.overall_limit).toBe(8);
+    expect(got?.fines_block_threshold).toBe(100);
   });
 });

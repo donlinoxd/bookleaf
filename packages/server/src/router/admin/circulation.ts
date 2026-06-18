@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { router, librarianProcedure } from '../../trpc';
+import { PolicyError } from '../../adapter/loanPolicy';
 
 export const adminCirculationRouter = router({
   activeBorrows: librarianProcedure
@@ -12,15 +13,26 @@ export const adminCirculationRouter = router({
     .query(({ input, ctx }) => ctx.db.adminOverdueBorrows(input.institutionId)),
 
   checkout: librarianProcedure
-    .input(z.object({ copyId: z.number().int(), userId: z.number().int() }))
+    .input(z.object({
+      copyId: z.number().int(),
+      userId: z.number().int(),
+      override: z.boolean().optional(),
+      note: z.string().optional(),
+    }))
     .mutation(async ({ input, ctx }) => {
       try {
-        return await ctx.db.adminCheckout(input.copyId, input.userId);
-      } catch (e) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: e instanceof Error ? e.message : 'Could not check out',
+        const res = await ctx.db.adminCheckout(input.copyId, input.userId, {
+          override: input.override,
+          note: input.note,
+          actedByUserId: ctx.principal.user_id,
+          institutionId: ctx.principal.institution_id,
         });
+        return { ok: true as const, borrowingId: res.borrowingId };
+      } catch (e) {
+        if (e instanceof PolicyError) {
+          return { ok: false as const, violations: e.violations };
+        }
+        throw new TRPCError({ code: 'BAD_REQUEST', message: e instanceof Error ? e.message : 'Could not check out' });
       }
     }),
 
