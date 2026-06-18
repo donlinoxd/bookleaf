@@ -123,6 +123,11 @@ export interface DbAdapter {
   adminPendingReservations(institutionId: number): Promise<unknown[]>;
   adminCancelReservation(reservationId: number): Promise<void>;
   adminPayFine(borrowingId: number): Promise<void>;
+  adminResolvePolicy(
+    institutionId: number,
+    userId: number,
+    resourceId: number,
+  ): Promise<import('@bookleaf/types').ResolvedPolicy>;
 
   // ── Admin: Reports ────────────────────────────────────────────────────────
   adminCirculationReport(institutionId: number): Promise<unknown>;

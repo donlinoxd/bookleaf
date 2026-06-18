@@ -8,12 +8,15 @@ import * as schema from '@bookleaf/db/schema';
 import { hashPin, verifyPin, isLegacyHash } from '@bookleaf/db/database';
 import { normalizeAuthorityName } from '../authorities/normalize';
 import type { DbAdapter, SessionPrincipal } from './types';
+import type { LoanRule, CategoryLimit, ResolvedPolicy } from '@bookleaf/types';
+import { resolvePolicy, type CheckoutCounters } from './loanPolicy';
 
 const {
   institutions, users, resources, resourceCopies, borrowingRecords,
   reservations, fines, favorites, reviews, gateLogs, settings,
   authorityNames, resourceSubjects, scanSessions, scanEntries, sessions,
   DEFAULT_SETTINGS,
+  loanRules, categoryLimits, circOverrides,
 } = schema;
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -189,6 +192,66 @@ export function createSqliteAdapter(
       }
     });
     tx();
+  }
+
+  async function ensureDefaultRules(institutionId: number): Promise<void> {
+    const existing = await db.select({ id: loanRules.id }).from(loanRules)
+      .where(and(eq(loanRules.institution_id, institutionId),
+        eq(loanRules.user_type, 'ANY'), eq(loanRules.material_type, 'ANY'))).limit(1);
+    const cfg = await getSettings(db);
+    if (existing.length === 0) {
+      await db.insert(loanRules).values({
+        institution_id: institutionId, user_type: 'ANY', material_type: 'ANY',
+        loan_period_days: cfg.max_borrow_days, type_limit: null,
+        max_renewals: cfg.max_renewals, renewal_period_days: null,
+        fine_per_day: cfg.fine_per_day, grace_period_days: cfg.grace_period_days,
+        fine_max: null, is_loanable: true, is_holdable: true,
+      }).onConflictDoNothing();
+    }
+    const limitExists = await db.select({ id: categoryLimits.id }).from(categoryLimits)
+      .where(and(eq(categoryLimits.institution_id, institutionId), eq(categoryLimits.user_type, 'ANY'))).limit(1);
+    if (limitExists.length === 0) {
+      await db.insert(categoryLimits).values({
+        institution_id: institutionId, user_type: 'ANY',
+        overall_limit: cfg.max_books_per_member, fines_block_threshold: 0,
+      }).onConflictDoNothing();
+    }
+  }
+
+  async function loadRulesAndLimits(institutionId: number): Promise<{ rules: LoanRule[]; limits: CategoryLimit[] }> {
+    await ensureDefaultRules(institutionId);
+    const rules = await db.select().from(loanRules).where(eq(loanRules.institution_id, institutionId)) as unknown as LoanRule[];
+    const limits = await db.select().from(categoryLimits).where(eq(categoryLimits.institution_id, institutionId)) as unknown as CategoryLimit[];
+    return { rules, limits };
+  }
+
+  async function fetchCheckoutCounters(userId: number, materialType: string): Promise<CheckoutCounters> {
+    const totalRow = await db.select({ c: sql<number>`count(*)` }).from(borrowingRecords)
+      .where(and(eq(borrowingRecords.user_id, userId), isNull(borrowingRecords.returned_at)));
+    const typeRow = await db.select({ c: sql<number>`count(*)` }).from(borrowingRecords)
+      .innerJoin(resourceCopies, eq(borrowingRecords.copy_id, resourceCopies.id))
+      .innerJoin(resources, eq(resourceCopies.resource_id, resources.id))
+      .where(and(eq(borrowingRecords.user_id, userId), isNull(borrowingRecords.returned_at), eq(resources.material_type, materialType)));
+    const fineRow = await db.select({ s: sum(fines.amount) }).from(fines)
+      .innerJoin(borrowingRecords, eq(fines.borrowing_id, borrowingRecords.id))
+      .where(and(eq(borrowingRecords.user_id, userId), eq(fines.paid, false)));
+    return {
+      activeTotal: Number(totalRow[0]?.c ?? 0),
+      activeOfType: Number(typeRow[0]?.c ?? 0),
+      unpaidFines: Number(fineRow[0]?.s ?? 0),
+    };
+  }
+
+  async function resolveForResource(institutionId: number, userId: number, resourceId: number): Promise<ResolvedPolicy> {
+    const { rules, limits } = await loadRulesAndLimits(institutionId);
+    const patron = await db.select({ user_type: users.user_type }).from(users).where(eq(users.id, userId)).limit(1).then(r => r[0] ?? null);
+    const resource = await db.select({
+      material_type: resources.material_type, loan_period_days: resources.loan_period_days, is_loanable: resources.is_loanable,
+    }).from(resources).where(eq(resources.id, resourceId)).limit(1).then(r => r[0] ?? null);
+    if (!patron || !resource) throw new Error('Patron or resource not found');
+    return resolvePolicy(rules, limits, { user_type: patron.user_type }, {
+      material_type: resource.material_type, loan_period_days: resource.loan_period_days, is_loanable: resource.is_loanable,
+    });
   }
 
   const adapterImpl: DbAdapter = {
@@ -1166,6 +1229,10 @@ export function createSqliteAdapter(
             sql`datetime('now')`,
           ),
         ));
+    },
+
+    async adminResolvePolicy(institutionId, userId, resourceId) {
+      return resolveForResource(institutionId, userId, resourceId);
     },
 
     async adminCheckout(copyId, userId) {
