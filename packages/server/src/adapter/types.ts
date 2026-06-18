@@ -118,11 +118,31 @@ export interface DbAdapter {
   // ── Admin: Circulation ────────────────────────────────────────────────────
   adminActiveBorrows(institutionId: number): Promise<unknown[]>;
   adminOverdueBorrows(institutionId: number): Promise<unknown[]>;
-  adminCheckout(copyId: number, userId: number): Promise<{ borrowingId: number }>;
+  adminCheckout(
+    copyId: number,
+    userId: number,
+    opts?: { override?: boolean; actedByUserId?: number; institutionId?: number; note?: string },
+  ): Promise<{ borrowingId: number }>;
   adminReturn(borrowingId: number, condition: string): Promise<unknown | null>;
   adminPendingReservations(institutionId: number): Promise<unknown[]>;
   adminCancelReservation(reservationId: number): Promise<void>;
   adminPayFine(borrowingId: number): Promise<void>;
+  adminResolvePolicy(
+    institutionId: number,
+    userId: number,
+    resourceId: number,
+  ): Promise<import('@bookleaf/types').ResolvedPolicy>;
+  adminListLoanRules(institutionId: number): Promise<import('@bookleaf/types').LoanRule[]>;
+  adminUpsertLoanRule(
+    institutionId: number,
+    data: Omit<import('@bookleaf/types').LoanRule, 'id' | 'institution_id'> & { id?: number },
+  ): Promise<{ id: number }>;
+  adminDeleteLoanRule(id: number): Promise<void>;
+  adminGetCategoryLimits(institutionId: number): Promise<import('@bookleaf/types').CategoryLimit[]>;
+  adminUpsertCategoryLimit(
+    institutionId: number,
+    data: Omit<import('@bookleaf/types').CategoryLimit, 'id' | 'institution_id'> & { id?: number },
+  ): Promise<{ id: number }>;
 
   // ── Admin: Reports ────────────────────────────────────────────────────────
   adminCirculationReport(institutionId: number): Promise<unknown>;

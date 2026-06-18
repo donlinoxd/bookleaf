@@ -276,3 +276,70 @@ export interface DiscrepancyReport {
 }
 
 export * from './import';
+
+// ── Loan policy / circulation rules ──────────────────────────────────────────
+export const USER_TYPES = ['student', 'faculty', 'alumni', 'external'] as const;
+export const LOAN_RULE_ANY = 'ANY' as const;
+export type RuleUserType = UserType | typeof LOAN_RULE_ANY;
+export type RuleMaterialType = MaterialType | typeof LOAN_RULE_ANY;
+
+export interface LoanRule {
+  id: number;
+  institution_id: number;
+  user_type: RuleUserType;
+  material_type: RuleMaterialType;
+  loan_period_days: number;
+  type_limit: number | null;
+  max_renewals: number;
+  renewal_period_days: number | null;
+  fine_per_day: number;
+  grace_period_days: number;
+  fine_max: number | null;
+  is_loanable: boolean;
+  is_holdable: boolean;
+}
+
+export interface CategoryLimit {
+  id: number;
+  institution_id: number;
+  user_type: RuleUserType;
+  overall_limit: number | null;
+  fines_block_threshold: number;
+}
+
+export interface ResolvedPolicy {
+  loan_period_days: number;      // effective (item override applied)
+  type_limit: number | null;
+  overall_limit: number | null;
+  max_renewals: number;
+  renewal_period_days: number;   // resolved (falls back to loan_period_days)
+  fine_per_day: number;
+  grace_period_days: number;
+  fine_max: number | null;
+  is_loanable: boolean;          // rule.is_loanable AND resource.is_loanable
+  is_holdable: boolean;
+  fines_block_threshold: number;
+}
+
+export type PolicyReasonCode =
+  | 'not_loanable'
+  | 'over_overall_limit'
+  | 'over_type_limit'
+  | 'fines_block'
+  | 'renewals_exhausted';
+
+export interface PolicyViolation {
+  reason_code: PolicyReasonCode;
+  message: string;
+}
+
+export interface CircOverride {
+  id: number;
+  institution_id: number;
+  acted_by_user_id: number;
+  patron_user_id: number;
+  copy_id: number | null;
+  reason_code: PolicyReasonCode;
+  note: string | null;
+  created_at: string;
+}

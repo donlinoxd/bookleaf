@@ -9,7 +9,8 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { Button } from '@bookleaf/ui/components/button';
 import { Input } from '@bookleaf/ui/components/input';
 import { Label } from '@bookleaf/ui/components/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@bookleaf/ui/components/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@bookleaf/ui/components/dialog';
+import type { PolicyViolation } from '@bookleaf/types';
 
 const checkoutSchema = z.object({ copyId: z.coerce.number().min(1, 'Required'), userId: z.coerce.number().min(1, 'Required') });
 type CheckoutForm = z.infer<typeof checkoutSchema>;
@@ -20,10 +21,13 @@ export default function Circulation() {
   const qc = useQueryClient();
   const { user } = useAuthStore();
   const iid = user?.institution_id ?? 1;
+  const role = user?.role;
   const [tab, setTab] = useState<'active' | 'overdue'>('active');
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [returnId, setReturnId] = useState<number | null>(null);
   const [payFineId, setPayFineId] = useState<number | null>(null);
+  const [blocked, setBlocked] = useState<{ copyId: number; userId: number; violations: PolicyViolation[] } | null>(null);
+  const [overrideNote, setOverrideNote] = useState('');
 
   const { data: activeBorrows = [], isLoading: loadingActive } = useQuery(trpc.admin.circulation.activeBorrows.queryOptions({ institutionId: iid }));
   const { data: overdueBorrows = [], isLoading: loadingOverdue } = useQuery(trpc.admin.circulation.overdueBorrows.queryOptions({ institutionId: iid }));
@@ -33,7 +37,19 @@ export default function Circulation() {
     qc.invalidateQueries({ queryKey: trpc.admin.circulation.overdueBorrows.queryKey({ institutionId: iid }) });
   };
 
-  const checkoutMutation = useMutation(trpc.admin.circulation.checkout.mutationOptions({ onSuccess: () => { invalidateAll(); setIsCheckoutOpen(false); } }));
+  const checkoutMutation = useMutation(trpc.admin.circulation.checkout.mutationOptions({
+    onSuccess: (res, vars) => {
+      if (res.ok === false) {
+        setBlocked({ copyId: vars.copyId, userId: vars.userId, violations: res.violations });
+        return;
+      }
+      setBlocked(null);
+      setOverrideNote('');
+      invalidateAll();
+      setIsCheckoutOpen(false);
+      reset();
+    },
+  }));
   const returnMutation = useMutation(trpc.admin.circulation.return.mutationOptions({ onSuccess: () => { invalidateAll(); setReturnId(null); } }));
   const payFineMutation = useMutation(trpc.admin.circulation.payFine.mutationOptions({ onSuccess: () => { invalidateAll(); setPayFineId(null); } }));
 
@@ -121,6 +137,40 @@ export default function Circulation() {
             <Button variant="outline" onClick={() => setPayFineId(null)}>Cancel</Button>
             <Button onClick={() => payFineId && payFineMutation.mutate({ borrowingId: payFineId })} disabled={payFineMutation.isPending}>{payFineMutation.isPending ? 'Processing…' : 'Confirm'}</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Override Dialog */}
+      <Dialog open={!!blocked} onOpenChange={(o) => { if (!o) { setBlocked(null); setOverrideNote(''); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Checkout blocked by loan policy</DialogTitle>
+            <DialogDescription>This checkout violates the library's circulation rules.</DialogDescription>
+          </DialogHeader>
+          <ul className="list-disc pl-5 text-sm space-y-1">
+            {blocked?.violations.map((v) => <li key={v.reason_code}>{v.message}</li>)}
+          </ul>
+          {(role === 'admin' || role === 'librarian') ? (
+            <>
+              <div className="space-y-1">
+                <label className="text-xs">Override reason (required)</label>
+                <Input value={overrideNote} onChange={(e) => setOverrideNote(e.target.value)} placeholder="e.g. department head approved" />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => { setBlocked(null); setOverrideNote(''); }}>Cancel</Button>
+                <Button
+                  disabled={!overrideNote.trim() || checkoutMutation.isPending}
+                  onClick={() => blocked && checkoutMutation.mutate({ copyId: blocked.copyId, userId: blocked.userId, override: true, note: overrideNote.trim() })}
+                >
+                  Override &amp; check out
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setBlocked(null)}>Close</Button>
+            </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
     </div>

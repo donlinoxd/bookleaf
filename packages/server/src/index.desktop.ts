@@ -16,6 +16,8 @@ import sql_0002 from '../../../packages/db/drizzle/0002_import_jobs.sql';
 import sql_0003 from '../../../packages/db/drizzle/0003_authority_control.sql';
 // @ts-expect-error — imported as plain text by esbuild
 import sql_0004 from '../../../packages/db/drizzle/0004_material_fields.sql';
+// @ts-expect-error — imported as plain text by esbuild
+import sql_0005 from '../../../packages/db/drizzle/0005_loan_rules.sql';
 
 const PORT = 3000;
 
@@ -26,7 +28,7 @@ const dbPath = process.env.BOOKLEAF_DB_PATH ?? './library.db';
 // Ensure the parent directory exists
 mkdirSync(dirname(dbPath), { recursive: true });
 
-const db = createSqliteAdapter(dbPath, sql_0000 as string, sql_0001 as string, sql_0002 as string, sql_0003 as string, sql_0004 as string);
+const db = createSqliteAdapter(dbPath, sql_0000 as string, sql_0001 as string, sql_0002 as string, sql_0003 as string, sql_0004 as string, sql_0005 as string);
 const app = initApp({ db });
 
 const server = createServer(async (req, res) => {
@@ -37,7 +39,7 @@ const server = createServer(async (req, res) => {
   const url = `http://0.0.0.0:${PORT}${req.url ?? '/'}`;
   const fetchReq = new Request(url, {
     method: req.method ?? 'GET',
-    headers: req.headers as HeadersInit,
+    headers: req.headers as unknown as Headers,
     body: bodyBuf && bodyBuf.length > 0 ? bodyBuf : undefined,
   });
 

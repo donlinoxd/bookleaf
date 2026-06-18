@@ -172,6 +172,26 @@ export function createBridgeAdapter(queryRN: QueryFn): DbAdapter {
     adminPayFine: (borrowingId) =>
       q('adminPayFine', { borrowingId }).then(() => undefined),
 
+    // Loan-rule management and policy resolution are desktop-only features.
+    adminResolvePolicy: () => {
+      throw new Error('Policy resolution is not supported on mobile');
+    },
+    adminListLoanRules: () => {
+      throw new Error('Loan rule management is not supported on mobile');
+    },
+    adminUpsertLoanRule: () => {
+      throw new Error('Loan rule management is not supported on mobile');
+    },
+    adminDeleteLoanRule: () => {
+      throw new Error('Loan rule management is not supported on mobile');
+    },
+    adminGetCategoryLimits: () => {
+      throw new Error('Loan rule management is not supported on mobile');
+    },
+    adminUpsertCategoryLimit: () => {
+      throw new Error('Loan rule management is not supported on mobile');
+    },
+
     // ── Admin: Reports ───────────────────────────────────────────────────────
     adminCirculationReport: (institutionId) =>
       q('adminCirculationReport', { institutionId }) as Promise<unknown>,

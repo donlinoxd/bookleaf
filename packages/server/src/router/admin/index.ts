@@ -8,6 +8,7 @@ import { adminSettingsRouter } from './settings';
 import { adminBackupRouter } from './backup';
 import { adminGateRouter } from './gate';
 import { adminAuthoritiesRouter } from './authorities';
+import { adminLoanRulesRouter } from './loanRules';
 
 export const adminRouter = router({
   books: adminBooksRouter,
@@ -19,4 +20,5 @@ export const adminRouter = router({
   backup: adminBackupRouter,
   gate: adminGateRouter,
   authorities: adminAuthoritiesRouter,
+  loanRules: adminLoanRulesRouter,
 });

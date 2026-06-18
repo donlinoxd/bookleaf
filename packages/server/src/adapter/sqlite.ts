@@ -8,12 +8,15 @@ import * as schema from '@bookleaf/db/schema';
 import { hashPin, verifyPin, isLegacyHash } from '@bookleaf/db/database';
 import { normalizeAuthorityName } from '../authorities/normalize';
 import type { DbAdapter, SessionPrincipal } from './types';
+import type { LoanRule, CategoryLimit, ResolvedPolicy } from '@bookleaf/types';
+import { resolvePolicy, evaluateCheckout, PolicyError, type CheckoutCounters } from './loanPolicy';
 
 const {
   institutions, users, resources, resourceCopies, borrowingRecords,
   reservations, fines, favorites, reviews, gateLogs, settings,
   authorityNames, resourceSubjects, scanSessions, scanEntries, sessions,
   DEFAULT_SETTINGS,
+  loanRules, categoryLimits, circOverrides,
 } = schema;
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -189,6 +192,68 @@ export function createSqliteAdapter(
       }
     });
     tx();
+  }
+
+  async function ensureDefaultRules(institutionId: number): Promise<void> {
+    const existing = await db.select({ id: loanRules.id }).from(loanRules)
+      .where(and(eq(loanRules.institution_id, institutionId),
+        eq(loanRules.user_type, 'ANY'), eq(loanRules.material_type, 'ANY'))).limit(1);
+    const limitExists = await db.select({ id: categoryLimits.id }).from(categoryLimits)
+      .where(and(eq(categoryLimits.institution_id, institutionId), eq(categoryLimits.user_type, 'ANY'))).limit(1);
+    if (existing.length === 0 || limitExists.length === 0) {
+      const cfg = await getSettings(db);
+      if (existing.length === 0) {
+        await db.insert(loanRules).values({
+          institution_id: institutionId, user_type: 'ANY', material_type: 'ANY',
+          loan_period_days: cfg.max_borrow_days, type_limit: null,
+          max_renewals: cfg.max_renewals, renewal_period_days: null,
+          fine_per_day: cfg.fine_per_day, grace_period_days: cfg.grace_period_days,
+          fine_max: null, is_loanable: true, is_holdable: true,
+        }).onConflictDoNothing();
+      }
+      if (limitExists.length === 0) {
+        await db.insert(categoryLimits).values({
+          institution_id: institutionId, user_type: 'ANY',
+          overall_limit: cfg.max_books_per_member, fines_block_threshold: 0,
+        }).onConflictDoNothing();
+      }
+    }
+  }
+
+  async function loadRulesAndLimits(institutionId: number): Promise<{ rules: LoanRule[]; limits: CategoryLimit[] }> {
+    await ensureDefaultRules(institutionId);
+    const rules = await db.select().from(loanRules).where(eq(loanRules.institution_id, institutionId)) as unknown as LoanRule[];
+    const limits = await db.select().from(categoryLimits).where(eq(categoryLimits.institution_id, institutionId)) as unknown as CategoryLimit[];
+    return { rules, limits };
+  }
+
+  async function fetchCheckoutCounters(userId: number, materialType: string): Promise<CheckoutCounters> {
+    const totalRow = await db.select({ c: sql<number>`count(*)` }).from(borrowingRecords)
+      .where(and(eq(borrowingRecords.user_id, userId), isNull(borrowingRecords.returned_at)));
+    const typeRow = await db.select({ c: sql<number>`count(*)` }).from(borrowingRecords)
+      .innerJoin(resourceCopies, eq(borrowingRecords.copy_id, resourceCopies.id))
+      .innerJoin(resources, eq(resourceCopies.resource_id, resources.id))
+      .where(and(eq(borrowingRecords.user_id, userId), isNull(borrowingRecords.returned_at), sql`${resources.material_type} = ${materialType}`));
+    const fineRow = await db.select({ s: sum(fines.amount) }).from(fines)
+      .innerJoin(borrowingRecords, eq(fines.borrowing_id, borrowingRecords.id))
+      .where(and(eq(borrowingRecords.user_id, userId), eq(fines.paid, false)));
+    return {
+      activeTotal: Number(totalRow[0]?.c ?? 0),
+      activeOfType: Number(typeRow[0]?.c ?? 0),
+      unpaidFines: Number(fineRow[0]?.s ?? 0),
+    };
+  }
+
+  async function resolveForResource(institutionId: number, userId: number, resourceId: number): Promise<ResolvedPolicy> {
+    const { rules, limits } = await loadRulesAndLimits(institutionId);
+    const patron = await db.select({ user_type: users.user_type }).from(users).where(eq(users.id, userId)).limit(1).then(r => r[0] ?? null);
+    const resource = await db.select({
+      material_type: resources.material_type, loan_period_days: resources.loan_period_days, is_loanable: resources.is_loanable,
+    }).from(resources).where(eq(resources.id, resourceId)).limit(1).then(r => r[0] ?? null);
+    if (!patron || !resource) throw new Error('Patron or resource not found');
+    return resolvePolicy(rules, limits, { user_type: patron.user_type }, {
+      material_type: resource.material_type, loan_period_days: resource.loan_period_days, is_loanable: resource.is_loanable,
+    });
   }
 
   const adapterImpl: DbAdapter = {
@@ -608,16 +673,23 @@ export function createSqliteAdapter(
       if (!record) throw new Error('Borrowing record not found');
       if (record.user_id !== userId) throw new Error('Not allowed');
 
-      const cfg = await getSettings(db);
       const full = await db.select().from(borrowingRecords)
         .where(eq(borrowingRecords.id, borrowingId)).limit(1).then(r => r[0] ?? null);
       if (!full) throw new Error('Borrowing record not found');
       if (full.returned_at) throw new Error('This item has already been returned');
-      if (full.renewal_count >= cfg.max_renewals) {
-        throw new Error(`Maximum renewals (${cfg.max_renewals}) reached`);
+
+      const copy = await db.select({ resource_id: resourceCopies.resource_id, institution_id: resources.institution_id })
+        .from(resourceCopies)
+        .innerJoin(resources, eq(resourceCopies.resource_id, resources.id))
+        .where(eq(resourceCopies.id, full.copy_id)).limit(1).then(r => r[0] ?? null);
+      if (!copy) throw new Error('Copy not found');
+
+      const policy = await resolveForResource(copy.institution_id, userId, copy.resource_id);
+      if (full.renewal_count >= policy.max_renewals) {
+        throw new Error(`Maximum renewals (${policy.max_renewals}) reached`);
       }
       const newDue = new Date(full.due_date);
-      newDue.setDate(newDue.getDate() + cfg.max_borrow_days);
+      newDue.setDate(newDue.getDate() + policy.renewal_period_days);
       await db.update(borrowingRecords).set({
         due_date: newDue.toISOString(),
         renewal_count: full.renewal_count + 1,
@@ -1168,43 +1240,119 @@ export function createSqliteAdapter(
         ));
     },
 
-    async adminCheckout(copyId, userId) {
-      const cfg = await getSettings(db);
+    async adminResolvePolicy(institutionId, userId, resourceId) {
+      return resolveForResource(institutionId, userId, resourceId);
+    },
+
+    async adminListLoanRules(institutionId) {
+      const { rules } = await loadRulesAndLimits(institutionId);
+      return rules;
+    },
+
+    async adminUpsertLoanRule(institutionId, data) {
+      const values = {
+        institution_id: institutionId,
+        user_type: data.user_type, material_type: data.material_type,
+        loan_period_days: data.loan_period_days, type_limit: data.type_limit ?? null,
+        max_renewals: data.max_renewals, renewal_period_days: data.renewal_period_days ?? null,
+        fine_per_day: data.fine_per_day, grace_period_days: data.grace_period_days,
+        fine_max: data.fine_max ?? null, is_loanable: data.is_loanable, is_holdable: data.is_holdable,
+      };
+      if (data.id) {
+        await db.update(loanRules).set(values).where(eq(loanRules.id, data.id));
+        return { id: data.id };
+      }
+      const res = await db.insert(loanRules).values(values)
+        .onConflictDoUpdate({ target: [loanRules.institution_id, loanRules.user_type, loanRules.material_type], set: values })
+        .returning({ id: loanRules.id });
+      return { id: res[0].id };
+    },
+
+    async adminDeleteLoanRule(id) {
+      await db.delete(loanRules).where(eq(loanRules.id, id));
+    },
+
+    async adminGetCategoryLimits(institutionId) {
+      const { limits } = await loadRulesAndLimits(institutionId);
+      return limits;
+    },
+
+    async adminUpsertCategoryLimit(institutionId, data) {
+      const values = {
+        institution_id: institutionId, user_type: data.user_type,
+        overall_limit: data.overall_limit ?? null, fines_block_threshold: data.fines_block_threshold,
+      };
+      if (data.id) {
+        await db.update(categoryLimits).set(values).where(eq(categoryLimits.id, data.id));
+        return { id: data.id };
+      }
+      const res = await db.insert(categoryLimits).values(values)
+        .onConflictDoUpdate({ target: [categoryLimits.institution_id, categoryLimits.user_type], set: values })
+        .returning({ id: categoryLimits.id });
+      return { id: res[0].id };
+    },
+
+    async adminCheckout(copyId, userId, opts) {
+      // Resolve the copy's resource + institution first (needed for policy).
+      const copyInfo = await db.select({ resource_id: resourceCopies.resource_id, institution_id: resources.institution_id, material_type: resources.material_type })
+        .from(resourceCopies)
+        .innerJoin(resources, eq(resourceCopies.resource_id, resources.id))
+        .where(eq(resourceCopies.id, copyId)).limit(1).then(r => r[0] ?? null);
+      if (!copyInfo) throw new Error('This copy is no longer available. Please pick another.');
+
+      const policy = await resolveForResource(copyInfo.institution_id, userId, copyInfo.resource_id);
+      const counters = await fetchCheckoutCounters(userId, copyInfo.material_type);
+      const violations = evaluateCheckout(policy, counters);
+
+      if (violations.length > 0 && !opts?.override) {
+        throw new PolicyError(violations);
+      }
+
       const dueDate = new Date();
-      dueDate.setDate(dueDate.getDate() + cfg.max_borrow_days);
+      dueDate.setDate(dueDate.getDate() + policy.loan_period_days);
 
-      return db.transaction(async (tx) => {
-        const claimed = await tx.update(resourceCopies)
-          .set({ status: 'borrowed' })
-          .where(and(
-            eq(resourceCopies.id, copyId),
-            eq(resourceCopies.status, 'available'),
-            ne(resourceCopies.condition, 'lost'),
-          ))
-          .returning({ id: resourceCopies.id, resource_id: resourceCopies.resource_id });
+      const doCheckout = rawDb.transaction(() => {
+        const claimed = rawDb.prepare(
+          `UPDATE resource_copies SET status = 'borrowed'
+           WHERE id = ? AND status = 'available' AND condition != 'lost'
+           RETURNING id, resource_id`,
+        ).all(copyId) as { id: number; resource_id: number }[];
+        if (claimed.length === 0) throw new Error('This copy is no longer available. Please pick another.');
 
-        if (claimed.length === 0) {
-          throw new Error('This copy is no longer available. Please pick another.');
+        if (violations.length > 0 && opts?.override) {
+          const insertOverride = rawDb.prepare(
+            `INSERT INTO circ_overrides (institution_id, acted_by_user_id, patron_user_id, copy_id, reason_code, note)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+          );
+          for (const v of violations) {
+            insertOverride.run(
+              opts.institutionId ?? copyInfo.institution_id,
+              opts.actedByUserId ?? userId,
+              userId,
+              copyId,
+              v.reason_code,
+              opts.note ?? null,
+            );
+          }
         }
 
-        const result = await tx.insert(borrowingRecords)
-          .values({ copy_id: copyId, user_id: userId, due_date: dueDate.toISOString() })
-          .returning({ id: borrowingRecords.id });
+        const borrowResult = rawDb.prepare(
+          `INSERT INTO borrowing_records (copy_id, user_id, due_date) VALUES (?, ?, ?) RETURNING id`,
+        ).get(copyId, userId, dueDate.toISOString()) as { id: number };
 
-        await tx.update(resources)
-          .set({ available_copies: sql`${resources.available_copies} - 1` })
-          .where(eq(resources.id, claimed[0].resource_id));
+        rawDb.prepare(
+          `UPDATE resources SET available_copies = available_copies - 1 WHERE id = ?`,
+        ).run(claimed[0].resource_id);
 
-        await tx.update(reservations)
-          .set({ status: 'fulfilled' })
-          .where(and(
-            eq(reservations.resource_id, claimed[0].resource_id),
-            eq(reservations.user_id, userId),
-            eq(reservations.status, 'active'),
-          ));
+        rawDb.prepare(
+          `UPDATE reservations SET status = 'fulfilled'
+           WHERE resource_id = ? AND user_id = ? AND status = 'active'`,
+        ).run(claimed[0].resource_id, userId);
 
-        return { borrowingId: result[0].id };
+        return { borrowingId: borrowResult.id };
       });
+
+      return doCheckout();
     },
 
     async adminReturn(borrowingId, condition) {
@@ -1217,40 +1365,50 @@ export function createSqliteAdapter(
       let fineAmount = 0;
 
       if (now > due) {
-        const cfg = await getSettings(db);
-        const daysLate = Math.max(0, Math.floor((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24)));
-        const billableDays = Math.max(0, daysLate - (cfg.grace_period_days ?? 0));
-        fineAmount = billableDays * cfg.fine_per_day;
+        const copyRes = await db.select({ resource_id: resourceCopies.resource_id, institution_id: resources.institution_id })
+          .from(resourceCopies)
+          .innerJoin(resources, eq(resourceCopies.resource_id, resources.id))
+          .where(eq(resourceCopies.id, record.copy_id)).limit(1).then(r => r[0] ?? null);
+        if (copyRes) {
+          const policy = await resolveForResource(copyRes.institution_id, record.user_id, copyRes.resource_id);
+          const daysLate = Math.max(0, Math.floor((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24)));
+          const billableDays = Math.max(0, daysLate - policy.grace_period_days);
+          fineAmount = billableDays * policy.fine_per_day;
+          if (policy.fine_max != null) fineAmount = Math.min(fineAmount, policy.fine_max);
+        }
       }
 
-      return db.transaction(async (tx) => {
-        await tx.update(borrowingRecords)
-          .set({ returned_at: now.toISOString(), fine_amount: fineAmount })
-          .where(eq(borrowingRecords.id, borrowingId));
+      const typedCondition = (condition ?? 'good') as 'good' | 'damaged' | 'lost';
+      const doReturn = rawDb.transaction(() => {
+        rawDb.prepare(
+          `UPDATE borrowing_records SET returned_at = ?, fine_amount = ? WHERE id = ?`,
+        ).run(now.toISOString(), fineAmount, borrowingId);
 
-        const typedCondition = (condition ?? 'good') as 'good' | 'damaged' | 'lost';
-        await tx.update(resourceCopies)
-          .set({ status: 'available', condition: typedCondition })
-          .where(eq(resourceCopies.id, record.copy_id));
+        rawDb.prepare(
+          `UPDATE resource_copies SET status = 'available', condition = ? WHERE id = ?`,
+        ).run(typedCondition, record.copy_id);
 
         if (typedCondition !== 'lost') {
-          const copy = await tx.select({ resource_id: resourceCopies.resource_id })
-            .from(resourceCopies).where(eq(resourceCopies.id, record.copy_id)).limit(1);
-          if (copy[0]) {
-            await tx.update(resources)
-              .set({ available_copies: sql`${resources.available_copies} + 1` })
-              .where(eq(resources.id, copy[0].resource_id));
+          const copy = rawDb.prepare(
+            `SELECT resource_id FROM resource_copies WHERE id = ? LIMIT 1`,
+          ).get(record.copy_id) as { resource_id: number } | undefined;
+          if (copy) {
+            rawDb.prepare(
+              `UPDATE resources SET available_copies = available_copies + 1 WHERE id = ?`,
+            ).run(copy.resource_id);
           }
         }
 
         if (fineAmount > 0) {
-          const fineResult = await tx.insert(fines)
-            .values({ borrowing_id: borrowingId, amount: fineAmount })
-            .returning({ id: fines.id });
-          return { id: fineResult[0].id, borrowing_id: borrowingId, amount: fineAmount, paid: false, paid_at: null };
+          const fineResult = rawDb.prepare(
+            `INSERT INTO fines (borrowing_id, amount) VALUES (?, ?) RETURNING id`,
+          ).get(borrowingId, fineAmount) as { id: number };
+          return { id: fineResult.id, borrowing_id: borrowingId, amount: fineAmount, paid: false, paid_at: null };
         }
         return null;
       });
+
+      return doReturn();
     },
 
     async adminPendingReservations(institutionId) {
@@ -1940,6 +2098,9 @@ export function createSqliteAdapter(
   // violate the DbAdapter excess-property check. Cast it off in tests via:
   //   (adapter as unknown as { __seedTestInstitution(): number }).__seedTestInstitution()
   return Object.assign(adapterImpl, {
+    __raw(): Database.Database {
+      return rawDb;
+    },
     __seedTestInstitution(): number {
       const inst = rawDb.prepare(
         "INSERT INTO institutions (name) VALUES ('Test Inst')",
