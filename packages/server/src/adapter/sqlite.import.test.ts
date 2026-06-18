@@ -79,6 +79,29 @@ describe('adminBulkImport', () => {
     const after = await db.adminGetBookWithCopies(1) as { total_copies: number };
     expect(after.total_copies).toBe(before + 2);
   });
+
+  it('persists new material-type fields through bulk import', async () => {
+    const plan = {
+      creates: [{
+        rowIndex: 0, title: 'Thesis One', author: 'Roe, Sam', isbn: null, isbnKey: null, issn: null,
+        publisher: null, year: 2020, genre: null, description: null, subtitle: null, edition: null,
+        volume: null, series_title: null, language: null, call_number: null, call_number_type: null,
+        material_type: 'THESIS', subject_headings: null, copies: 1, accession_number: null, barcode: null,
+        shelf_location: null, issue_number: null, doi: null, url: null, frequency: null,
+        container_title: null, pages: null, thesis_degree: 'PhD', thesis_institution: 'State U', thesis_advisor: 'Adviser',
+      }],
+      copyAdds: [],
+    };
+    const res = await db.adminBulkImport(institutionId, plan as never, {
+      institutionId, importedByUserId: 1, filename: 'x', duplicateStrategy: 'skip',
+      rowCount: 1, createdCount: 0, copiesAddedCount: 0, skippedCount: 0,
+    } as never);
+    expect(res.created).toBe(1);
+    const books = await db.adminListBooks(institutionId) as Record<string, unknown>[];
+    const t = books.find(b => b.title === 'Thesis One')!;
+    expect(t.thesis_degree).toBe('PhD');
+    expect(t.thesis_institution).toBe('State U');
+  });
 });
 
 function job(institutionId: number): ImportJobInput {

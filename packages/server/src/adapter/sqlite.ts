@@ -695,10 +695,10 @@ export function createSqliteAdapter(
           `INSERT INTO resources
             (institution_id, material_type, isbn, issn, title, author, publisher, year, genre,
              description, subtitle, edition, volume, series_title, language, call_number,
-             call_number_type, subject_headings, total_copies, available_copies)
+             call_number_type, subject_headings, issue_number, doi, url, frequency, container_title, pages, thesis_degree, thesis_institution, thesis_advisor, total_copies, available_copies)
            VALUES (@institution_id, @material_type, @isbn, @issn, @title, @author, @publisher,
              @year, @genre, @description, @subtitle, @edition, @volume, @series_title, @language,
-             @call_number, @call_number_type, @subject_headings, @total_copies, @available_copies)`,
+             @call_number, @call_number_type, @subject_headings, @issue_number, @doi, @url, @frequency, @container_title, @pages, @thesis_degree, @thesis_institution, @thesis_advisor, @total_copies, @available_copies)`,
         );
         const insertCopy = rawDb.prepare(
           `INSERT INTO resource_copies (resource_id, copy_number, barcode, accession_number, shelf_location)
@@ -720,6 +720,9 @@ export function createSqliteAdapter(
             edition: n.edition, volume: n.volume, series_title: n.series_title, language: n.language,
             call_number: n.call_number, call_number_type: n.call_number_type,
             subject_headings: serializeSubjectHeadings(n.subject_headings),
+            issue_number: n.issue_number, doi: n.doi, url: n.url, frequency: n.frequency,
+            container_title: n.container_title, pages: n.pages,
+            thesis_degree: n.thesis_degree, thesis_institution: n.thesis_institution, thesis_advisor: n.thesis_advisor,
             total_copies: n.copies, available_copies: n.copies,
           });
           const resourceId = Number(r.lastInsertRowid);
