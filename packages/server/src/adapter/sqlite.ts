@@ -767,10 +767,10 @@ export function createSqliteAdapter(
           `INSERT INTO resources
             (institution_id, material_type, isbn, issn, title, author, publisher, year, genre,
              description, subtitle, edition, volume, series_title, language, call_number,
-             call_number_type, subject_headings, total_copies, available_copies)
+             call_number_type, subject_headings, issue_number, doi, url, frequency, container_title, pages, thesis_degree, thesis_institution, thesis_advisor, total_copies, available_copies)
            VALUES (@institution_id, @material_type, @isbn, @issn, @title, @author, @publisher,
              @year, @genre, @description, @subtitle, @edition, @volume, @series_title, @language,
-             @call_number, @call_number_type, @subject_headings, @total_copies, @available_copies)`,
+             @call_number, @call_number_type, @subject_headings, @issue_number, @doi, @url, @frequency, @container_title, @pages, @thesis_degree, @thesis_institution, @thesis_advisor, @total_copies, @available_copies)`,
         );
         const insertCopy = rawDb.prepare(
           `INSERT INTO resource_copies (resource_id, copy_number, barcode, accession_number, shelf_location)
@@ -783,6 +783,23 @@ export function createSqliteAdapter(
           'UPDATE resources SET total_copies = total_copies + ?, available_copies = available_copies + ? WHERE id = ?',
         );
 
+        const link = job.linkAuthorities === true;
+        const findAuth = rawDb.prepare(
+          'SELECT id FROM authority_names WHERE institution_id = ? AND name_type = ? AND normalized_name = ?',
+        );
+        const insAuth = rawDb.prepare(
+          'INSERT INTO authority_names (institution_id, name, name_type, normalized_name) VALUES (?, ?, ?, ?)',
+        );
+        const setAuthorAuth = rawDb.prepare('UPDATE resources SET author_authority_id = ? WHERE id = ?');
+        const setPublisherAuth = rawDb.prepare('UPDATE resources SET publisher_authority_id = ? WHERE id = ?');
+        const insSubjectLink = rawDb.prepare('INSERT INTO resource_subjects (resource_id, authority_id) VALUES (?, ?)');
+        const getOrCreateAuthority = (name: string, type: string): number => {
+          const norm = normalizeAuthorityName(name);
+          const found = findAuth.get(institutionId, type, norm) as { id: number } | undefined;
+          if (found) return found.id;
+          return Number(insAuth.run(institutionId, name.trim(), type, norm).lastInsertRowid);
+        };
+
         for (const n of plan.creates) {
           const r = insertResource.run({
             institution_id: institutionId,
@@ -792,6 +809,9 @@ export function createSqliteAdapter(
             edition: n.edition, volume: n.volume, series_title: n.series_title, language: n.language,
             call_number: n.call_number, call_number_type: n.call_number_type,
             subject_headings: serializeSubjectHeadings(n.subject_headings),
+            issue_number: n.issue_number, doi: n.doi, url: n.url, frequency: n.frequency,
+            container_title: n.container_title, pages: n.pages,
+            thesis_degree: n.thesis_degree, thesis_institution: n.thesis_institution, thesis_advisor: n.thesis_advisor,
             total_copies: n.copies, available_copies: n.copies,
           });
           const resourceId = Number(r.lastInsertRowid);
@@ -799,6 +819,13 @@ export function createSqliteAdapter(
             const bc = i === 0 ? n.barcode : null;
             const ac = i === 0 ? n.accession_number : null;
             insertCopy.run(resourceId, i + 1, bc, ac, n.shelf_location);
+          }
+          if (link) {
+            if (n.author && n.author.trim()) setAuthorAuth.run(getOrCreateAuthority(n.author, 'personal'), resourceId);
+            if (n.publisher && n.publisher.trim()) setPublisherAuth.run(getOrCreateAuthority(n.publisher, 'publisher'), resourceId);
+            for (const s of n.subject_headings ?? []) {
+              if (s && s.trim()) insSubjectLink.run(resourceId, getOrCreateAuthority(s, 'subject'));
+            }
           }
           created += 1;
         }

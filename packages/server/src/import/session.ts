@@ -6,6 +6,7 @@ export interface SessionPayload {
   institutionId: number;
   norms: Map<number, NormalizedRow>;
   verdicts: RowVerdict[];
+  linkAuthorities?: boolean;
 }
 
 interface Entry {

@@ -39,6 +39,19 @@ export default function Books() {
   const updateMutation = useMutation(trpc.admin.books.update.mutationOptions({ onSuccess: () => { invalidate(); setEditBook(null); } }));
   const deleteMutation = useMutation(trpc.admin.books.delete.mutationOptions({ onSuccess: () => { invalidate(); setDeleteId(null); } }));
 
+  const fetchMarcExport = () =>
+    qc.fetchQuery(trpc.admin.books.marcExport.queryOptions({ institutionId: iid, q: search }));
+
+  const exportMarc = async () => {
+    const res = await fetchMarcExport();
+    const blob = new Blob([res.xml], { type: 'application/xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'bookleaf-export.xml';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  };
+
   const columns: ColumnDef<Book>[] = [
     { accessorKey: 'title', header: 'Title', cell: ({ getValue }) => <span className="font-medium">{getValue() as string}</span> },
     { accessorKey: 'author', header: 'Author', cell: ({ getValue }) => (getValue() as string) || '—' },
@@ -61,6 +74,7 @@ export default function Books() {
         <div><h1 className="text-2xl font-bold">Books</h1><p className="text-muted-foreground text-sm mt-1">{(books as Book[]).length} items</p></div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => navigate('/books/import')}>Import from file</Button>
+          <Button variant="outline" size="sm" onClick={() => void exportMarc()}>Export MARCXML</Button>
           <Button onClick={() => setIsAddOpen(true)} size="sm"><Plus size={15} className="mr-1.5" />Add Book</Button>
         </div>
       </div>

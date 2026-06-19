@@ -29,14 +29,30 @@ export default function ImportBooks() {
   const [stats, setStats] = useState<PreviewStats | null>(null);
   const [strategy, setStrategy] = useState<DuplicateStrategy>('skip');
 
+  const [isMarc, setIsMarc] = useState(false);
+
   const previewMut = useMutation(trpc.admin.books.importPreview.mutationOptions());
   const commitMut = useMutation(trpc.admin.books.importCommit.mutationOptions());
+  const marcPreviewMut = useMutation(trpc.admin.books.marcImportPreview.mutationOptions());
+  const marcCommitMut = useMutation(trpc.admin.books.marcImportCommit.mutationOptions());
 
   const hasIsbnMatch = verdicts.some(v => v.status === 'duplicate_existing' && v.matchedBy === 'isbn');
 
   async function onFile(file: File) {
     setError(null);
+    setIsMarc(false); // reset before branching; only the .xml path sets it true
     try {
+      if (file.name.toLowerCase().endsWith('.xml')) {
+        const xml = await file.text();
+        setFilename(file.name);
+        const result = await marcPreviewMut.mutateAsync({ institutionId, xml });
+        setSessionId(result.sessionId);
+        setVerdicts(result.verdicts);
+        setStats(result.stats);
+        setIsMarc(true);
+        setStep('preview');
+        return;
+      }
       const buf = await file.arrayBuffer();
       const parsed = await parseSpreadsheet(buf, file.name);
       setFilename(file.name);
@@ -70,7 +86,11 @@ export default function ImportBooks() {
     if (!sessionId) return;
     setError(null);
     try {
-      await commitMut.mutateAsync({ sessionId, duplicateStrategy: strategy, filename });
+      if (isMarc) {
+        await marcCommitMut.mutateAsync({ sessionId, duplicateStrategy: strategy, filename });
+      } else {
+        await commitMut.mutateAsync({ sessionId, duplicateStrategy: strategy, filename });
+      }
       qc.invalidateQueries({ queryKey: trpc.admin.books.list.queryKey({ institutionId }) });
       setStep('result');
     } catch (e) {
@@ -86,9 +106,10 @@ export default function ImportBooks() {
       {step === 'upload' && (
         <div className="space-y-2">
           <p>Choose a .csv or .xlsx file (up to 10,000 rows).</p>
+          <p className="text-sm text-muted-foreground">MARCXML (.xml) records import directly — no column mapping needed.</p>
           <input
             type="file"
-            accept=".csv,.xlsx"
+            accept=".csv,.xlsx,.xml"
             onChange={e => { const f = e.target.files?.[0]; if (f) void onFile(f); }}
           />
         </div>
@@ -146,26 +167,33 @@ export default function ImportBooks() {
             ))}
           </fieldset>
 
-          <Button disabled={commitMut.isPending} onClick={() => void runCommit()}>
-            {commitMut.isPending ? 'Importing…' : 'Import'}
+          <Button disabled={isMarc ? marcCommitMut.isPending : commitMut.isPending} onClick={() => void runCommit()}>
+            {(isMarc ? marcCommitMut.isPending : commitMut.isPending) ? 'Importing…' : 'Import'}
           </Button>
         </div>
       )}
 
-      {step === 'result' && commitMut.data && (
+      {step === 'result' && (commitMut.data ?? marcCommitMut.data) && (
         <div className="space-y-2">
-          <p className="text-brand font-medium">Import complete.</p>
-          <p>Created {commitMut.data.created} books, added {commitMut.data.copiesAdded} copies, skipped {commitMut.data.skipped.length} rows.</p>
-          {commitMut.data.skipped.length > 0 && (
-            <details>
-              <summary>Skipped rows</summary>
-              <ul className="list-disc ml-6">
-                {commitMut.data.skipped.map(s => (
-                  <li key={s.rowIndex}>Row {s.rowIndex + 2}: {s.reasons.join('; ')}</li>
-                ))}
-              </ul>
-            </details>
-          )}
+          {(() => {
+            const data = (commitMut.data ?? marcCommitMut.data)!;
+            return (
+              <>
+                <p className="text-brand font-medium">Import complete.</p>
+                <p>Created {data.created} books, added {data.copiesAdded} copies, skipped {data.skipped.length} rows.</p>
+                {data.skipped.length > 0 && (
+                  <details>
+                    <summary>Skipped rows</summary>
+                    <ul className="list-disc ml-6">
+                      {data.skipped.map(s => (
+                        <li key={s.rowIndex}>Row {s.rowIndex + 2}: {s.reasons.join('; ')}</li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+              </>
+            );
+          })()}
           <Button onClick={() => navigate(-1)}>Back to Books</Button>
         </div>
       )}

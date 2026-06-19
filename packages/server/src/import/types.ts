@@ -21,6 +21,15 @@ export interface NormalizedRow {
   call_number_type: 'DEWEY' | 'LC' | 'OTHER' | null;
   material_type: MaterialType;
   subject_headings: string[] | null;
+  issue_number: string | null;
+  doi: string | null;
+  url: string | null;
+  frequency: string | null;
+  container_title: string | null;
+  pages: string | null;
+  thesis_degree: string | null;
+  thesis_institution: string | null;
+  thesis_advisor: string | null;
   copies: number;             // >= 1
   accession_number: string | null;
   barcode: string | null;
@@ -65,6 +74,7 @@ export interface ImportJobInput {
   createdCount: number;
   copiesAddedCount: number;
   skippedCount: number;
+  linkAuthorities?: boolean;
 }
 
 /** Narrow DB port the import service depends on (so it is testable with a fake). */

@@ -18,8 +18,10 @@ function norm(over: Partial<NormalizedRow>): NormalizedRow {
     rowIndex: 0, title: 'T', author: 'A', isbn: null, isbnKey: null, issn: null, publisher: null,
     year: null, genre: null, description: null, subtitle: null, edition: null, volume: null,
     series_title: null, language: null, call_number: null, call_number_type: null,
-    material_type: 'BOOK', subject_headings: null, copies: 1, accession_number: null,
-    barcode: null, shelf_location: null, ...over,
+    material_type: 'BOOK', subject_headings: null,
+    issue_number: null, doi: null, url: null, frequency: null, container_title: null,
+    pages: null, thesis_degree: null, thesis_institution: null, thesis_advisor: null,
+    copies: 1, accession_number: null, barcode: null, shelf_location: null, ...over,
   };
 }
 
@@ -76,6 +78,71 @@ describe('adminBulkImport', () => {
     expect(res.copiesAdded).toBe(2);
     const after = await db.adminGetBookWithCopies(1) as { total_copies: number };
     expect(after.total_copies).toBe(before + 2);
+  });
+
+  it('persists new material-type fields through bulk import', async () => {
+    const plan = {
+      creates: [{
+        rowIndex: 0, title: 'Thesis One', author: 'Roe, Sam', isbn: null, isbnKey: null, issn: null,
+        publisher: null, year: 2020, genre: null, description: null, subtitle: null, edition: null,
+        volume: null, series_title: null, language: null, call_number: null, call_number_type: null,
+        material_type: 'THESIS', subject_headings: null, copies: 1, accession_number: null, barcode: null,
+        shelf_location: null, issue_number: null, doi: null, url: null, frequency: null,
+        container_title: null, pages: null, thesis_degree: 'PhD', thesis_institution: 'State U', thesis_advisor: 'Adviser',
+      }],
+      copyAdds: [],
+    };
+    const res = await db.adminBulkImport(institutionId, plan as never, {
+      institutionId, importedByUserId: 1, filename: 'x', duplicateStrategy: 'skip',
+      rowCount: 1, createdCount: 0, copiesAddedCount: 0, skippedCount: 0,
+    } as never);
+    expect(res.created).toBe(1);
+    const books = await db.adminListBooks(institutionId) as Record<string, unknown>[];
+    const t = books.find(b => b.title === 'Thesis One')!;
+    expect(t.thesis_degree).toBe('PhD');
+    expect(t.thesis_institution).toBe('State U');
+  });
+
+  it('links authorities when linkAuthorities is true', async () => {
+    const base = {
+      rowIndex: 0, title: 'Linked', author: 'Tolkien, J.R.R.', isbn: null, isbnKey: null, issn: null,
+      publisher: 'Allen', year: null, genre: null, description: null, subtitle: null, edition: null,
+      volume: null, series_title: null, language: null, call_number: null, call_number_type: null,
+      material_type: 'BOOK', subject_headings: ['Fantasy', 'Adventure'], copies: 1, accession_number: null,
+      barcode: null, shelf_location: null, issue_number: null, doi: null, url: null, frequency: null,
+      container_title: null, pages: null, thesis_degree: null, thesis_institution: null, thesis_advisor: null,
+    };
+    await db.adminBulkImport(institutionId, { creates: [base], copyAdds: [] } as never, {
+      institutionId, importedByUserId: 1, filename: 'x', duplicateStrategy: 'skip',
+      rowCount: 1, createdCount: 0, copiesAddedCount: 0, skippedCount: 0, linkAuthorities: true,
+    } as never);
+    const authors = await db.adminListAuthorities(institutionId, { type: 'personal' });
+    expect(authors.map(a => a.name)).toContain('Tolkien, J.R.R.');
+    const publishers = await db.adminListAuthorities(institutionId, { type: 'publisher' });
+    expect(publishers.map(a => a.name)).toContain('Allen');
+    const subjects = await db.adminListAuthorities(institutionId, { type: 'subject' });
+    expect(subjects.map(a => a.name).sort()).toEqual(['Adventure', 'Fantasy']);
+  });
+
+  it('does NOT create authorities when linkAuthorities is falsy (CSV parity)', async () => {
+    const base = {
+      rowIndex: 0, title: 'Unlinked', author: 'Nobody', isbn: null, isbnKey: null, issn: null,
+      publisher: 'NoPub', year: null, genre: null, description: null, subtitle: null, edition: null,
+      volume: null, series_title: null, language: null, call_number: null, call_number_type: null,
+      material_type: 'BOOK', subject_headings: ['Misc'], copies: 1, accession_number: null,
+      barcode: null, shelf_location: null, issue_number: null, doi: null, url: null, frequency: null,
+      container_title: null, pages: null, thesis_degree: null, thesis_institution: null, thesis_advisor: null,
+    };
+    await db.adminBulkImport(institutionId, { creates: [base], copyAdds: [] } as never, {
+      institutionId, importedByUserId: 1, filename: 'x', duplicateStrategy: 'skip',
+      rowCount: 1, createdCount: 0, copiesAddedCount: 0, skippedCount: 0,
+    } as never);
+    const authors = await db.adminListAuthorities(institutionId, { type: 'personal' });
+    expect(authors.map(a => a.name)).not.toContain('Nobody');
+    const pubs = await db.adminListAuthorities(institutionId, { type: 'publisher' });
+    expect(pubs.map(a => a.name)).not.toContain('NoPub');
+    const subs = await db.adminListAuthorities(institutionId, { type: 'subject' });
+    expect(subs.map(a => a.name)).not.toContain('Misc');
   });
 });
 
