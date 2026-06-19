@@ -127,6 +127,20 @@ export interface DbAdapter {
   adminPendingReservations(institutionId: number): Promise<unknown[]>;
   adminCancelReservation(reservationId: number): Promise<void>;
   adminPayFine(borrowingId: number): Promise<void>;
+  adminResolvePatron(
+    institutionId: number,
+    idNumber: string,
+  ): Promise<import('@bookleaf/types').PatronSummary | null>;
+  adminCheckoutByAccession(
+    institutionId: number,
+    userId: number,
+    accession: string,
+    opts?: { override?: boolean; actedByUserId?: number; institutionId?: number; note?: string },
+  ): Promise<import('@bookleaf/types').CheckoutScanResult>;
+  adminReturnByAccession(
+    institutionId: number,
+    accession: string,
+  ): Promise<import('@bookleaf/types').ReturnScanResult>;
   adminResolvePolicy(
     institutionId: number,
     userId: number,

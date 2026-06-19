@@ -176,6 +176,7 @@ export function createBridgeAdapter(queryRN: QueryFn): DbAdapter {
     adminResolvePolicy: () => {
       throw new Error('Policy resolution is not supported on mobile');
     },
+    adminResolvePatron: () => { throw new Error('adminResolvePatron is not supported on mobile'); },
     adminListLoanRules: () => {
       throw new Error('Loan rule management is not supported on mobile');
     },
@@ -254,5 +255,7 @@ export function createBridgeAdapter(queryRN: QueryFn): DbAdapter {
     adminBulkImport: () => {
       throw new Error('Bulk import is not supported on mobile');
     },
+    adminCheckoutByAccession: () => { throw new Error('adminCheckoutByAccession is not supported on mobile'); },
+    adminReturnByAccession: () => { throw new Error('adminReturnByAccession is not supported on mobile'); },
   };
 }
